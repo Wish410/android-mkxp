@@ -8,9 +8,10 @@ import java.io.File;
 
 public class MKXPActivity extends SDLActivity
 {
-    /*static {
-		System.loadLibrary("mkxp");
-    }*/
+    public static String getConfPath(){
+        return "/sdcard/mkxp/mkxp.conf";
+    }
+
     public static String getLibDir(Context c) {
         String s = c.getApplicationInfo().nativeLibraryDir;
         if (!s.endsWith(File.separator)) {

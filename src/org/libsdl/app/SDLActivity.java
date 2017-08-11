@@ -30,6 +30,8 @@ import android.media.*;
 import android.hardware.*;
 import android.content.pm.ActivityInfo;
 
+import org.ancurio.mkxp.MKXPActivity;
+
 /**
     SDL Activity
 */
@@ -79,8 +81,7 @@ public class SDLActivity extends Activity {
      */
     protected String[] getLibraries() {
         return new String[] {
-            "mkxp_wrapper",
-			"mkxp"
+            "mkxp_wrapper", "mkxp"
         };
     }
 
@@ -98,7 +99,7 @@ public class SDLActivity extends Activity {
      * @return arguments for the native application.
      */
     protected String[] getArguments() {
-        return new String[0];
+        return new String[]{MKXPActivity.getConfPath()};
     }
 
     public static void initialize() {
