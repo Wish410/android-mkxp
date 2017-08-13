@@ -56,7 +56,7 @@ int checkLibError()
 	return 0;
 }
 
-JNIEXPORT jint JNICALL Java_org_ancurio_mkxp_MKXPActivity_loadLibs(JNIEnv * env, jclass jcls, jstring path)
+JNIEXPORT jint JNICALL Java_org_ancurio_mkxp_MKXP_loadLibs(JNIEnv * env, jclass jcls, jstring path)
 {
 	if(!libs_loaded)
 	{
@@ -102,7 +102,7 @@ JNIEXPORT jint JNICALL Java_org_ancurio_mkxp_MKXPActivity_loadLibs(JNIEnv * env,
 	return 0;
 }
 
-JNIEXPORT int JNICALL Java_org_ancurio_mkxp_MKXPActivity_unloadLibs(JNIEnv * env, jclass jcls)
+JNIEXPORT int JNICALL Java_org_ancurio_mkxp_MKXP_unloadLibs(JNIEnv * env, jclass jcls)
 {
 	if(libs_loaded && !libHandle)
 	{

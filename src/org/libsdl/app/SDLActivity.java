@@ -30,6 +30,7 @@ import android.media.*;
 import android.hardware.*;
 import android.content.pm.ActivityInfo;
 
+import org.ancurio.mkxp.MKXP;
 import org.ancurio.mkxp.MKXPActivity;
 /* FIXME: Remove this ASAP */
 import static org.libsdl.app.SDLActivity.mHapticHandler;
@@ -87,7 +88,7 @@ public class SDLActivity extends Activity {
      */
     protected String[] getLibraries() {
         return new String[] {
-            "mkxp_wrapper", "mkxp"
+            "mkxp_wrapper"
         };
     }
 
@@ -96,6 +97,7 @@ public class SDLActivity extends Activity {
        for (String lib : getLibraries()) {
           System.loadLibrary(lib);
        }
+	   MKXP.loadLibs(MKXP.getLibDir(this) + "libmkxp.so");
     }
 
     /**

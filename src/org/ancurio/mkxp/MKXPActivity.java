@@ -1,24 +1,9 @@
 package org.ancurio.mkxp;
-
-import android.content.Context;
-
 import org.libsdl.app.SDLActivity;
-
-import java.io.File;
 
 public class MKXPActivity extends SDLActivity
 {
     public static String getConfPath(){
         return "/sdcard/mkxp/mkxp.conf";
     }
-
-    public static String getLibDir(Context c) {
-        String s = c.getApplicationInfo().nativeLibraryDir;
-        if (!s.endsWith(File.separator)) {
-            s += File.separator;
-        }
-        return s;
-    }
-    public static native void loadLibs(String path);
-    public static native void unloadLibs();
 }
