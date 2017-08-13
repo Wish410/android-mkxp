@@ -1,6 +1,7 @@
 package org.ancurio.mkxp;
+
 import android.content.Context;
-import org.libsdl.app.SDLActivity;
+
 import java.io.File;
 
 public class MKXP
