@@ -1,16 +1,24 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.3.0'
     }
 }
 allprojects {
 
     repositories {
         mavenCentral()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
     }
 }
 
@@ -18,12 +26,12 @@ apply plugin: 'com.android.application'
 
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:25.3.1'
+    implementation 'com.android.support:appcompat-v7:25.3.1'
 }
 
 android {
-    buildToolsVersion "25.0.3"
-    compileSdkVersion "android-25"
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -35,5 +43,9 @@ android {
             assets.srcDirs = ['assets']
             jniLibs.srcDirs = ['libs']
         }
+    }
+    defaultConfig {
+        minSdkVersion 19
+        targetSdkVersion 28
     }
 }
