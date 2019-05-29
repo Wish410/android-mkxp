@@ -42,7 +42,7 @@ ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 	LIBPIXMAN_CFLAGS += -DUSE_ARM_NEON -DUSE_ARM_SIMD
 
 endif
-LIBPIXMAN_CFLAGS:=-D_USE_MATH_DEFINES -DPIXMAN_NO_TLS -DPACKAGE="android-cairo" -include "limits.h"
+LIBPIXMAN_CFLAGS:=-D_USE_MATH_DEFINES -O3 -DPIXMAN_NO_TLS -DPACKAGE="android-cairo" -include "limits.h"
 
 
 
