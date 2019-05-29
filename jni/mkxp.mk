@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)/mkxp
 include $(CLEAR_VARS)
 
 LOCAL_MODULE:= mkxp
-LOCAL_CPPFLAGS:=-DSHARED_FLUID -DGLES2_HEADER
+LOCAL_CPPFLAGS:=-DSHARED_FLUID -DGLES2_HEADER -O3
 
 ifeq ($(TARGET_ARCH_ABI), armeabi)
 	LOCAL_CPPFLAGS += -DARCH_32BIT
@@ -42,6 +42,7 @@ LOCAL_SRC_FILES := \
 	$(LOCAL_PATH)/src/autotiles.cpp \
 	$(LOCAL_PATH)/src/graphics.cpp \
 	$(LOCAL_PATH)/src/gl-debug.cpp \
+	$(LOCAL_PATH)/src/iniconfig.cpp \
 	$(LOCAL_PATH)/src/etc.cpp \
 	$(LOCAL_PATH)/src/config.cpp \
 	$(LOCAL_PATH)/src/settingsmenu.cpp \
@@ -83,7 +84,7 @@ LOCAL_SRC_FILES := \
 	$(LOCAL_PATH)/binding-mri/windowvx-binding.cpp \
 	$(LOCAL_PATH)/binding-mri/tilemapvx-binding.cpp \
 
-LOCAL_STATIC_LIBRARIES:=vorbis physfs sigc++ pixman boost_program_options ruby SDL2_static SDL2_ttf SDL2_sound SDL2_image fluidsynth ogg OpenAL
-LOCAL_SHARED_LIBRARIES:=mkxp_wrapper
+LOCAL_STATIC_LIBRARIES:=vorbis physfs sigc++ pixman boost_program_options ruby SDL2_static SDL2_ttf SDL2_sound SDL2_image ogg OpenAL
+LOCAL_SHARED_LIBRARIES:=mkxp_wrapper fluidsynth
 LOCAL_LDLIBS:=-lz -llog -ldl -lm -lOpenSLES
 include $(BUILD_SHARED_LIBRARY)
