@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">JoiPlay RPG Maker Plugin</string>
+    <string name="checking_config">Checking plugin configuration...</string>
+    <string name="copying_default_res">Copying default resources...</string>
+    <string name="rtpDialog_title">RTP Selection</string>
+    <string name="rtpDialog_message">Please choose RTP variant.
+        \nDefault runtime package has null assets and only supports RTP included games.
+        \nYou need runtime packages from Enterbrain to play games that needs RTP.
+        \nIf you choose Enterbrain variant, runtime package will be downloaded for once. </string>
+    <string name="default_">Default</string>
+    <string name="enterbrain">Enterbrain (%1$s)</string>
+    <string name="downloading_rtp">"Downloading runtime package...    %1$s\n        Speed : %2$s        Eta : %3$s"</string>
+    <string name="extracting_rtp">"Extracting runtime package...    %1$s\n</string>
+    <string name="extracting_failed">Extracting failed.</string>
+    <string name="got_no_data">Could not get data from JoiPlayer.</string>
+    <string name="waiting_network">Waiting network...</string>
+    <string name="download_error">Could not download file.</string>
+    <string name="download_paused">Download paused.</string>
+</resources>

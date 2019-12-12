@@ -1,3 +1,3 @@
-# Android MKXP
+# Android MKXP for JoiPlay
 
-Mobile port of MKXP. To build, use latest NDK. The java part is currently too shabby to be used properly, but when setup properly it should work fine!
+Mobile port of MKXP for JoiPlay. Modified to use as a plugin but can be edited for other purposes. Source is pretty dirty but it should work on most cases.
