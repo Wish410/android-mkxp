@@ -8,8 +8,8 @@ LOCAL_CFLAGS:= -fvisibility=hidden -DRUBY_EXPORT  -pthread
 LOCAL_CFLAGS+= -ffunction-sections -fdata-sections
 
 LOCAL_C_INCLUDES:= \
-        $(LOCAL_PATH)\
-		$(LOCAL_PATH)/ext/zlib\
+        $(LOCAL_PATH) \
+        $(LOCAL_PATH)/ext/zlib \
         $(LOCAL_PATH)/include
 		
 ifeq ($(TARGET_ARCH_ABI), armeabi)
@@ -24,80 +24,80 @@ else ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
 endif
 		
 LOCAL_SRC_FILES:= \
-        dln.c\
-        encoding.c\
-        version.c\
-        array.c\
-        bignum.c\
-        class.c\
-        compar.c\
-        complex.c\
-        dir.c\
-        dln_find.c\
-        enum.c\
-        enumerator.c\
-        error.c\
-        eval.c\
-        load.c\
-        proc.c\
-        file.c\
-        gc.c\
-        hash.c\
-        inits.c\
-        io.c\
-        marshal.c\
-        math.c\
-        node.c\
-        numeric.c\
-        object.c\
-        pack.c\
-        parse.c\
-        process.c\
-        random.c\
-        range.c\
-        rational.c\
-        re.c\
-        regcomp.c\
-        regenc.c\
-        regerror.c\
-        regexec.c\
-        regparse.c\
-        regsyntax.c\
-        ruby.c\
-        safe.c\
-        signal.c\
-        sprintf.c\
-        st.c\
-        strftime.c\
-        string.c\
-        struct.c\
-        time.c\
-        transcode.c\
-        util.c\
-        variable.c\
-        compile.c\
-        debug.c\
-        iseq.c\
-        vm.c\
-        vm_dump.c\
-        thread.c\
-        cont.c\
-        enc/ascii.c\
-        enc/us_ascii.c\
-        enc/unicode.c\
-        enc/utf_8.c\
-		enc/shift_jis.c\
-		enc/trans/japanese_sjis.c\
-        newline.c\
-        missing/memcmp.c\
-        missing/crypt.c\
-        missing/isinf.c\
-		missing/strlcat.c\
-		missing/strlcpy.c\
-		missing/langinfo.c\
-        miniprelude.c\
-        dmyext.c\
-		ext/zlib/zlib.c
+        $(LOCAL_PATH)/dln.c \
+        $(LOCAL_PATH)/encoding.c \
+        $(LOCAL_PATH)/version.c \
+        $(LOCAL_PATH)/array.c \
+        $(LOCAL_PATH)/bignum.c \
+        $(LOCAL_PATH)/class.c \
+        $(LOCAL_PATH)/compar.c \
+        $(LOCAL_PATH)/complex.c \
+        $(LOCAL_PATH)/dir.c \
+        $(LOCAL_PATH)/dln_find.c \
+        $(LOCAL_PATH)/enum.c \
+        $(LOCAL_PATH)/enumerator.c \
+        $(LOCAL_PATH)/error.c \
+        $(LOCAL_PATH)/eval.c \
+        $(LOCAL_PATH)/load.c \
+        $(LOCAL_PATH)/proc.c \
+        $(LOCAL_PATH)/file.c \
+        $(LOCAL_PATH)/gc.c \
+        $(LOCAL_PATH)/hash.c \
+        $(LOCAL_PATH)/inits.c \
+        $(LOCAL_PATH)/io.c \
+        $(LOCAL_PATH)/marshal.c \
+        $(LOCAL_PATH)/math.c \
+        $(LOCAL_PATH)/node.c \
+        $(LOCAL_PATH)/numeric.c \
+        $(LOCAL_PATH)/object.c \
+        $(LOCAL_PATH)/pack.c \
+        $(LOCAL_PATH)/parse.c \
+        $(LOCAL_PATH)/process.c \
+        $(LOCAL_PATH)/random.c.\
+        $(LOCAL_PATH)/range.c \
+        $(LOCAL_PATH)/rational.c \
+        $(LOCAL_PATH)/re.c \
+        $(LOCAL_PATH)/regcomp.c \
+        $(LOCAL_PATH)/regenc.c \
+        $(LOCAL_PATH)/regerror.c \
+        $(LOCAL_PATH)/regexec.c \
+        $(LOCAL_PATH)/regparse.c \
+        $(LOCAL_PATH)/regsyntax.c \
+        $(LOCAL_PATH)/ruby.c \
+        $(LOCAL_PATH)/safe.c \
+        $(LOCAL_PATH)/signal.c \
+        $(LOCAL_PATH)/sprintf.c \
+        $(LOCAL_PATH)/st.c \
+        $(LOCAL_PATH)/strftime.c \
+        $(LOCAL_PATH)/string.c \
+        $(LOCAL_PATH)/struct.c \
+        $(LOCAL_PATH)/time.c \
+        $(LOCAL_PATH)/transcode.c \
+        $(LOCAL_PATH)/util.c \
+        $(LOCAL_PATH)/variable.c \
+        $(LOCAL_PATH)/compile.c \
+        $(LOCAL_PATH)/debug.c \
+        $(LOCAL_PATH)/iseq.c \
+        $(LOCAL_PATH)/vm.c \
+        $(LOCAL_PATH)/vm_dump.c \
+        $(LOCAL_PATH)/thread.c \
+        $(LOCAL_PATH)/cont.c \
+        $(LOCAL_PATH)/enc/ascii.c \
+        $(LOCAL_PATH)/enc/us_ascii.c \
+        $(LOCAL_PATH)/enc/unicode.c \
+        $(LOCAL_PATH)/enc/utf_8.c \
+        $(LOCAL_PATH)/enc/shift_jis.c \
+        $(LOCAL_PATH)/enc/trans/japanese_sjis.c \
+        $(LOCAL_PATH)/newline.c \
+        $(LOCAL_PATH)/missing/memcmp.c \
+        $(LOCAL_PATH)/missing/crypt.c \
+        $(LOCAL_PATH)/missing/isinf.c \
+        $(LOCAL_PATH)/missing/strlcat.c \
+        $(LOCAL_PATH)/missing/strlcpy.c \
+        $(LOCAL_PATH)/missing/langinfo.c \
+        $(LOCAL_PATH)/miniprelude.c \
+        $(LOCAL_PATH)/dmyext.c \
+        $(LOCAL_PATH)/ext/zlib/zlib.c
 LOCAL_MODULE := ruby
 
 include $(BUILD_STATIC_LIBRARY)
