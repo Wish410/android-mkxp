@@ -1,28 +1,31 @@
-[submodule "app/src/main/jni/SDL_ttf"]
-	path = app/src/main/jni/SDL_ttf
-	url = https://github.com/radialapps/SDL2_ttf.git
-[submodule "app/src/main/jni/SDL_image"]
-	path = app/src/main/jni/SDL_image
-	url = https://github.com/radialapps/SDL2_image.git
-[submodule "app/src/main/jni/SDL"]
-	path = app/src/main/jni/SDL
-	url = https://github.com/spurious/SDL-mirror.git
-[submodule "app/src/main/jni/pixman"]
-	path = app/src/main/jni/pixman
-	url = https://anongit.freedesktop.org/git/pixman.git
-[submodule "app/src/main/jni/ogg"]
-	path = app/src/main/jni/ogg
-	url = https://github.com/xiph/ogg.git
-[submodule "app/src/main/jni/physfs"]
-	path = app/src/main/jni/physfs
-	url = https://github.com/criptych/physfs.git
-[submodule "app/src/main/jni/SDL_sound"]
-	path = app/src/main/jni/SDL_sound
-	url = https://github.com/Ancurio/SDL_sound.git
-[submodule "app/src/main/jni/fluidlite"]
-	path = app/src/main/jni/fluidlite
-	url = https://github.com/divideconcept/FluidLite
 [submodule "app/src/main/jni/mkxp"]
 	path = app/src/main/jni/mkxp
 	url = https://github.com/joiplay/mkxp
 	branch = master
+[submodule "app/src/main/jni/fluidlite"]
+	path = app/src/main/jni/fluidlite
+	url = https://github.com/divideconcept/FluidLite
+	branch = master
+[submodule "app/src/main/jni/SDL"]
+	path = app/src/main/jni/SDL
+	url = https://github.com/spurious/SDL-mirror
+	branch = master
+[submodule "app/src/main/jni/SDL_image"]
+	path = app/src/main/jni/SDL_image
+	url = https://github.com/radialapps/SDL2_image
+	branch = master
+[submodule "app/src/main/jni/SDL_sound"]
+	path = app/src/main/jni/SDL_sound
+	url = https://github.com/Ancurio/SDL_sound
+	branch = master
+[submodule "app/src/main/jni/SDL_ttf"]
+	path = app/src/main/jni/SDL_ttf
+	url = https://github.com/pulsejet/SDL2_ttf
+	branch = master
+[submodule "app/src/main/jni/ogg"]
+	path = app/src/main/jni/ogg
+	url = https://github.com/xiph/ogg
+	branch = master
+[submodule "app/src/main/jni/physfs"]
+	path = app/src/main/jni/physfs
+	url = https://github.com/criptych/physfs
