@@ -1,6 +1,6 @@
 [submodule "jni/mkxp"]
 	path = jni/mkxp
-	url = https://github.com/radialapps/mkxp
+	url = https://github.com/joiplay/mkxp
 [submodule "jni/SDL_ttf"]
 	path = jni/SDL_ttf
 	url = https://github.com/radialapps/SDL2_ttf.git
@@ -22,3 +22,9 @@
 [submodule "jni/SDL_sound"]
 	path = jni/SDL_sound
 	url = https://github.com/Ancurio/SDL_sound.git
+[submodule "jni/jni/fluidlite"]
+	path = jni/jni/fluidlite
+	url = https://github.com/divideconcept/FluidLite
+[submodule "jni/fluidlite"]
+	path = jni/fluidlite
+	url = https://github.com/divideconcept/FluidLite

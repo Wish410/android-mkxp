@@ -1,5 +1,5 @@
 #
-# $Id: core.rb 36954 2012-09-12 23:04:41Z zzak $
+# $Id: core.rb 25189 2009-10-02 12:04:37Z akr $
 #
 # Copyright (c) 2003-2005 Minero Aoki
 #
@@ -12,8 +12,8 @@ require 'ripper.so'
 
 class Ripper
 
-  # Parses the given Ruby program read from +src+.
-  # +src+ must be a String or an IO or a object with a #gets method.
+  # Parses Ruby program read from _src_.
+  # _src_ must be a String or a IO or a object which has #gets method.
   def Ripper.parse(src, filename = '(ripper)', lineno = 1)
     new(src, filename, lineno).parse
   end
@@ -42,12 +42,12 @@ class Ripper
   end
 
   # This method is called when weak warning is produced by the parser.
-  # +fmt+ and +args+ is printf style.
+  # _fmt_ and _args_ is printf style.
   def warn(fmt, *args)
   end
 
   # This method is called when strong warning is produced by the parser.
-  # +fmt+ and +args+ is printf style.
+  # _fmt_ and _args_ is printf style.
   def warning(fmt, *args)
   end
 

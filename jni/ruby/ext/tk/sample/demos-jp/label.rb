@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # label widget demo (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($label_demo) && $label_demo
   $label_demo.destroy
   $label_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $label_demo = TkToplevel.new {|w|
   title("Label Demonstration")
   iconname("label")
@@ -18,20 +18,20 @@ $label_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($label_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 msg = TkLabel.new(base_frame) {
   font $font
   wraplength '4i'
   justify 'left'
-  text "ä¸‹ã«ã¯5ã¤ã®ãƒ©ãƒ™ãƒ«ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚å·¦å´ã«ã¯ãƒ†ã‚­ã‚¹ãƒˆãƒ©ãƒ™ãƒ«ãŒ3ã¤ã‚ã‚Šã€å³å´ã«ã¯ãƒ“ãƒƒãƒˆãƒžãƒƒãƒ—ãƒ©ãƒ™ãƒ«ã¨ãƒ†ã‚­ã‚¹ãƒˆãƒ©ãƒ™ãƒ«ãŒã‚ã‚Šã¾ã™ã€‚ãƒ©ãƒ™ãƒ«ã¨ã„ã†ã®ã¯ã‚ã¾ã‚Šé¢ç™½ã„ã‚‚ã®ã§ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚ãªãœãªã‚‰çœºã‚ã‚‹ä»¥å¤–ä½•ã‚‚ã§ããªã„ã‹ã‚‰ã§ã™ã€‚"
+  text "²¼¤Ë¤Ï5¤Ä¤Î¥é¥Ù¥ë¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£º¸Â¦¤Ë¤Ï¥Æ¥­¥¹¥È¥é¥Ù¥ë¤¬3¤Ä¤¢¤ê¡¢±¦Â¦¤Ë¤Ï¥Ó¥Ã¥È¥Þ¥Ã¥×¥é¥Ù¥ë¤È¥Æ¥­¥¹¥È¥é¥Ù¥ë¤¬¤¢¤ê¤Þ¤¹¡£¥é¥Ù¥ë¤È¤¤¤¦¤Î¤Ï¤¢¤Þ¤êÌÌÇò¤¤¤â¤Î¤Ç¤Ï¤¢¤ê¤Þ¤»¤ó¡£¤Ê¤¼¤Ê¤éÄ¯¤á¤ë°Ê³°²¿¤â¤Ç¤­¤Ê¤¤¤«¤é¤Ç¤¹¡£"
 }
 msg.pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $label_demo
       $label_demo = nil
@@ -40,23 +40,23 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'label'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# label demo ç”¨ãƒ•ãƒ¬ãƒ¼ãƒ ç”Ÿæˆ
+# label demo ÍÑ¥Õ¥ì¡¼¥àÀ¸À®
 f_left = TkFrame.new(base_frame)
 f_right = TkFrame.new(base_frame)
 [f_left, f_right].each{|w| w.pack('side'=>'left', 'expand'=>'yes',
                                   'padx'=>10, 'pady'=>10, 'fill'=>'both')}
 
-# label ç”Ÿæˆ
-[ TkLabel.new(f_left, 'text'=>'æœ€åˆã®ãƒ©ãƒ™ãƒ«'),
-  TkLabel.new(f_left, 'text'=>'2 ç•ªç›®ã€‚ã¡ã‚‡ã£ã¨æµ®ãä¸ŠãŒã‚‰ã›ã¦ã¿ã¾ã—ãŸ',
+# label À¸À®
+[ TkLabel.new(f_left, 'text'=>'ºÇ½é¤Î¥é¥Ù¥ë'),
+  TkLabel.new(f_left, 'text'=>'2 ÈÖÌÜ¡£¤Á¤ç¤Ã¤ÈÉâ¤­¾å¤¬¤é¤»¤Æ¤ß¤Þ¤·¤¿',
               'relief'=>'raised'),
-  TkLabel.new(f_left, 'text'=>'3 ç•ªç›®ã€‚æ²ˆã‚“ã§ã„ã¾ã™ ', 'relief'=>'sunken')
+  TkLabel.new(f_left, 'text'=>'3 ÈÖÌÜ¡£ÄÀ¤ó¤Ç¤¤¤Þ¤¹ ', 'relief'=>'sunken')
 ].each{|w| w.pack('side'=>'top', 'expand'=>'yes', 'pady'=>2, 'anchor'=>'w')}
 
 # TkLabel.new(f_right) {
@@ -66,4 +66,4 @@ Tk::Label.new(f_right) {
   relief 'sunken'
 }.pack('side'=>'top')
 
-TkLabel.new(f_right) { text 'Tcl/Tk æ‰€æœ‰è€…' }.pack('side'=>'top')
+TkLabel.new(f_right) { text 'Tcl/Tk ½êÍ­¼Ô' }.pack('side'=>'top')

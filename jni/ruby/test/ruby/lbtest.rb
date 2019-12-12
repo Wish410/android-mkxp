@@ -35,15 +35,14 @@ lb = LocalBarrier.new(n)
 
 (n - 1).times do |i|
   Thread.start do
-    sleep((rand(n) + 1) / 100.0)
-    print "#{i}: done\n"
+    sleep((rand(n) + 1) / 10.0)
+    puts "#{i}: done"
     lb.sync
-    print "#{i}: cont\n"
+    puts "#{i}: cont"
   end
 end
 
 lb.sync
-print "#{n-1}: cont\n"
-# lb.join # [ruby-dev:30653]
+puts "#{n-1}: cone"
 
-print "exit.\n"
+puts "exit."

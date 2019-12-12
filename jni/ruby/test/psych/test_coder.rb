@@ -85,19 +85,8 @@ module Psych
       end
 
       def encode_with coder
-        coder.represent_map self.class.name, { "string" => 'a', :symbol => 'b' }
+        coder.represent_map self.class.name, { 'a' => 'b' }
       end
-    end
-
-    class RepresentWithObject
-      def encode_with coder
-        coder.represent_object self.class.name, 20
-      end
-    end
-
-    def test_represent_with_object
-      thing = Psych.load(Psych.dump(RepresentWithObject.new))
-      assert_equal 20, thing
     end
 
     def test_json_dump_exclude_tag
@@ -131,7 +120,7 @@ module Psych
 
     def test_represent_map
       thing = Psych.load(Psych.dump(RepresentWithMap.new))
-      assert_equal({ "string" => 'a', :symbol => 'b' }, thing.map)
+      assert_equal({ 'a' => 'b' }, thing.map)
     end
 
     def test_represent_sequence

@@ -1,5 +1,5 @@
-#! /usr/bin/ruby -Ku
-# -*- coding: utf-8 -*-
+#! /usr/bin/ruby -Ke
+# -*- encoding: euc-jp -*-
 
 class Board
   def clr
@@ -13,19 +13,19 @@ class Board
   end
   def put(x, y, col, str)
     pos(x,y); colorstr(43,str)
-    pos(0,@hi); print "æ®‹ã‚Š:",@mc,"/",@total,"   "
+    pos(0,@hi); print "»Ä¤ê:",@mc,"/",@total,"   "
     pos(x,y)
   end
   private :clr, :pos, :colorstr, :put
-  CHR=["ãƒ»","ï¼‘","ï¼’","ï¼“","ï¼”","ï¼•","ï¼–","ï¼—","ï¼˜","â˜…","â—","@@"]
+  CHR=["¡¦","£±","£²","£³","£´","£µ","£¶","£·","£¸","¡ú","¡ü","@@"]
   COL=[46,43,45] # default,opened,over
   def initialize(h,w,m)
-    # ã‚²ãƒ¼ãƒ ç›¤ã®ç”Ÿæˆ(h:ç¸¦ï¼Œw:æ¨ªï¼Œm:çˆ†å¼¾ã®æ•°)
+    # ¥²¡¼¥àÈ×¤ÎÀ¸À®(h:½Ä¡¤w:²£¡¤m:ÇúÃÆ¤Î¿ô)
     @hi=h; @wi=w; @m=m
     reset
   end
   def reset
-    # ã‚²ãƒ¼ãƒ ç›¤ã‚’(å†)åˆæœŸåŒ–ã™ã‚‹
+    # ¥²¡¼¥àÈ×¤ò(ºÆ)½é´ü²½¤¹¤ë
     srand()
     @cx=0; @cy=0; @mc=@m
     @over=false
@@ -47,7 +47,7 @@ class Board
     pos(@cx,@cy)
   end
   def mark
-    # ç¾åœ¨ã®ã‚«ãƒ¼ã‚½ãƒ«ä½ç½®ã«ãƒãƒ¼ã‚¯ã‚’ã¤ã‘ã‚‹
+    # ¸½ºß¤Î¥«¡¼¥½¥ë°ÌÃÖ¤Ë¥Ş¡¼¥¯¤ò¤Ä¤±¤ë
     if @state[@wi*@cy+@cx] != nil then return end
     @state[@wi*@cy+@cx] = "MARK"
     @mc=@mc-1;
@@ -55,8 +55,8 @@ class Board
     put(@cx, @cy, COL[1], CHR[9])
   end
   def open(x=@cx,y=@cy)
-    # ç¾åœ¨ã®ã‚«ãƒ¼ã‚½ãƒ«ä½ç½®ã‚’ã‚ªãƒ¼ãƒ—ãƒ³ã«ã™ã‚‹
-    # çˆ†å¼¾ãŒã‚ã‚Œã°ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼
+    # ¸½ºß¤Î¥«¡¼¥½¥ë°ÌÃÖ¤ò¥ª¡¼¥×¥ó¤Ë¤¹¤ë
+    # ÇúÃÆ¤¬¤¢¤ì¤Ğ¥²¡¼¥à¥ª¡¼¥Ğ¡¼
     if @state[@wi*y+x] =="OPEN"  then return 0 end
     if @state[@wi*y+x] == nil then @total=@total-1 end
     if @state[@wi*y+x] =="MARK" then @mc=@mc+1 end
@@ -76,7 +76,7 @@ class Board
     pos(@cx,@cy)
   end
   def fetch(x,y)
-    # (x,y)ã®ä½ç½®ã®çˆ†å¼¾ã®æ•°(0 or 1)ã‚’è¿”ã™
+    # (x,y)¤Î°ÌÃÖ¤ÎÇúÃÆ¤Î¿ô(0 or 1)¤òÊÖ¤¹
     if x < 0 then 0
     elsif x >= @wi then 0
     elsif y < 0 then 0
@@ -86,13 +86,13 @@ class Board
     end
   end
   def count(x,y)
-    # (x,y)ã«éš£æ¥ã™ã‚‹çˆ†å¼¾ã®æ•°ã‚’è¿”ã™
+    # (x,y)¤ËÎÙÀÜ¤¹¤ëÇúÃÆ¤Î¿ô¤òÊÖ¤¹
     fetch(x-1,y-1)+fetch(x,y-1)+fetch(x+1,y-1)+
     fetch(x-1,y)  +             fetch(x+1,y)+
     fetch(x-1,y+1)+fetch(x,y+1)+fetch(x+1,y+1)
   end
   def over(win)
-    # ã‚²ãƒ¼ãƒ ã®çµ‚äº†
+    # ¥²¡¼¥à¤Î½ªÎ»
     quit
     unless win
       pos(@cx,@cy); print CHR[11]
@@ -103,8 +103,8 @@ class Board
     end
   end
   def over?
-    # ã‚²ãƒ¼ãƒ ã®çµ‚äº†ãƒã‚§ãƒƒã‚¯
-    # çµ‚äº†å‡¦ç†ã‚‚å‘¼ã³å‡ºã™
+    # ¥²¡¼¥à¤Î½ªÎ»¥Á¥§¥Ã¥¯
+    # ½ªÎ»½èÍı¤â¸Æ¤Ó½Ğ¤¹
     remain = (@mc+@total == 0)
     if @over || remain
       over(remain)
@@ -114,8 +114,8 @@ class Board
     end
   end
   def quit
-    # ã‚²ãƒ¼ãƒ ã®ä¸­æ–­(ã¾ãŸã¯çµ‚äº†)
-    # ç›¤é¢ã‚’å…¨ã¦è¦‹ã›ã‚‹
+    # ¥²¡¼¥à¤ÎÃæÃÇ(¤Ş¤¿¤Ï½ªÎ»)
+    # È×ÌÌ¤òÁ´¤Æ¸«¤»¤ë
     @hi.times do|y|
       pos(0,y)
       @wi.times do|x|
@@ -125,19 +125,19 @@ class Board
     end
   end
   def down
-    # ã‚«ãƒ¼ã‚½ãƒ«ã‚’ä¸‹ã«
+    # ¥«¡¼¥½¥ë¤ò²¼¤Ë
     if @cy < @hi-1 then @cy=@cy+1; pos(@cx, @cy) end
   end
   def up
-    # ã‚«ãƒ¼ã‚½ãƒ«ã‚’ä¸Šã«
+    # ¥«¡¼¥½¥ë¤ò¾å¤Ë
     if @cy > 0 then @cy=@cy-1; pos(@cx, @cy) end
   end
   def left
-    # ã‚«ãƒ¼ã‚½ãƒ«ã‚’å·¦ã«
+    # ¥«¡¼¥½¥ë¤òº¸¤Ë
     if @cx > 0 then @cx=@cx-1; pos(@cx, @cy) end
   end
   def right
-    # ã‚«ãƒ¼ã‚½ãƒ«ã‚’å³ã«
+    # ¥«¡¼¥½¥ë¤ò±¦¤Ë
     if @cx < @wi-1 then @cx=@cx+1; pos(@cx, @cy) end
   end
 end

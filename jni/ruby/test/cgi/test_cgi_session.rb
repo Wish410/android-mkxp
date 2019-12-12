@@ -7,7 +7,8 @@ require 'tmpdir'
 
 class CGISessionTest < Test::Unit::TestCase
   def setup
-    @session_dir = Dir.mktmpdir(%w'session dir')
+    @session_dir = File.join(File.dirname(__FILE__), 'session_dir')
+    FileUtils.mkdir_p @session_dir
   end
 
   def teardown
@@ -110,7 +111,7 @@ class CGISessionTest < Test::Unit::TestCase
     assert_equal(value1,session["key1"])
     assert_equal(value2,session["key2"])
     assert_equal("foo",session.session_id)
-    #session_id=session.session_id
+    session_id=session.session_id
     session.close
     $stdout = StringIO.new
     cgi.out{""}

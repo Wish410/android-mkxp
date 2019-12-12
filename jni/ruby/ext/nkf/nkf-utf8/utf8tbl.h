@@ -1,6 +1,7 @@
 /*
  * utf8tbl.h - Header file for Convertion Table
  *
+ * $Id: utf8tbl.h 25189 2009-10-02 12:04:37Z akr $
  */
 
 #ifndef _UTF8TBL_H_
@@ -13,17 +14,7 @@ extern const unsigned short euc_to_utf8_1byte[];
 extern const unsigned short *const euc_to_utf8_2bytes[];
 extern const unsigned short *const euc_to_utf8_2bytes_ms[];
 extern const unsigned short *const euc_to_utf8_2bytes_mac[];
-extern const unsigned short *const euc_to_utf8_2bytes_x0213[];
 extern const unsigned short *const x0212_to_utf8_2bytes[];
-extern const unsigned short *const x0212_to_utf8_2bytes_x0213[];
-#define sizeof_x0213_combining_chars 5
-#define sizeof_x0213_combining_table 25
-#define sizeof_x0213_1_surrogate_table 26
-#define sizeof_x0213_2_surrogate_table 277
-extern const unsigned short x0213_combining_chars[sizeof_x0213_combining_chars];
-extern const unsigned short x0213_combining_table[sizeof_x0213_combining_table][3];
-extern const unsigned short x0213_1_surrogate_table[sizeof_x0213_1_surrogate_table][3];
-extern const unsigned short x0213_2_surrogate_table[sizeof_x0213_2_surrogate_table][3];
 #endif /* UTF8_OUTPUT_ENABLE */
 
 #ifdef UTF8_INPUT_ENABLE
@@ -35,12 +26,10 @@ extern const unsigned short *const utf8_to_euc_2bytes[];
 extern const unsigned short *const utf8_to_euc_2bytes_ms[];
 extern const unsigned short *const utf8_to_euc_2bytes_932[];
 extern const unsigned short *const utf8_to_euc_2bytes_mac[];
-extern const unsigned short *const utf8_to_euc_2bytes_x0213[];
 extern const unsigned short *const *const utf8_to_euc_3bytes[];
 extern const unsigned short *const *const utf8_to_euc_3bytes_ms[];
 extern const unsigned short *const *const utf8_to_euc_3bytes_932[];
 extern const unsigned short *const *const utf8_to_euc_3bytes_mac[];
-extern const unsigned short *const *const utf8_to_euc_3bytes_x0213[];
 #endif /* UTF8_INPUT_ENABLE */
 
 #ifdef UNICODE_NORMALIZATION

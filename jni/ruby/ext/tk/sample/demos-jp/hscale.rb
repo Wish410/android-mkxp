@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 require "tkcanvas"
 
 if defined?($hscale_demo) && $hscale_deom
@@ -18,16 +18,16 @@ msg = TkLabel.new(base_frame) {
   font $font
   wraplength '3.5i'
   justify 'left'
-  text "ä¸‹ã«ã¯çŸ¢å°ãŒ1ã¤ã¨æ°´å¹³ãªã‚¹ã‚±ãƒ¼ãƒ«ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚\
-ã‚¹ã‚±ãƒ¼ãƒ«ä¸Šã§ãƒžã‚¦ã‚¹ãƒœã‚¿ãƒ³1ã‚’ã‚¯ãƒªãƒƒã‚¯ã€ã¾ãŸã¯ãƒ‰ãƒ©ãƒƒã‚°ã™ã‚‹ã¨\
-çŸ¢å°ã®é•·ã•ã‚’å¤‰ãˆã‚‹ã“ã¨ãŒã§ãã¾ã™ã€‚"
+  text "²¼¤Ë¤ÏÌð°õ¤¬1¤Ä¤È¿åÊ¿¤Ê¥¹¥±¡¼¥ë¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£\
+¥¹¥±¡¼¥ë¾å¤Ç¥Þ¥¦¥¹¥Ü¥¿¥ó1¤ò¥¯¥ê¥Ã¥¯¡¢¤Þ¤¿¤Ï¥É¥é¥Ã¥°¤¹¤ë¤È\
+Ìð°õ¤ÎÄ¹¤µ¤òÊÑ¤¨¤ë¤³¤È¤¬¤Ç¤­¤Þ¤¹¡£"
 }
 msg.pack('side'=>'top')
 
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc {
       tmppath = $hscale_demo
       $hscale_demo = nil
@@ -36,7 +36,7 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc { showCode 'hscale' }
   }.pack('side'=>'left', 'expand'=>'yes')
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')

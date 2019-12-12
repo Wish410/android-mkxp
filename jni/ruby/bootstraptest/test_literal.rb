@@ -65,10 +65,8 @@ assert_equal ':a3c',            ':"a#{1+2}c".inspect'
 assert_equal 'Symbol',          ':"a#{1+2}c".class'
 
 # xstring
-unless nacl?
-  assert_equal "foo\n",           %q(`echo foo`)
-  assert_equal "foo\n",           %q(s = "foo"; `echo #{s}`)
-end
+assert_equal "foo\n",           %q(`echo foo`)
+assert_equal "foo\n",           %q(s = "foo"; `echo #{s}`)
 
 # regexp
 assert_equal '',                '//.source'
@@ -84,7 +82,7 @@ assert_equal '0',               're = /test/; re =~ "test"'
 assert_equal '0',               'str = "test"; /test/ =~ str'
 assert_equal '0',               're = /test/; str = "test"; re =~ str'
 
-# dynamic regexp
+# dynacmi regexp
 assert_equal 'regexp',          %q(/re#{'ge'}xp/.source)
 assert_equal 'Regexp',          %q(/re#{'ge'}xp/.class)
 
@@ -202,30 +200,3 @@ assert_equal 'ok', %q{
 assert_equal 'ok', %q{
   "#{}o""#{}k""#{}"
 }, '[ruby-core:25284]'
-
-assert_equal 'ok', %q{ #  long array literal
-  x = nil
-  eval "a = [#{(1..10_000).map{'x'}.join(", ")}]"
-  :ok
-}
-
-assert_equal 'ok', %q{ #  long array literal (optimized)
-  eval "a = [#{(1..10_000).to_a.join(", ")}]"
-  :ok
-}
-
-assert_equal 'ok', %q{ #  long hash literal
-  x = nil
-  eval "a = {#{(1..10_000).map{|n| "#{n} => x"}.join(', ')}}"
-  :ok
-}
-
-assert_equal 'ok', %q{ #  long hash literal (optimized)
-  eval "a = {#{(1..10_000).map{|n| "#{n} => #{n}"}.join(', ')}}"
-  :ok
-}
-
-assert_equal 'ok', %q{
-  [print(:ok), exit] # void literal with side-effect
-  :dummy
-}

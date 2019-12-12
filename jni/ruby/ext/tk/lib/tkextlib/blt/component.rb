@@ -1420,7 +1420,7 @@ module Tk::BLT
           tag.kind_of?(Marker)
         tag.id
       else
-        tag  # maybe an Array of configure parameters
+        tag  # maybe an Array of configure paramters
       end
     end
 

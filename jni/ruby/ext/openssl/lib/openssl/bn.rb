@@ -1,33 +1,26 @@
-#--
-#
-# $RCSfile$
-#
-# = Ruby-space definitions that completes C-space funcs for BN
-#
-# = Info
-# 'OpenSSL for Ruby 2' project
-# Copyright (C) 2002  Michal Rokos <m.rokos@sh.cvut.cz>
-# All rights reserved.
-#
-# = Licence
-# This program is licenced under the same licence as Ruby.
-# (See the file 'LICENCE'.)
-#
-# = Version
-# $Id: bn.rb 47647 2014-09-20 01:17:05Z akr $
-#
-#++
+=begin
+= $RCSfile$ -- Ruby-space definitions that completes C-space funcs for BN
+
+= Info
+  'OpenSSL for Ruby 2' project
+  Copyright (C) 2002  Michal Rokos <m.rokos@sh.cvut.cz>
+  All rights reserved.
+
+= Licence
+  This program is licenced under the same licence as Ruby.
+  (See the file 'LICENCE'.)
+
+= Version
+  $Id: bn.rb 30028 2010-12-02 08:05:48Z yugui $
+=end
+
+##
+# Should we care what if somebody require this file directly?
+#require 'openssl'
 
 module OpenSSL
   class BN
     include Comparable
-
-    def pretty_print(q)
-      q.object_group(self) {
-        q.text ' '
-        q.text to_i.to_s
-      }
-    end
   end # BN
 end # OpenSSL
 
@@ -35,11 +28,8 @@ end # OpenSSL
 # Add double dispatch to Integer
 #
 class Integer
-  # Casts an Integer as an OpenSSL::BN
-  #
-  # See `man bn` for more info.
   def to_bn
-    OpenSSL::BN::new(self)
+    OpenSSL::BN::new(self.to_s(16), 16)
   end
 end # Integer
 

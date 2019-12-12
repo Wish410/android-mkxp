@@ -14,7 +14,7 @@
 # NOTE: You can find Japanese version of this document at:
 # http://www.ruby-lang.org/ja/man/html/net_smtp.html
 #
-# $Id: smtp.rb 46793 2014-07-11 19:22:19Z kosaki $
+# $Id: smtp.rb 30324 2010-12-23 12:46:02Z yugui $
 #
 # See Net::SMTP for documentation.
 #
@@ -66,6 +66,8 @@ module Net
   end
 
   #
+  # = Net::SMTP
+  #
   # == What is This Library?
   #
   # This library provides functionality to send internet
@@ -76,9 +78,8 @@ module Net
   #
   # This library does NOT provide functions to compose internet mails.
   # You must create them by yourself. If you want better mail support,
-  # try RubyMail or TMail or search for alternatives in
-  # {RubyGems.org}[https://rubygems.org/] or {The Ruby
-  # Toolbox}[https://www.ruby-toolbox.com/].
+  # try RubyMail or TMail. You can get both libraries from RAA.
+  # (http://www.ruby-lang.org/en/raa.html)
   #
   # FYI: the official documentation on internet mail is: [RFC2822] (http://www.ietf.org/rfc/rfc2822.txt).
   #
@@ -171,7 +172,7 @@ module Net
   #
   class SMTP
 
-    Revision = %q$Revision: 46793 $.split[1]
+    Revision = %q$Revision: 30324 $.split[1]
 
     # The default SMTP port number, 25.
     def SMTP.default_port
@@ -216,7 +217,7 @@ module Net
       @started = false
       @open_timeout = 30
       @read_timeout = 60
-      @error_occurred = false
+      @error_occured = false
       @debug_output = nil
       @tls = false
       @starttls = false
@@ -228,6 +229,11 @@ module Net
       "#<#{self.class} #{@address}:#{@port} started=#{@started}>"
     end
 
+    # +true+ if the SMTP object uses ESMTP (which it does by default).
+    def esmtp?
+      @esmtp
+    end
+
     #
     # Set whether to use ESMTP or not.  This should be done before
     # calling #start.  Note that if #start is called in ESMTP mode,
@@ -235,10 +241,11 @@ module Net
     # object will automatically switch to plain SMTP mode and
     # retry (but not vice versa).
     #
-    attr_accessor :esmtp
+    def esmtp=(bool)
+      @esmtp = bool
+    end
 
-    # +true+ if the SMTP object uses ESMTP (which it does by default).
-    alias :esmtp? :esmtp
+    alias esmtp esmtp?
 
     # true if server advertises STARTTLS.
     # You cannot get valid value before opening SMTP session.
@@ -363,12 +370,12 @@ module Net
 
     # Seconds to wait while attempting to open a connection.
     # If the connection cannot be opened within this time, a
-    # Net::OpenTimeout is raised. The default value is 30 seconds.
+    # TimeoutError is raised.
     attr_accessor :open_timeout
 
     # Seconds to wait while reading one block (by one read(2) call).
     # If the read(2) call does not complete within this time, a
-    # Net::ReadTimeout is raised. The default value is 60 seconds.
+    # TimeoutError is raised.
     attr_reader :read_timeout
 
     # Set the number of seconds to wait until timing-out a read(2)
@@ -447,9 +454,8 @@ module Net
     # * Net::SMTPSyntaxError
     # * Net::SMTPFatalError
     # * Net::SMTPUnknownError
-    # * Net::OpenTimeout
-    # * Net::ReadTimeout
     # * IOError
+    # * TimeoutError
     #
     def SMTP.start(address, port = nil, helo = 'localhost',
                    user = nil, secret = nil, authtype = nil,
@@ -509,9 +515,8 @@ module Net
     # * Net::SMTPSyntaxError
     # * Net::SMTPFatalError
     # * Net::SMTPUnknownError
-    # * Net::OpenTimeout
-    # * Net::ReadTimeout
     # * IOError
+    # * TimeoutError
     #
     def start(helo = 'localhost',
               user = nil, secret = nil, authtype = nil)   # :yield: smtp
@@ -547,9 +552,7 @@ module Net
         check_auth_method(authtype || DEFAULT_AUTH_TYPE)
         check_auth_args user, secret
       end
-      s = Timeout.timeout(@open_timeout, Net::OpenTimeout) do
-        tcp_socket(@address, @port)
-      end
+      s = timeout(@open_timeout) { tcp_socket(@address, @port) }
       logging "Connection opened: #{@address}:#{@port}"
       @socket = new_internet_message_io(tls? ? tlsconnect(s) : s)
       check_response critical { recv_response() }
@@ -606,17 +609,17 @@ module Net
     rescue SMTPError
       if @esmtp
         @esmtp = false
-        @error_occurred = false
+        @error_occured = false
         retry
       end
       raise
     end
 
     def do_finish
-      quit if @socket and not @socket.closed? and not @error_occurred
+      quit if @socket and not @socket.closed? and not @error_occured
     ensure
       @started = false
-      @error_occurred = false
+      @error_occured = false
       @socket.close if @socket and not @socket.closed?
       @socket = nil
     end
@@ -654,8 +657,8 @@ module Net
     # * Net::SMTPSyntaxError
     # * Net::SMTPFatalError
     # * Net::SMTPUnknownError
-    # * Net::ReadTimeout
     # * IOError
+    # * TimeoutError
     #
     def send_message(msgstr, from_addr, *to_addrs)
       raise IOError, 'closed session' unless @socket
@@ -707,8 +710,8 @@ module Net
     # * Net::SMTPSyntaxError
     # * Net::SMTPFatalError
     # * Net::SMTPUnknownError
-    # * Net::ReadTimeout
     # * IOError
+    # * TimeoutError
     #
     def open_message_stream(from_addr, *to_addrs, &block)   # :yield: stream
       raise IOError, 'closed session' unless @socket
@@ -816,12 +819,6 @@ module Net
 
     public
 
-    # Aborts the current mail transaction
-
-    def rset
-      getok('RSET')
-    end
-
     def starttls
       getok('STARTTLS')
     end
@@ -901,17 +898,10 @@ module Net
       end
       res = critical {
         check_continue get_response('DATA')
-        socket_sync_bak = @socket.io.sync
-        begin
-          @socket.io.sync = false
-          if msgstr
-            @socket.write_message msgstr
-          else
-            @socket.write_message_by_block(&block)
-          end
-        ensure
-          @socket.io.flush
-          @socket.io.sync = socket_sync_bak
+        if msgstr
+          @socket.write_message msgstr
+        else
+          @socket.write_message_by_block(&block)
         end
         recv_response()
       }
@@ -949,12 +939,12 @@ module Net
       Response.parse(buf)
     end
 
-    def critical
-      return Response.parse('200 dummy reply code') if @error_occurred
+    def critical(&block)
+      return '200 dummy reply code' if @error_occured
       begin
         return yield()
       rescue Exception
-        @error_occurred = true
+        @error_occured = true
         raise
       end
     end
@@ -967,7 +957,7 @@ module Net
 
     def check_continue(res)
       unless res.continue?
-        raise SMTPUnknownError, "could not get 3xx (#{res.status}: #{res.string})"
+        raise SMTPUnknownError, "could not get 3xx (#{res.status})"
       end
     end
 
@@ -983,74 +973,49 @@ module Net
       end
     end
 
-    # This class represents a response received by the SMTP server. Instances
-    # of this class are created by the SMTP class; they should not be directly
-    # created by the user. For more information on SMTP responses, view
-    # {Section 4.2 of RFC 5321}[http://tools.ietf.org/html/rfc5321#section-4.2]
     class Response
-      # Parses the received response and separates the reply code and the human
-      # readable reply text
       def self.parse(str)
         new(str[0,3], str)
       end
 
-      # Creates a new instance of the Response class and sets the status and
-      # string attributes
       def initialize(status, string)
         @status = status
         @string = string
       end
 
-      # The three digit reply code of the SMTP response
       attr_reader :status
-
-      # The human readable reply text of the SMTP response
       attr_reader :string
 
-      # Takes the first digit of the reply code to determine the status type
       def status_type_char
         @status[0, 1]
       end
 
-      # Determines whether the response received was a Positive Completion
-      # reply (2xx reply code)
       def success?
         status_type_char() == '2'
       end
 
-      # Determines whether the response received was a Positive Intermediate
-      # reply (3xx reply code)
       def continue?
         status_type_char() == '3'
       end
 
-      # The first line of the human readable reply text
       def message
         @string.lines.first
       end
 
-      # Creates a CRAM-MD5 challenge. You can view more information on CRAM-MD5
-      # on Wikipedia: http://en.wikipedia.org/wiki/CRAM-MD5
       def cram_md5_challenge
         @string.split(/ /)[1].unpack('m')[0]
       end
 
-      # Returns a hash of the human readable reply text in the response if it
-      # is multiple lines. It does not return the first line. The key of the
-      # hash is the first word the value of the hash is an array with each word
-      # thereafter being a value in the array
       def capabilities
         return {} unless @string[3, 1] == '-'
         h = {}
         @string.lines.drop(1).each do |line|
-          k, *v = line[4..-1].chomp.split
+          k, *v = line[4..-1].chomp.split(nil)
           h[k] = v
         end
         h
       end
 
-      # Determines whether there was an error and raises the appropriate error
-      # based on the reply code of the response
       def exception_class
         case @status
         when /\A4/  then SMTPServerBusy
@@ -1068,6 +1033,6 @@ module Net
 
   end   # class SMTP
 
-  SMTPSession = SMTP # :nodoc:
+  SMTPSession = SMTP
 
 end

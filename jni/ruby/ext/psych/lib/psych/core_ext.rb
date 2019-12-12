@@ -6,10 +6,9 @@ class Object
   # FIXME: rename this to "to_yaml" when syck is removed
 
   ###
-  # call-seq: to_yaml(options = {})
+  # call-seq: to_yaml
   #
-  # Convert an object to YAML.  See Psych.dump for more information on the
-  # available +options+.
+  # Convert an object to YAML
   def psych_to_yaml options = {}
     Psych.dump self, options
   end
@@ -30,6 +29,10 @@ class Module
   alias :yaml_as :psych_yaml_as
 end
 
-if defined?(::IRB)
-  require 'psych/y'
+module Kernel
+  def psych_y *objects
+    puts Psych.dump_stream(*objects)
+  end
+  remove_method :y rescue nil
+  alias y psych_y
 end

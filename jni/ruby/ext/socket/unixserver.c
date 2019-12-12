@@ -31,8 +31,8 @@ unix_svr_init(VALUE sock, VALUE path)
  * call-seq:
  *   unixserver.accept => unixsocket
  *
- * Accepts an incoming connection.
- * It returns a new UNIXSocket object.
+ * Accepts a new connection.
+ * It returns new UNIXSocket object.
  *
  *   UNIXServer.open("/tmp/sock") {|serv|
  *     UNIXSocket.open("/tmp/sock") {|c|
@@ -59,7 +59,7 @@ unix_accept(VALUE sock)
 
 /*
  * call-seq:
- *   unixserver.accept_nonblock => unixsocket
+ * 	unixserver.accept_nonblock => unixsocket
  *
  * Accepts an incoming connection using accept(2) after
  * O_NONBLOCK is set for the underlying file descriptor.
@@ -135,16 +135,15 @@ unix_sysaccept(VALUE sock)
 
 #endif
 
+/*
+ * Document-class: ::UNIXServer < UNIXSocket
+ *
+ * UNIXServer represents a UNIX domain stream server socket.
+ */
 void
 rsock_init_unixserver(void)
 {
 #ifdef HAVE_SYS_UN_H
-    /*
-     * Document-class: UNIXServer < UNIXSocket
-     *
-     * UNIXServer represents a UNIX domain stream server socket.
-     *
-     */
     rb_cUNIXServer = rb_define_class("UNIXServer", rb_cUNIXSocket);
     rb_define_method(rb_cUNIXServer, "initialize", unix_svr_init, 1);
     rb_define_method(rb_cUNIXServer, "accept", unix_accept, 0);

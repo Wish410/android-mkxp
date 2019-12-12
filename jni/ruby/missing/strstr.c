@@ -1,9 +1,5 @@
 /* public domain rewrite of strstr(3) */
 
-#include "ruby/missing.h"
-
-size_t strlen(const char*);
-
 char *
 strstr(const char *haystack, const char *needle)
 {

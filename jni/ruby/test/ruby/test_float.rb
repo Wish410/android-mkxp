@@ -1,8 +1,7 @@
 require 'test/unit'
+require_relative 'envutil'
 
 class TestFloat < Test::Unit::TestCase
-  include EnvUtil
-
   def test_float
     assert_equal(2, 2.6.floor)
     assert_equal(-3, (-2.6).floor)
@@ -12,18 +11,18 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(-2, (-2.6).truncate)
     assert_equal(3, 2.6.round)
     assert_equal(-2, (-2.4).truncate)
-    assert_in_delta(13.4 % 1, 0.4, 0.0001)
+    assert((13.4 % 1 - 0.4).abs < 0.0001)
     assert_equal(36893488147419111424,
                  36893488147419107329.0.to_i)
   end
 
   def nan_test(x,y)
     extend Test::Unit::Assertions
-    assert_operator(x, :!=, y)
-    assert_not_operator(x, :<, y)
-    assert_not_operator(x, :>, y)
-    assert_not_operator(x, :<=, y)
-    assert_not_operator(x, :>=, y)
+    assert(x != y)
+    assert_equal(false, (x < y))
+    assert_equal(false, (x > y))
+    assert_equal(false, (x <= y))
+    assert_equal(false, (x >= y))
   end
   def test_nan
     nan = Float::NAN
@@ -56,76 +55,27 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(a == b, b == a)
   end
 
-  def test_cmp_int
-    100.times {|i|
-      int0 = 1 << i
-      [int0, -int0].each {|int|
-        flt = int.to_f
-        bigger = int + 1
-        smaller = int - 1
-        assert_operator(flt, :==, int)
-        assert_operator(flt, :>, smaller)
-        assert_operator(flt, :>=, smaller)
-        assert_operator(flt, :<, bigger)
-        assert_operator(flt, :<=, bigger)
-        assert_equal(0, flt <=> int)
-        assert_equal(-1, flt <=> bigger)
-        assert_equal(1, flt <=> smaller)
-        assert_operator(int, :==, flt)
-        assert_operator(bigger, :>, flt)
-        assert_operator(bigger, :>=, flt)
-        assert_operator(smaller, :<, flt)
-        assert_operator(smaller, :<=, flt)
-        assert_equal(0, int <=> flt)
-        assert_equal(-1, smaller <=> flt)
-        assert_equal(1, bigger <=> flt)
-        [
-          [int, flt + 0.5, bigger],
-          [smaller, flt - 0.5, int]
-        ].each {|smaller2, flt2, bigger2|
-          next if flt2 == flt2.round
-          assert_operator(flt2, :!=, smaller2)
-          assert_operator(flt2, :!=, bigger2)
-          assert_operator(flt2, :>, smaller2)
-          assert_operator(flt2, :>=, smaller2)
-          assert_operator(flt2, :<, bigger2)
-          assert_operator(flt2, :<=, bigger2)
-          assert_equal(-1, flt2 <=> bigger2)
-          assert_equal(1, flt2 <=> smaller2)
-          assert_operator(smaller2, :!=, flt2)
-          assert_operator(bigger2, :!=, flt2)
-          assert_operator(bigger2, :>, flt2)
-          assert_operator(bigger2, :>=, flt2)
-          assert_operator(smaller2, :<, flt2)
-          assert_operator(smaller2, :<=, flt2)
-          assert_equal(-1, smaller2 <=> flt2)
-          assert_equal(1, bigger2 <=> flt2)
-        }
-      }
-    }
-  end
-
   def test_strtod
     a = Float("0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("0.0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("+0.0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("-0.0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("0.0000000000000000001")
-    assert_not_equal(0.0, a)
+    assert(a != 0.0)
     a = Float("+0.0000000000000000001")
-    assert_not_equal(0.0, a)
+    assert(a != 0.0)
     a = Float("-0.0000000000000000001")
-    assert_not_equal(0.0, a)
+    assert(a != 0.0)
     a = Float(".0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("+.0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     a = Float("-.0")
-    assert_in_delta(a, 0, Float::EPSILON)
+    assert(a.abs < Float::EPSILON)
     assert_raise(ArgumentError){Float("0.")}
     assert_raise(ArgumentError){Float("+0.")}
     assert_raise(ArgumentError){Float("-0.")}
@@ -136,30 +86,19 @@ class TestFloat < Test::Unit::TestCase
     assert_raise(ArgumentError){Float("-.")}
     assert_raise(ArgumentError){Float("1e")}
     assert_raise(ArgumentError){Float("1__1")}
-    assert_raise(ArgumentError){Float("1.")}
-    assert_raise(ArgumentError){Float("1.e+00")}
-    assert_raise(ArgumentError){Float("0x1.p+0")}
     # add expected behaviour here.
     assert_equal(10, Float("1_0"))
 
     assert_equal([ 0.0].pack('G'), [Float(" 0x0p+0").to_f].pack('G'))
     assert_equal([-0.0].pack('G'), [Float("-0x0p+0").to_f].pack('G'))
     assert_equal(255.0,     Float("0Xff"))
+    assert_equal(1.0,       Float("0X1.P+0"))
     assert_equal(1024.0,    Float("0x1p10"))
     assert_equal(1024.0,    Float("0x1p+10"))
     assert_equal(0.0009765625, Float("0x1p-10"))
     assert_equal(2.6881171418161356e+43, Float("0x1.3494a9b171bf5p+144"))
     assert_equal(-3.720075976020836e-44, Float("-0x1.a8c1f14e2af5dp-145"))
-    assert_equal(31.0*2**1019, Float("0x0."+("0"*268)+"1fp2099"))
-    assert_equal(31.0*2**1019, Float("0x0."+("0"*600)+"1fp3427"))
-    assert_equal(-31.0*2**1019, Float("-0x0."+("0"*268)+"1fp2099"))
-    assert_equal(-31.0*2**1019, Float("-0x0."+("0"*600)+"1fp3427"))
-    suppress_warning do
-      assert_equal(31.0*2**-1027, Float("0x1f"+("0"*268)+".0p-2099"))
-      assert_equal(31.0*2**-1027, Float("0x1f"+("0"*600)+".0p-3427"))
-      assert_equal(-31.0*2**-1027, Float("-0x1f"+("0"*268)+".0p-2099"))
-      assert_equal(-31.0*2**-1027, Float("-0x1f"+("0"*600)+".0p-3427"))
-    end
+ 
   end
 
   def test_divmod
@@ -167,8 +106,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal([-3, -0.5], 11.5.divmod(-4))
     assert_equal([-3, 0.5], (-11.5).divmod(4))
     assert_equal([2, -3.5], (-11.5).divmod(-4))
-    assert_raise(FloatDomainError) { Float::NAN.divmod(2) }
-    assert_raise(FloatDomainError) { Float::INFINITY.divmod(2) }
   end
 
   def test_div
@@ -176,9 +113,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(-3, 11.5.div(-4))
     assert_equal(-3, (-11.5).div(4))
     assert_equal(2, (-11.5).div(-4))
-    assert_raise(FloatDomainError) { 11.5.div(Float::NAN).nan? }
-    assert_raise(FloatDomainError) { Float::NAN.div(2).nan? }
-    assert_raise(FloatDomainError) { Float::NAN.div(11.5).nan? }
   end
 
   def test_modulo
@@ -193,8 +127,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(3.5, 11.5.remainder(-4))
     assert_equal(-3.5, (-11.5).remainder(4))
     assert_equal(-3.5, (-11.5).remainder(-4))
-    assert_predicate(Float::NAN.remainder(4), :nan?)
-    assert_predicate(4.remainder(Float::NAN), :nan?)
   end
 
   def test_to_s
@@ -221,8 +153,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(4.0, 2.0.send(:+, 2))
     assert_equal(4.0, 2.0.send(:+, (2**32).coerce(2).first))
     assert_equal(4.0, 2.0.send(:+, 2.0))
-    assert_equal(Float::INFINITY, 2.0.send(:+, Float::INFINITY))
-    assert_predicate(2.0.send(:+, Float::NAN), :nan?)
     assert_raise(TypeError) { 2.0.send(:+, nil) }
   end
 
@@ -230,8 +160,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(0.0, 2.0.send(:-, 2))
     assert_equal(0.0, 2.0.send(:-, (2**32).coerce(2).first))
     assert_equal(0.0, 2.0.send(:-, 2.0))
-    assert_equal(-Float::INFINITY, 2.0.send(:-, Float::INFINITY))
-    assert_predicate(2.0.send(:-, Float::NAN), :nan?)
     assert_raise(TypeError) { 2.0.send(:-, nil) }
   end
 
@@ -239,7 +167,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(4.0, 2.0.send(:*, 2))
     assert_equal(4.0, 2.0.send(:*, (2**32).coerce(2).first))
     assert_equal(4.0, 2.0.send(:*, 2.0))
-    assert_equal(Float::INFINITY, 2.0.send(:*, Float::INFINITY))
     assert_raise(TypeError) { 2.0.send(:*, nil) }
   end
 
@@ -247,7 +174,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(1.0, 2.0.send(:/, 2))
     assert_equal(1.0, 2.0.send(:/, (2**32).coerce(2).first))
     assert_equal(1.0, 2.0.send(:/, 2.0))
-    assert_equal(0.0, 2.0.send(:/, Float::INFINITY))
     assert_raise(TypeError) { 2.0.send(:/, nil) }
   end
 
@@ -256,24 +182,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(0.0, 2.0.send(:%, (2**32).coerce(2).first))
     assert_equal(0.0, 2.0.send(:%, 2.0))
     assert_raise(TypeError) { 2.0.send(:%, nil) }
-  end
-
-  def test_modulo3
-    bug6048 = '[ruby-core:42726]'
-    assert_equal(4.2, 4.2.send(:%, Float::INFINITY), bug6048)
-    assert_equal(4.2, 4.2 % Float::INFINITY, bug6048)
-    assert_is_minus_zero(-0.0 % 4.2)
-    assert_is_minus_zero(-0.0.send :%, 4.2)
-    assert_raise(ZeroDivisionError, bug6048) { 4.2.send(:%, 0.0) }
-    assert_raise(ZeroDivisionError, bug6048) { 4.2 % 0.0 }
-    assert_raise(ZeroDivisionError, bug6048) { 42.send(:%, 0) }
-    assert_raise(ZeroDivisionError, bug6048) { 42 % 0 }
-  end
-
-  def test_modulo4
-    assert_predicate((0.0).modulo(Float::NAN), :nan?)
-    assert_predicate((1.0).modulo(Float::NAN), :nan?)
-    assert_predicate(Float::INFINITY.modulo(1), :nan?)
   end
 
   def test_divmod2
@@ -299,15 +207,15 @@ class TestFloat < Test::Unit::TestCase
   def test_eql
     inf = Float::INFINITY
     nan = Float::NAN
-    assert_operator(1.0, :eql?, 1.0)
-    assert_operator(inf, :eql?, inf)
-    assert_not_operator(nan, :eql?, nan)
-    assert_not_operator(1.0, :eql?, nil)
+    assert(1.0.eql?(1.0))
+    assert(inf.eql?(inf))
+    assert(!(nan.eql?(nan)))
+    assert(!(1.0.eql?(nil)))
 
-    assert_equal(1.0, 1)
-    assert_not_equal(1.0, 2**32)
-    assert_not_equal(1.0, nan)
-    assert_not_equal(1.0, nil)
+    assert(1.0 == 1)
+    assert(1.0 != 2**32)
+    assert(1.0 != nan)
+    assert(1.0 != nil)
   end
 
   def test_cmp
@@ -331,20 +239,6 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(-1, (Float::MAX.to_i*2) <=> inf)
     assert_equal(1, (-Float::MAX.to_i*2) <=> -inf)
 
-    bug3609 = '[ruby-core:31470]'
-    def (pinf = Object.new).infinite?; +1 end
-    def (ninf = Object.new).infinite?; -1 end
-    def (fin = Object.new).infinite?; nil end
-    nonum = Object.new
-    assert_equal(0, inf <=> pinf, bug3609)
-    assert_equal(1, inf <=> fin, bug3609)
-    assert_equal(1, inf <=> ninf, bug3609)
-    assert_nil(inf <=> nonum, bug3609)
-    assert_equal(-1, -inf <=> pinf, bug3609)
-    assert_equal(-1, -inf <=> fin, bug3609)
-    assert_equal(0, -inf <=> ninf, bug3609)
-    assert_nil(-inf <=> nonum, bug3609)
-
     assert_raise(ArgumentError) { 1.0 > nil }
     assert_raise(ArgumentError) { 1.0 >= nil }
     assert_raise(ArgumentError) { 1.0 < nil }
@@ -352,8 +246,8 @@ class TestFloat < Test::Unit::TestCase
   end
 
   def test_zero_p
-    assert_predicate(0.0, :zero?)
-    assert_not_predicate(1.0, :zero?)
+    assert(0.0.zero?)
+    assert(!(1.0.zero?))
   end
 
   def test_infinite_p
@@ -365,9 +259,9 @@ class TestFloat < Test::Unit::TestCase
 
   def test_finite_p
     inf = Float::INFINITY
-    assert_not_predicate(inf, :finite?)
-    assert_not_predicate(-inf, :finite?)
-    assert_predicate(1.0, :finite?)
+    assert(!(inf.finite?))
+    assert(!((-inf).finite?))
+    assert(1.0.finite?)
   end
 
   def test_floor_ceil_round_truncate
@@ -396,9 +290,7 @@ class TestFloat < Test::Unit::TestCase
     assert_raise(FloatDomainError) { inf.ceil }
     assert_raise(FloatDomainError) { inf.round }
     assert_raise(FloatDomainError) { inf.truncate }
-  end
 
-  def test_round_with_precision
     assert_equal(1.100, 1.111.round(1))
     assert_equal(1.110, 1.111.round(2))
     assert_equal(11110.0, 11111.1.round(-1))
@@ -406,17 +298,6 @@ class TestFloat < Test::Unit::TestCase
 
     assert_equal(10**300, 1.1e300.round(-300))
     assert_equal(-10**300, -1.1e300.round(-300))
-    assert_equal(1.0e-300, 1.1e-300.round(300))
-    assert_equal(-1.0e-300, -1.1e-300.round(300))
-
-    bug5227 = '[ruby-core:39093]'
-    assert_equal(42.0, 42.0.round(308), bug5227)
-    assert_equal(1.0e307, 1.0e307.round(2), bug5227)
-
-    assert_raise(TypeError) {1.0.round("4")}
-    assert_raise(TypeError) {1.0.round(nil)}
-    def (prec = Object.new).to_int; 2; end
-    assert_equal(1.0, 0.998.round(prec))
   end
 
   VS = [
@@ -533,50 +414,51 @@ class TestFloat < Test::Unit::TestCase
 
   def test_round
     VS.each {|f|
-      msg = "round(#{f})"
       i = f.round
       if f < 0
-        assert_operator(i, :<, 0, msg)
+        assert_operator(i, :<, 0)
       else
-        assert_operator(i, :>, 0, msg)
+        assert_operator(i, :>, 0)
       end
       d = f - i
-      assert_operator(-0.5, :<=, d, msg)
-      assert_operator(d, :<=, 0.5, msg)
+      assert_operator(-0.5, :<=, d)
+      assert_operator(d, :<=, 0.5)
     }
   end
 
   def test_Float
     assert_in_delta(0.125, Float("0.1_2_5"), 0.00001)
     assert_in_delta(0.125, "0.1_2_5__".to_f, 0.00001)
-    assert_equal(1, suppress_warning {Float(([1] * 10000).join)}.infinite?)
-    assert_not_predicate(Float(([1] * 10000).join("_")), :infinite?) # is it really OK?
+    assert_equal(1, Float(([1] * 10000).join).infinite?)
+    assert(!Float(([1] * 10000).join("_")).infinite?) # is it really OK?
     assert_raise(ArgumentError) { Float("1.0\x001") }
     assert_equal(15.9375, Float('0xf.fp0'))
-    assert_raise(ArgumentError) { Float('0x') }
-    assert_equal(15, Float('0xf'))
-    assert_equal(15, Float('0xfp0'))
-    assert_raise(ArgumentError) { Float('0xfp') }
-    assert_raise(ArgumentError) { Float('0xf.') }
-    assert_raise(ArgumentError) { Float('0xf.p') }
-    assert_raise(ArgumentError) { Float('0xf.p0') }
-    assert_raise(ArgumentError) { Float('0xf.f') }
-    assert_raise(ArgumentError) { Float('0xf.fp') }
-    assert_equal(Float::INFINITY, Float('0xf.fp1000000000000000'))
-    assert_equal(1, suppress_warning {Float("1e10_00")}.infinite?)
+    assert_warn(/malformed value for Float\(\).*?Ruby 1\.9\.3/) { Float('0x') }
+    assert_equal(15.0, Float('0xf'))
+    assert_equal(15.0, Float('0xfp0'))
+    assert_equal(15.0, Float('0xf.p0'))
+    assert_warn(/malformed value for Float\(\).*?Ruby 1\.9\.3/) { Float('0xf.f') }
+    assert_equal(1, Float("1e10_00").infinite?)
     assert_raise(TypeError) { Float(nil) }
     o = Object.new
     def o.to_f; inf = Float::INFINITY; inf/inf; end
-    assert_predicate(Float(o), :nan?)
+    assert(Float(o).nan?)
   end
 
   def test_invalid_str
     bug4310 = '[ruby-core:34820]'
-    assert_raise(ArgumentError, bug4310) {under_gc_stress {Float('a'*10000)}}
+    assert_raise(ArgumentError, bug4310) {
+      stress, GC.stress = GC.stress, true
+      begin
+        Float('a'*10000)
+      ensure
+        GC.stress = stress
+      end
+    }
   end
 
   def test_num2dbl
-    assert_raise(ArgumentError) do
+    assert_raise(TypeError) do
       1.0.step(2.0, "0.5") {}
     end
     assert_raise(TypeError) do
@@ -588,96 +470,5 @@ class TestFloat < Test::Unit::TestCase
     assert_nothing_raised("[ruby-core:23282]") do
       sleep(0.1+0.1+0.1+0.1+0.1+0.1+0.1+0.1+0.1+0.1)
     end
-  end
-
-  def test_step
-    1000.times do
-      a = rand
-      b = a+rand*1000
-      s = (b - a) / 10
-      assert_equal(11, (a..b).step(s).to_a.length)
-    end
-
-    (1.0..12.7).step(1.3).each do |n|
-      assert_operator(n, :<=, 12.7)
-    end
-
-    assert_equal([5.0, 4.0, 3.0, 2.0], 5.0.step(1.5, -1).to_a)
-  end
-
-  def test_step2
-    assert_equal([0.0], 0.0.step(1.0, Float::INFINITY).to_a)
-  end
-
-  def test_step_excl
-    1000.times do
-      a = rand
-      b = a+rand*1000
-      s = (b - a) / 10
-      assert_equal(10, (a...b).step(s).to_a.length)
-    end
-
-    assert_equal([1.0, 2.9, 4.8, 6.699999999999999], (1.0...6.8).step(1.9).to_a)
-
-    e = 1+1E-12
-    (1.0 ... e).step(1E-16) do |n|
-      assert_operator(n, :<=, e)
-    end
-  end
-
-  def test_singleton_method
-    # flonum on 64bit platform
-    assert_raise(TypeError) { a = 1.0; def a.foo; end }
-    # always not flonum
-    assert_raise(TypeError) { a = Float::INFINITY; def a.foo; end }
-  end
-
-  def test_long_string
-    assert_separately([], <<-'end;')
-    assert_in_epsilon(10.0, ("1."+"1"*300000).to_f*9)
-    end;
-  end
-
-  def test_next_float
-    smallest = 0.0.next_float
-    assert_equal(-Float::MAX, (-Float::INFINITY).next_float)
-    assert_operator(-Float::MAX, :<, (-Float::MAX).next_float)
-    assert_equal(Float::EPSILON/2, (-1.0).next_float + 1.0)
-    assert_operator(0.0, :<, smallest)
-    assert_operator([0.0, smallest], :include?, smallest/2)
-    assert_equal(Float::EPSILON, 1.0.next_float - 1.0)
-    assert_equal(Float::INFINITY, Float::MAX.next_float)
-    assert_equal(Float::INFINITY, Float::INFINITY.next_float)
-    assert_predicate(Float::NAN.next_float, :nan?)
-  end
-
-  def test_prev_float
-    smallest = 0.0.next_float
-    assert_equal(-Float::INFINITY, (-Float::INFINITY).prev_float)
-    assert_equal(-Float::INFINITY, (-Float::MAX).prev_float)
-    assert_equal(-Float::EPSILON, (-1.0).prev_float + 1.0)
-    assert_equal(-smallest, 0.0.prev_float)
-    assert_operator([0.0, 0.0.prev_float], :include?, 0.0.prev_float/2)
-    assert_equal(-Float::EPSILON/2, 1.0.prev_float - 1.0)
-    assert_operator(Float::MAX, :>, Float::MAX.prev_float)
-    assert_equal(Float::MAX, Float::INFINITY.prev_float)
-    assert_predicate(Float::NAN.prev_float, :nan?)
-  end
-
-  def test_next_prev_float_zero
-    z = 0.0.next_float.prev_float
-    assert_equal(0.0, z)
-    assert_equal(Float::INFINITY, 1.0/z)
-    z = 0.0.prev_float.next_float
-    assert_equal(0.0, z)
-    assert_equal(-Float::INFINITY, 1.0/z)
-  end
-
-  def test_hash_0
-    bug10979 = '[ruby-core:68541] [Bug #10979]'
-    assert_equal(+0.0.hash, -0.0.hash)
-    assert_operator(+0.0, :eql?, -0.0)
-    h = {0.0 => bug10979}
-    assert_equal(bug10979, h[-0.0])
   end
 end

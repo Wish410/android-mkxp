@@ -76,7 +76,7 @@ module Rinda
     # Reset the expiry time according to +sec_or_renewer+.
     #
     # +nil+::    it is set to expire in the far future.
-    # +true+::   it has expired.
+    # +false+::  it has expired.
     # Numeric::  it will expire in that many seconds.
     #
     # Otherwise the argument refers to some kind of renewer object
@@ -305,7 +305,7 @@ module Rinda
         @bin.delete_at(idx) if idx
       end
 
-      def find
+      def find(&blk)
         @bin.reverse_each do |x|
           return x if yield(x)
         end
@@ -491,7 +491,7 @@ module Rinda
           port.push(entry.value) if port
           @bag.delete(entry)
           notify_event('take', entry.value)
-          return port ? nil : entry.value
+          return entry.value
         end
         raise RequestExpiredError if template.expired?
 
@@ -506,7 +506,7 @@ module Rinda
               port.push(entry.value) if port
               @bag.delete(entry)
               notify_event('take', entry.value)
-              return port ? nil : entry.value
+              return entry.value
             end
             template.wait
           end

@@ -1,3 +1,8 @@
+require 'rubygems'
+require 'minitest/autorun'
+require 'rdoc/rdoc'
+require 'rdoc/code_objects'
+require 'rdoc/markup/to_html_crossref'
 require File.expand_path '../xref_test_case', __FILE__
 
 class TestRDocMarkupToHtmlCrossref < XrefTestCase
@@ -5,220 +10,152 @@ class TestRDocMarkupToHtmlCrossref < XrefTestCase
   def setup
     super
 
-    @options.hyperlink_all = true
-
-    @to = RDoc::Markup::ToHtmlCrossref.new @options, 'index.html', @c1
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'index.html', @c1, true
   end
 
-  def test_convert_CROSSREF
-    result = @to.convert 'C1'
-
-    assert_equal para("<a href=\"C1.html\">C1</a>"), result
+  def assert_ref(path, ref)
+    assert_equal "<p>\n<a href=\"#{path}\">#{ref}</a>\n</p>\n",
+                 @xref.convert(ref)
   end
 
-  def test_convert_CROSSREF_label
-    result = @to.convert 'C1@foo'
-    assert_equal para("<a href=\"C1.html#label-foo\">foo at C1</a>"), result
-
-    result = @to.convert 'C1#m@foo'
-    assert_equal para("<a href=\"C1.html#method-i-m-label-foo\">foo at C1#m</a>"),
-                 result
+  def refute_ref(body, ref)
+    assert_equal "<p>\n#{body}\n</p>\n", @xref.convert(ref)
   end
 
-  def test_convert_CROSSREF_label_period
-    result = @to.convert 'C1@foo.'
-    assert_equal para("<a href=\"C1.html#label-foo\">foo at C1</a>."), result
+  def test_handle_special_CROSSREF_C2
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'classes/C2.html', @c2, true
+
+    refute_ref '#m', '#m'
+
+    assert_ref '../C1.html#method-c-m', 'C1::m'
+    assert_ref '../C2/C3.html', 'C2::C3'
+    assert_ref '../C2/C3.html#method-i-m', 'C2::C3#m'
+    assert_ref '../C2/C3/H1.html', 'C3::H1'
+    assert_ref '../C4.html', 'C4'
+
+    assert_ref '../C3/H2.html', 'C3::H2'
+    refute_ref 'H1', 'H1'
   end
 
-  def test_convert_CROSSREF_label_space
-    result = @to.convert 'C1@foo+bar'
-    assert_equal para("<a href=\"C1.html#label-foo+bar\">foo bar at C1</a>"),
-                 result
+  def test_handle_special_CROSSREF_C2_C3
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'classes/C2/C3.html', @c2_c3, true
+
+    assert_ref '../../C2/C3.html#method-i-m', '#m'
+
+    assert_ref '../../C2/C3.html', 'C3'
+    assert_ref '../../C2/C3.html#method-i-m', 'C3#m'
+
+    assert_ref '../../C2/C3/H1.html', 'H1'
+    assert_ref '../../C2/C3/H1.html', 'C3::H1'
+
+    assert_ref '../../C4.html', 'C4'
+
+    assert_ref '../../C3/H2.html', 'C3::H2'
   end
 
-  def test_convert_CROSSREF_section
-    @c1.add_section 'Section'
+  def test_handle_special_CROSSREF_C3
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'classes/C3.html', @c3, true
 
-    result = @to.convert 'C1@Section'
-    assert_equal para("<a href=\"C1.html#Section\">Section at C1</a>"), result
+    assert_ref '../C3.html', 'C3'
+
+    refute_ref '#m',   '#m'
+    refute_ref 'C3#m', 'C3#m'
+
+    assert_ref '../C3/H1.html', 'H1'
+
+    assert_ref '../C3/H1.html', 'C3::H1'
+    assert_ref '../C3/H2.html', 'C3::H2'
+
+    assert_ref '../C4.html', 'C4'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref
-    result = @to.convert 'rdoc-ref:C1'
+  def test_handle_special_CROSSREF_C4
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'classes/C4.html', @c4, true
 
-    assert_equal para("<a href=\"C1.html\">C1</a>"), result
+    # C4 ref inside a C4 containing a C4 should resolve to the contained class
+    assert_ref '../C4/C4.html', 'C4'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref_method
-    result = @to.convert 'rdoc-ref:C1#m'
+  def test_handle_special_CROSSREF_C4_C4
+    @xref = RDoc::Markup::ToHtmlCrossref.new 'classes/C4/C4.html', @c4_c4, true
 
-    assert_equal para("<a href=\"C1.html#method-i-m\">#m</a>"), result
+    # A C4 reference inside a C4 class contained within a C4 class should
+    # resolve to the inner C4 class.
+    assert_ref '../../C4/C4.html', 'C4'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref_method_label
-    result = @to.convert 'rdoc-ref:C1#m@foo'
+  def test_handle_special_CROSSREF_class
+    assert_ref 'C1.html', 'C1'
+    refute_ref 'H1', 'H1'
 
-    assert_equal para("<a href=\"C1.html#method-i-m-label-foo\">foo at C1#m</a>"),
-                 result, 'rdoc-ref:C1#m@foo'
+    assert_ref 'C2.html',       'C2'
+    assert_ref 'C2/C3.html',    'C2::C3'
+    assert_ref 'C2/C3/H1.html', 'C2::C3::H1'
+
+    assert_ref 'C3.html',    '::C3'
+    assert_ref 'C3/H1.html', '::C3::H1'
+
+    assert_ref 'C4/C4.html', 'C4::C4'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref_method_percent
-    m = @c1.add_method RDoc::AnyMethod.new nil, '%'
-    m.singleton = false
-
-    result = @to.convert 'rdoc-ref:C1#%'
-
-    assert_equal para("<a href=\"C1.html#method-i-25\">#%</a>"), result
-
-    m.singleton = true
-
-    result = @to.convert 'rdoc-ref:C1::%'
-
-    assert_equal para("<a href=\"C1.html#method-c-25\">::%</a>"), result
+  def test_handle_special_CROSSREF_file
+    assert_ref 'xref_data_rb.html', 'xref_data.rb'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref_method_percent_label
-    m = @c1.add_method RDoc::AnyMethod.new nil, '%'
-    m.singleton = false
+  def test_handle_special_CROSSREF_method
+    refute_ref 'm', 'm'
+    assert_ref 'C1.html#method-i-m', '#m'
+    assert_ref 'C1.html#method-c-m', '::m'
 
-    result = @to.convert 'rdoc-ref:C1#%@f'
+    assert_ref 'C1.html#method-i-m', 'C1#m'
+    assert_ref 'C1.html#method-i-m', 'C1.m'
+    assert_ref 'C1.html#method-c-m', 'C1::m'
 
-    assert_equal para("<a href=\"C1.html#method-i-25-label-f\">f at C1#%</a>"),
-                 result
+    assert_ref 'C1.html#method-i-m', 'C1#m'
+    assert_ref 'C1.html#method-i-m', 'C1#m()'
+    assert_ref 'C1.html#method-i-m', 'C1#m(*)'
 
-    m.singleton = true
+    assert_ref 'C1.html#method-i-m', 'C1.m'
+    assert_ref 'C1.html#method-i-m', 'C1.m()'
+    assert_ref 'C1.html#method-i-m', 'C1.m(*)'
 
-    result = @to.convert 'rdoc-ref:C1::%@f'
+    assert_ref 'C1.html#method-c-m', 'C1::m'
+    assert_ref 'C1.html#method-c-m', 'C1::m()'
+    assert_ref 'C1.html#method-c-m', 'C1::m(*)'
 
-    assert_equal para("<a href=\"C1.html#method-c-25-label-f\">f at C1::%</a>"),
-                 result
+    assert_ref 'C2/C3.html#method-i-m', 'C2::C3#m'
+
+    assert_ref 'C2/C3.html#method-i-m', 'C2::C3.m'
+
+    assert_ref 'C2/C3/H1.html#method-i-m%3F', 'C2::C3::H1#m?'
+
+    assert_ref 'C2/C3.html#method-i-m', '::C2::C3#m'
+    assert_ref 'C2/C3.html#method-i-m', '::C2::C3#m()'
+    assert_ref 'C2/C3.html#method-i-m', '::C2::C3#m(*)'
   end
 
-  def test_convert_RDOCLINK_rdoc_ref_label
-    result = @to.convert 'rdoc-ref:C1@foo'
+  def test_handle_special_CROSSREF_no_ref
+    assert_equal '', @xref.convert('')
 
-    assert_equal para("<a href=\"C1.html#label-foo\">foo at C1</a>"), result,
-                 'rdoc-ref:C1@foo'
+    refute_ref 'bogus', 'bogus'
+    refute_ref 'bogus', '\bogus'
+    refute_ref '\bogus', '\\\bogus'
+
+    refute_ref '#n',    '\#n'
+    refute_ref '#n()',  '\#n()'
+    refute_ref '#n(*)', '\#n(*)'
+
+    refute_ref 'C1',   '\C1'
+    refute_ref '::C3', '\::C3'
+
+    refute_ref '::C3::H1#n',    '::C3::H1#n'
+    refute_ref '::C3::H1#n(*)', '::C3::H1#n(*)'
+    refute_ref '::C3::H1#n',    '\::C3::H1#n'
   end
 
-  def test_gen_url
-    assert_equal '<a href="C1.html">Some class</a>',
-                 @to.gen_url('rdoc-ref:C1', 'Some class')
-
-    assert_equal '<a href="http://example">HTTP example</a>',
-                 @to.gen_url('http://example', 'HTTP example')
-  end
-
-  def test_handle_special_CROSSREF
-    assert_equal "<a href=\"C2/C3.html\">C2::C3</a>", SPECIAL('C2::C3')
-  end
-
-  def test_handle_special_CROSSREF_label
-    assert_equal "<a href=\"C1.html#method-i-m-label-foo\">foo at C1#m</a>",
-                  SPECIAL('C1#m@foo')
-  end
-
-  def test_handle_special_CROSSREF_show_hash_false
-    @to.show_hash = false
-
-    assert_equal "<a href=\"C1.html#method-i-m\">m</a>",
-                 SPECIAL('#m')
-  end
-
-  def test_handle_special_HYPERLINK_rdoc
-    readme = @store.add_file 'README.txt'
-    readme.parser = RDoc::Parser::Simple
-
-    @to = RDoc::Markup::ToHtmlCrossref.new @options, 'C2.html', @c2
-
-    link = @to.handle_special_HYPERLINK hyper 'C2::C3'
-
-    assert_equal '<a href="C2/C3.html">C2::C3</a>', link
-
-    link = @to.handle_special_HYPERLINK hyper 'C4'
-
-    assert_equal '<a href="C4.html">C4</a>', link
-
-    link = @to.handle_special_HYPERLINK hyper 'README.txt'
-
-    assert_equal '<a href="README_txt.html">README.txt</a>', link
-  end
-
-  def test_handle_special_TIDYLINK_rdoc
-    readme = @store.add_file 'README.txt'
-    readme.parser = RDoc::Parser::Simple
-
-    @to = RDoc::Markup::ToHtmlCrossref.new @options, 'C2.html', @c2
-
-    link = @to.handle_special_TIDYLINK tidy 'C2::C3'
-
-    assert_equal '<a href="C2/C3.html">tidy</a>', link
-
-    link = @to.handle_special_TIDYLINK tidy 'C4'
-
-    assert_equal '<a href="C4.html">tidy</a>', link
-
-    link = @to.handle_special_TIDYLINK tidy 'C1#m'
-
-    assert_equal '<a href="C1.html#method-i-m">tidy</a>', link
-
-    link = @to.handle_special_TIDYLINK tidy 'README.txt'
-
-    assert_equal '<a href="README_txt.html">tidy</a>', link
-  end
-
-  def test_handle_special_TIDYLINK_label
-    link = @to.handle_special_TIDYLINK tidy 'C1#m@foo'
-
-    assert_equal "<a href=\"C1.html#method-i-m-label-foo\">tidy</a>",
-                 link, 'C1#m@foo'
-  end
-
-  def test_to_html_CROSSREF_email
-    @options.hyperlink_all = false
-
-    @to = RDoc::Markup::ToHtmlCrossref.new @options, 'index.html', @c1
-
-    result = @to.to_html 'first.last@example.com'
-
-    assert_equal 'first.last@example.com', result
-  end
-
-  def test_to_html_CROSSREF_email_hyperlink_all
-    result = @to.to_html 'first.last@example.com'
-
-    assert_equal 'first.last@example.com', result
-  end
-
-  def test_link
-    assert_equal 'n', @to.link('n', 'n')
-
-    assert_equal '<a href="C1.html#method-c-m">::m</a>', @to.link('m', 'm')
-  end
-
-  def test_link_class_method_full
-    assert_equal '<a href="Parent.html#method-c-m">Parent.m</a>',
-                 @to.link('Parent::m', 'Parent::m')
-  end
-
-  def para text
-    "\n<p>#{text}</p>\n"
-  end
-
-  def SPECIAL text
-    @to.handle_special_CROSSREF special text
-  end
-
-  def hyper reference
-    RDoc::Markup::Special.new 0, "rdoc-ref:#{reference}"
-  end
-
-  def special text
-    RDoc::Markup::Special.new 0, text
-  end
-
-  def tidy reference
-    RDoc::Markup::Special.new 0, "{tidy}[rdoc-ref:#{reference}]"
+  def test_handle_special_CROSSREF_special
+    assert_equal "<p>\n<a href=\"C2/C3.html\">C2::C3</a>;method(*)\n</p>\n",
+                 @xref.convert('C2::C3;method(*)')
   end
 
 end

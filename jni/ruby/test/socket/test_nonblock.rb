@@ -64,8 +64,8 @@ class TestSocketNonblock < Test::Unit::TestCase
     mesg, inet_addr = u1.recvfrom_nonblock(100)
     assert_equal(4, inet_addr.length)
     assert_equal("aaa", mesg)
-    _, port, _, _ = inet_addr
-    u2_port, _ = Socket.unpack_sockaddr_in(u2.getsockname)
+    af, port, host, addr = inet_addr
+    u2_port, u2_addr = Socket.unpack_sockaddr_in(u2.getsockname)
     assert_equal(u2_port, port)
     assert_raise(IO::WaitReadable) { u1.recvfrom_nonblock(100) }
     u2.send("", 0, u1.getsockname)
@@ -111,8 +111,8 @@ class TestSocketNonblock < Test::Unit::TestCase
     IO.select [s1]
     mesg, sockaddr = s1.recvfrom_nonblock(100)
     assert_equal("aaa", mesg)
-    port, _ = Socket.unpack_sockaddr_in(sockaddr)
-    s2_port, _ = Socket.unpack_sockaddr_in(s2.getsockname)
+    port, addr = Socket.unpack_sockaddr_in(sockaddr)
+    s2_port, s2_addr = Socket.unpack_sockaddr_in(s2.getsockname)
     assert_equal(s2_port, port)
   ensure
     s1.close if s1
@@ -121,7 +121,7 @@ class TestSocketNonblock < Test::Unit::TestCase
 
   def tcp_pair
     serv = TCPServer.new("127.0.0.1", 0)
-    _, port, _, addr = serv.addr
+    af, port, host, addr = serv.addr
     c = TCPSocket.new(addr, port)
     s = serv.accept
     if block_given?
@@ -190,20 +190,6 @@ class TestSocketNonblock < Test::Unit::TestCase
     s.close if s
   end
 
-  def test_read_nonblock_no_exception
-    c, s = tcp_pair
-    assert_equal :wait_readable, c.read_nonblock(100, exception: false)
-    assert_equal :wait_readable, s.read_nonblock(100, exception: false)
-    c.write("abc")
-    IO.select [s]
-    assert_equal("a", s.read_nonblock(1, exception: false))
-    assert_equal("bc", s.read_nonblock(100, exception: false))
-    assert_equal :wait_readable, s.read_nonblock(100, exception: false)
-  ensure
-    c.close if c
-    s.close if s
-  end
-
 =begin
   def test_write_nonblock
     c, s = tcp_pair
@@ -235,7 +221,7 @@ class TestSocketNonblock < Test::Unit::TestCase
           s1.sendmsg_nonblock("a" * 100000)
         }
       rescue NotImplementedError, Errno::ENOSYS
-        skip "sendmsg not implemented on this platform: #{$!}"
+        skip "sendmsg not implemented on this platform."
       rescue Errno::EMSGSIZE
         # UDP has 64K limit (if no Jumbograms).  No problem.
       rescue Errno::EWOULDBLOCK
@@ -268,7 +254,7 @@ class TestSocketNonblock < Test::Unit::TestCase
 
   def test_connect_nonblock_error
     serv = TCPServer.new("127.0.0.1", 0)
-    _, port, _, _ = serv.addr
+    af, port, host, addr = serv.addr
     c = Socket.new(:INET, :STREAM)
     begin
       c.connect_nonblock(Socket.sockaddr_in(port, "127.0.0.1"))
@@ -284,6 +270,7 @@ class TestSocketNonblock < Test::Unit::TestCase
     serv = Socket.new(:INET, :STREAM)
     serv.bind(Socket.sockaddr_in(0, "127.0.0.1"))
     serv.listen(5)
+    port = serv.local_address.ip_port
     begin
       s, _ = serv.accept_nonblock
     rescue Errno::EWOULDBLOCK

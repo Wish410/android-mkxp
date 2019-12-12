@@ -3,11 +3,11 @@
  *
  *  original nkf2.x is maintained at http://sourceforge.jp/projects/nkf/
  *
- *  $Id: nkf.c 47744 2014-09-30 05:25:32Z nobu $
+ *  $Id: nkf.c 27947 2010-05-21 10:11:44Z nobu $
  *
  */
 
-#define RUBY_NKF_REVISION "$Revision: 47744 $"
+#define RUBY_NKF_REVISION "$Revision: 27947 $"
 #define RUBY_NKF_VERSION NKF_VERSION " (" NKF_RELEASE_DATE ")"
 
 #include "ruby/ruby.h"
@@ -135,7 +135,7 @@ int nkf_split_options(const char *arg)
 static VALUE
 rb_nkf_convert(VALUE obj, VALUE opt, VALUE src)
 {
-    VALUE tmp;
+    volatile VALUE tmp;
     reinit();
     StringValue(opt);
     nkf_split_options(RSTRING_PTR(opt));
@@ -156,28 +156,23 @@ rb_nkf_convert(VALUE obj, VALUE opt, VALUE src)
     StringValue(src);
     input = (unsigned char *)RSTRING_PTR(src);
     i_len = RSTRING_LENINT(src);
-    tmp = rb_str_new(0, i_len*3 + 10);
+    tmp = result = rb_str_new(0, i_len*3 + 10);
 
     output_ctr = 0;
-    output     = (unsigned char *)RSTRING_PTR(tmp);
-    o_len      = RSTRING_LENINT(tmp);
+    output     = (unsigned char *)RSTRING_PTR(result);
+    o_len      = RSTRING_LENINT(result);
     *output    = '\0';
 
-    /* use _result_ begin*/
-    result = tmp;
     kanji_convert(NULL);
-    result = Qnil;
-    /* use _result_ end */
-
-    rb_str_set_len(tmp, output_ctr);
-    OBJ_INFECT(tmp, src);
+    rb_str_set_len(result, output_ctr);
+    OBJ_INFECT(result, src);
 
     if (mimeout_f)
-	rb_enc_associate(tmp, rb_usascii_encoding());
+	rb_enc_associate(result, rb_usascii_encoding());
     else
-	rb_enc_associate(tmp, rb_nkf_enc_get(nkf_enc_name(output_encoding)));
+	rb_enc_associate(result, rb_nkf_enc_get(nkf_enc_name(output_encoding)));
 
-    return tmp;
+    return result;
 }
 
 
@@ -478,7 +473,7 @@ rb_nkf_guess(VALUE obj, VALUE src)
  */
 
 void
-Init_nkf(void)
+Init_nkf()
 {
     VALUE mNKF = rb_define_module("NKF");
 

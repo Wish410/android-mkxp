@@ -4,26 +4,25 @@
 
 #include "ossl.h"
 
+#define GetSSLSession(obj, sess) do { \
+	Data_Get_Struct(obj, SSL_SESSION, sess); \
+	if (!sess) { \
+		ossl_raise(rb_eRuntimeError, "SSL Session wasn't initialized."); \
+	} \
+} while (0)
+
+#define SafeGetSSLSession(obj, sess) do { \
+	OSSL_Check_Kind(obj, cSSLSession); \
+	GetSSLSession(obj, sess); \
+} while (0)
+
+
 VALUE cSSLSession;
 static VALUE eSSLSession;
 
-static void
-ossl_ssl_session_free(void *ptr)
-{
-    SSL_SESSION_free(ptr);
-}
-
-const rb_data_type_t ossl_ssl_session_type = {
-    "OpenSSL/SSL/Session",
-    {
-	0, ossl_ssl_session_free,
-    },
-    0, 0, RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
 static VALUE ossl_ssl_session_alloc(VALUE klass)
 {
-	return TypedData_Wrap_Struct(klass, &ossl_ssl_session_type, NULL);
+	return Data_Wrap_Struct(klass, 0, SSL_SESSION_free, NULL);
 }
 
 /*
@@ -44,7 +43,7 @@ static VALUE ossl_ssl_session_initialize(VALUE self, VALUE arg1)
 	if (rb_obj_is_instance_of(arg1, cSSLSocket)) {
 		SSL *ssl;
 
-		GetSSL(arg1, ssl);
+		Data_Get_Struct(arg1, SSL, ssl);
 
 		if (!ssl || (ctx = SSL_get1_session(ssl)) == NULL)
 			ossl_raise(eSSLSession, "no session available");
@@ -54,7 +53,7 @@ static VALUE ossl_ssl_session_initialize(VALUE self, VALUE arg1)
 		ctx = PEM_read_bio_SSL_SESSION(in, NULL, NULL, NULL);
 
 		if (!ctx) {
-		        OSSL_BIO_reset(in);
+			(void)BIO_reset(in);
 			ctx = d2i_SSL_SESSION_bio(in, NULL);
 		}
 
@@ -177,6 +176,9 @@ static VALUE ossl_ssl_session_set_timeout(VALUE self, VALUE time_v)
 	long t;
 
 	GetSSLSession(self, ctx);
+	if (rb_obj_is_instance_of(time_v, rb_cTime)) {
+		time_v = rb_funcall(time_v, rb_intern("to_i"), 0);
+	}
 	t = NUM2LONG(time_v);
 	SSL_SESSION_set_timeout(ctx, t);
 	return ossl_ssl_session_get_timeout(self);
@@ -212,21 +214,20 @@ static VALUE ossl_ssl_session_get_id(VALUE self)
 static VALUE ossl_ssl_session_to_der(VALUE self)
 {
 	SSL_SESSION *ctx;
-	unsigned char *p;
+	unsigned char buf[1024*10], *p;
 	int len;
-	VALUE str;
 
 	GetSSLSession(self, ctx);
-	len = i2d_SSL_SESSION(ctx, NULL);
-	if (len <= 0) {
-		ossl_raise(eSSLSession, "i2d_SSL_SESSION");
-	}
 
-	str = rb_str_new(0, len);
-	p = (unsigned char *)RSTRING_PTR(str);
-	i2d_SSL_SESSION(ctx, &p);
-	ossl_str_adjust(str, p);
-	return str;
+	p = buf;
+	len = i2d_SSL_SESSION(ctx, &p);
+
+	if (len <= 0)
+		ossl_raise(eSSLSession, "i2d_SSL_SESSION");
+	else if (len >= sizeof(buf))
+		ossl_raise(eSSLSession, "i2d_SSL_SESSION too large");
+
+	return rb_str_new((const char *) p, len);
 }
 
 /*
@@ -296,8 +297,8 @@ static VALUE ossl_ssl_session_to_text(VALUE self)
 
 void Init_ossl_ssl_session(void)
 {
-#if 0
-	mOSSL = rb_define_module("OpenSSL"); /* let rdoc know about mOSSL */
+#if 0 /* let rdoc know about mOSSL */
+	mOSSL = rb_define_module("OpenSSL");
 	mSSL = rb_define_module_under(mOSSL, "SSL");
 #endif
 	cSSLSession = rb_define_class_under(mSSL, "Session", rb_cObject);

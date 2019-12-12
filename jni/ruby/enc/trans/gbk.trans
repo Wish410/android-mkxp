@@ -9,7 +9,8 @@
 
 <%= transcode_generated_code %>
 
-TRANS_INIT(gbk)
+void
+Init_gbk(void)
 {
 <%= transcode_register_code %>
 }

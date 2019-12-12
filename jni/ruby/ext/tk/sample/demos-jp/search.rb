@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # Text Search widget demo (called by 'widget')
 #
@@ -62,13 +62,13 @@ def textToggle(cmd1,sleep1,cmd2,sleep2)
               -1, cmd1, cmd2).start(sleep1)
 end
 
-# toplevel widget が存在すれば削除する
+# toplevel widget ��¸�ߤ���к������
 if defined?($search_demo) && $search_demo
   $search_demo.destroy
   $search_demo = nil
 end
 
-# demo 用の toplevel widget を生成
+# demo �Ѥ� toplevel widget ������
 $search_demo = TkToplevel.new {|w|
   title("Text Demonstration - Search and Highlight")
   iconname("search")
@@ -77,11 +77,11 @@ $search_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($search_demo).pack(:fill=>:both, :expand=>true)
 
-# frame 生成
+# frame ����
 $search_buttons = TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text '了解'
-    text '閉じる'
+    #text 'λ��'
+    text '�Ĥ���'
     command proc{
       tmppath = $search_demo
       $search_demo = nil
@@ -90,15 +90,15 @@ $search_buttons = TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'コード参照'
+    text '�����ɻ���'
     command proc{showCode 'search'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }
 $search_buttons.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame 生成
+# frame ����
 TkFrame.new(base_frame) {|f|
-  TkLabel.new(f, 'text'=>'ファイル名:',
+  TkLabel.new(f, 'text'=>'�ե�����̾:',
               'width'=>13, 'anchor'=>'w').pack('side'=>'left')
   $search_fileName = TkVariable.new
   TkEntry.new(f, 'width'=>40,
@@ -108,14 +108,14 @@ TkFrame.new(base_frame) {|f|
                         $search_string_entry.focus})
     focus
   }
-  TkButton.new(f, 'text'=>'読み込み',
+  TkButton.new(f, 'text'=>'�ɤ߹���',
                'command'=>proc{textLoadFile($search_text,
                                             $search_fileName.value)})\
   .pack('side'=>'left', 'pady'=>5, 'padx'=>10)
 }.pack('side'=>'top', 'fill'=>'x')
 
 TkFrame.new(base_frame) {|f|
-  TkLabel.new(f, 'text'=>'検索文字列:',
+  TkLabel.new(f, 'text'=>'����ʸ����:',
               'width'=>13, 'anchor'=>'w').pack('side'=>'left')
   $search_searchString = TkVariable.new
   $search_string_entry = TkEntry.new(f, 'width'=>40,
@@ -124,7 +124,7 @@ TkFrame.new(base_frame) {|f|
     bind('Return', proc{textSearch($search_text, $search_searchString.value,
                                    $search_Tag)})
   }
-  TkButton.new(f, 'text'=>'反転',
+  TkButton.new(f, 'text'=>'ȿž',
                'command'=>proc{textSearch($search_text,
                                           $search_searchString.value,
                                           $search_Tag)}) {
@@ -165,15 +165,15 @@ else
              200 )
 end
 $search_text.insert('1.0', "\
-このウィンドウは検索機構を実現するのにテキスト widget のタグ機能がどの \
-ように使われるのかをデモするものです。まず上のエントリにファイル名を入 \
-れ、<リターン> を押すか「ロード」ボタンを押してください。次にその下の \
-エントリに文字列を入力し、<リターン> を押すか「反転」ボタンを押してく \
-ださい。するとファイル中の、検索文字列と一致する部分に全て \"search_Tag\" \
-というタグがつけられ、タグの表示属性としてその文字列が点滅するように \
-設定されます。\n")
+���Υ�����ɥ��ϸ���������¸�����Τ˥ƥ����� widget �Υ�����ǽ���ɤ� \
+�褦�˻Ȥ���Τ���ǥ⤹���ΤǤ����ޤ���Υ���ȥ�˥ե�����̾���� \
+�졢<�꥿����> �򲡤����֥����ɡץܥ���򲡤��Ƥ������������ˤ��β��� \
+����ȥ��ʸ��������Ϥ���<�꥿����> �򲡤�����ȿž�ץܥ���򲡤��Ƥ� \
+������������ȥե�������Ρ�����ʸ����Ȱ��פ�����ʬ������ \"search_Tag\" \
+�Ȥ����������Ĥ���졢������ɽ��°���Ȥ��Ƥ���ʸ�������Ǥ���褦�� \
+���ꤵ��ޤ���\n")
 $search_text.insert('end', "\
-ファイル読み込みのカレントディレクトリは \"#{Dir.pwd}\" です。\
+�ե������ɤ߹��ߤΥ����ȥǥ��쥯�ȥ�� \"#{Dir.pwd}\" �Ǥ���\
 ")
 $search_text.set_insert '0.0'
 

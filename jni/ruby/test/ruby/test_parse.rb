@@ -1,4 +1,3 @@
-# coding: US-ASCII
 require 'test/unit'
 require 'stringio'
 
@@ -13,7 +12,7 @@ class TestParse < Test::Unit::TestCase
   end
 
   def test_else_without_rescue
-    x = eval <<-END, nil, __FILE__, __LINE__+1
+    x = eval <<-END
       begin
       else
         42
@@ -24,7 +23,7 @@ class TestParse < Test::Unit::TestCase
 
   def test_alias_backref
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         alias $foo $1
       END
     end
@@ -37,7 +36,7 @@ class TestParse < Test::Unit::TestCase
     a = false
     b = c = d = true
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a &&= t.foo 42
         b &&= t.foo 42
         c &&= t.foo nil
@@ -52,7 +51,7 @@ class TestParse < Test::Unit::TestCase
 
     a = [nil, nil, true, true]
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a[0] ||= t.foo 42
         a[1] &&= t.foo 42
         a[2] ||= t.foo 42
@@ -68,7 +67,7 @@ class TestParse < Test::Unit::TestCase
     o.foo = o.Foo = o::baz = nil
     o.bar = o.Bar = o::qux = 1
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         o.foo ||= t.foo 42
         o.bar &&= t.foo 42
         o.Foo ||= t.foo 42
@@ -82,7 +81,7 @@ class TestParse < Test::Unit::TestCase
     assert_equal([42, 42], [o::baz, o::qux])
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         $1 ||= t.foo 42
       END
     end
@@ -91,7 +90,7 @@ class TestParse < Test::Unit::TestCase
 
     a = b = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = t.bar "foo" do
           "bar"
         end.gsub "ob", "OB"
@@ -105,7 +104,7 @@ class TestParse < Test::Unit::TestCase
 
     a = nil
     assert_nothing_raised do
-      t.instance_eval <<-END, __FILE__, __LINE__+1
+      t.instance_eval <<-END
         a = bar "foo" do "bar" end
       END
     end
@@ -113,7 +112,7 @@ class TestParse < Test::Unit::TestCase
 
     a = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = t::bar "foo" do "bar" end
       END
     end
@@ -137,7 +136,7 @@ class TestParse < Test::Unit::TestCase
     end
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         c::foo, c::bar = 1, 2
         c.Foo, c.Bar = 1, 2
         c::FOO, c::BAR = 1, 2
@@ -150,7 +149,7 @@ class TestParse < Test::Unit::TestCase
 
   def test_dynamic_constant_assignment
     assert_raise(SyntaxError) do
-      Object.new.instance_eval <<-END, __FILE__, __LINE__+1
+      Object.new.instance_eval <<-END
         def foo
           self::FOO, self::BAR = 1, 2
           ::FOO, ::BAR = 1, 2
@@ -159,13 +158,13 @@ class TestParse < Test::Unit::TestCase
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         $1, $2 = 1, 2
       END
     end
 
     assert_raise(SyntaxError) do
-      Object.new.instance_eval <<-END, __FILE__, __LINE__+1
+      Object.new.instance_eval <<-END
         def foo
           ::FOO = 1
         end
@@ -173,18 +172,16 @@ class TestParse < Test::Unit::TestCase
     end
 
     c = Class.new
-    assert_nothing_raised(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
-      if false
+    assert_raise(SyntaxError) do
+      eval <<-END
         c::FOO &= 1
         ::FOO &= 1
-      end
       END
     end
 
     c = Class.new
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         $1 &= 1
       END
     end
@@ -192,13 +189,13 @@ class TestParse < Test::Unit::TestCase
 
   def test_class_module
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         class foo; end
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo
           class Foo; end
           module Bar; end
@@ -207,7 +204,7 @@ class TestParse < Test::Unit::TestCase
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         class Foo Bar; end
       END
     end
@@ -218,8 +215,9 @@ class TestParse < Test::Unit::TestCase
     def o.>(x); x; end
     def o./(x); x; end
 
+    a = nil
     assert_nothing_raised do
-      o.instance_eval <<-END, __FILE__, __LINE__+1
+      o.instance_eval <<-END
         undef >, /
       END
     end
@@ -233,7 +231,7 @@ class TestParse < Test::Unit::TestCase
     o.foo = o.Foo = o::baz = nil
     o.bar = o.Bar = o::qux = 1
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         o.foo ||= 42
         o.bar &&= 42
         o.Foo ||= 42
@@ -248,7 +246,7 @@ class TestParse < Test::Unit::TestCase
 
     a = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = -2.0 ** 2
       END
     end
@@ -261,7 +259,7 @@ class TestParse < Test::Unit::TestCase
 
     a = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         o.foo 1 do|; a| a = 42 end
       END
     end
@@ -270,25 +268,25 @@ class TestParse < Test::Unit::TestCase
 
   def test_bad_arg
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo(FOO); end
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo(@foo); end
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo($foo); end
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo(@@foo); end
       END
     end
@@ -297,7 +295,7 @@ class TestParse < Test::Unit::TestCase
     def o.foo(*r); yield(*r); end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         o.foo 1 {|; @a| @a = 42 }
       END
     end
@@ -306,7 +304,7 @@ class TestParse < Test::Unit::TestCase
   def test_do_lambda
     a = b = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = -> do
           b = 42
         end
@@ -322,7 +320,7 @@ class TestParse < Test::Unit::TestCase
 
     a = b = nil
     assert_nothing_raised do
-      o.instance_eval <<-END, __FILE__, __LINE__+1
+      o.instance_eval <<-END
         a = foo 1 do 42 end.to_s
         b = foo 1 do 42 end::to_s
       END
@@ -334,7 +332,7 @@ class TestParse < Test::Unit::TestCase
   def test_call_method
     a = b = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = proc {|x| x + "bar" }.("foo")
         b = proc {|x| x + "bar" }::("foo")
       END
@@ -360,17 +358,6 @@ class TestParse < Test::Unit::TestCase
     assert_equal("foo 1 bar", "foo #$1 bar")
   end
 
-  def test_dstr_disallowed_variable
-    bug8375 = '[ruby-core:54885] [Bug #8375]'
-    %w[@ @1 @@. @@ @@1 @@. $ $%].each do |src|
-      src = '#'+src+' '
-      str = assert_nothing_raised(SyntaxError, "#{bug8375} #{src.dump}") do
-        break eval('"'+src+'"')
-      end
-      assert_equal(src, str, bug8375)
-    end
-  end
-
   def test_dsym
     assert_nothing_raised { eval(':""') }
   end
@@ -379,7 +366,7 @@ class TestParse < Test::Unit::TestCase
     o = Object.new
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def o.foo(a=42,*r,z,&b); b.call(r.inject(a*1000+z*100, :+)); end
       END
     end
@@ -390,7 +377,7 @@ class TestParse < Test::Unit::TestCase
     assert_raise(ArgumentError) { o.foo() }
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def o.foo(a=42,z,&b); b.call(a*1000+z*100); end
       END
     end
@@ -399,7 +386,7 @@ class TestParse < Test::Unit::TestCase
     assert_raise(ArgumentError) { o.foo() }
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def o.foo(*r,z,&b); b.call(r.inject(z*100, :+)); end
       END
     end
@@ -411,19 +398,19 @@ class TestParse < Test::Unit::TestCase
 
   def test_duplicate_argument
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         1.times {|&b?| }
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         1.times {|a, a|}
       END
     end
 
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo(a, a); end
       END
     end
@@ -431,7 +418,7 @@ class TestParse < Test::Unit::TestCase
 
   def test_define_singleton_error
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def ("foo").foo; end
       END
     end
@@ -441,17 +428,17 @@ class TestParse < Test::Unit::TestCase
     t = Object.new
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def t.`(x); "foo" + x + "bar"; end
       END
     end
     a = b = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         a = t.` "zzz"
         1.times {|;z| t.` ("zzz") }
       END
-      t.instance_eval <<-END, __FILE__, __LINE__+1
+      t.instance_eval <<-END
         b = `zzz`
       END
     end
@@ -522,7 +509,7 @@ class TestParse < Test::Unit::TestCase
 
   def test_parse_string
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
 /
       END
     end
@@ -537,14 +524,13 @@ class TestParse < Test::Unit::TestCase
       )
     end
 
-    assert_nothing_raised(SyntaxError) do
-      x = eval %q(
+    assert_raise(SyntaxError) do
+      eval %q(
 <<FOO
 #$
 FOO
       )
     end
-    assert_equal "\#$\n", x
 
     assert_raise(SyntaxError) do
       eval %Q(
@@ -564,15 +550,14 @@ FOO
       )
     end
 
-    assert_nothing_raised(SyntaxError) do
-      x = eval %q(
+    assert_raise(SyntaxError) do
+      eval %q(
 <<FOO
 #$
 foo
 FOO
       )
     end
-    assert_equal "\#$\nfoo\n", x
 
     assert_nothing_raised do
       eval "x = <<""FOO\r\n1\r\nFOO"
@@ -583,7 +568,7 @@ FOO
   def test_magic_comment
     x = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
 # coding = utf-8
 x = __ENCODING__
       END
@@ -591,7 +576,7 @@ x = __ENCODING__
     assert_equal(Encoding.find("UTF-8"), x)
 
     assert_raise(ArgumentError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
 # coding = foobarbazquxquux_dummy_enconding
 x = __ENCODING__
       END
@@ -610,7 +595,7 @@ x = __ENCODING__
   def test_dot_in_next_line
     x = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         x = 1
         .to_s
       END
@@ -626,7 +611,7 @@ x = __ENCODING__
 
   def test_embedded_rd
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
 =begin
       END
     end
@@ -650,20 +635,15 @@ x = __ENCODING__
 
   def test_invalid_instance_variable
     assert_raise(SyntaxError) { eval('@#') }
-    assert_raise(SyntaxError) { eval('@') }
   end
 
   def test_invalid_class_variable
     assert_raise(SyntaxError) { eval('@@1') }
-    assert_raise(SyntaxError) { eval('@@') }
   end
 
   def test_invalid_char
-    bug10117 = '[ruby-core:64243] [Bug #10117]'
-    invalid_char = /Invalid char `\\x01'/
     x = 1
-    assert_in_out_err(%W"-e \x01x", "", [], invalid_char, bug10117)
-    assert_syntax_error("\x01x", invalid_char, bug10117)
+    assert_equal(1, eval("\x01x"))
     assert_equal(nil, eval("\x04x"))
   end
 
@@ -695,7 +675,7 @@ x = __ENCODING__
       eval %q(__ENCODING__ = 1)
     end
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         def foo
           FOO = 1
         end
@@ -705,7 +685,7 @@ x = __ENCODING__
 
   def test_block_dup
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         foo(&proc{}) {}
       END
     end
@@ -713,7 +693,7 @@ x = __ENCODING__
 
   def test_set_backref
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         $& = 1
       END
     end
@@ -726,7 +706,7 @@ x = __ENCODING__
     end
     r = nil
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         o[&proc{|x| r = x }] = 1
       END
     end
@@ -756,19 +736,25 @@ x = __ENCODING__
       eval %q(1; next; 2)
     end
 
-    assert_equal(13, $stderr.string.lines.to_a.size)
+    o = Object.new
+    assert_nothing_raised do
+      eval <<-END
+        x = def o.foo; end
+      END
+    end
+    assert_equal($stderr.string.lines.to_a.size, 14)
     $stderr = stderr
   end
 
   def test_assign_in_conditional
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         (x, y = 1, 2) ? 1 : 2
       END
     end
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         if @x = true
           1
         else
@@ -780,33 +766,33 @@ x = __ENCODING__
 
   def test_literal_in_conditional
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         "foo" ? 1 : 2
       END
     end
 
     assert_nothing_raised do
       x = "bar"
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         /foo#{x}baz/ ? 1 : 2
       END
     end
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         (true..false) ? 1 : 2
       END
     end
 
     assert_nothing_raised do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         ("foo".."bar") ? 1 : 2
       END
     end
 
     assert_nothing_raised do
       x = "bar"
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         :"foo#{"x"}baz" ? 1 : 2
       END
     end
@@ -814,7 +800,7 @@ x = __ENCODING__
 
   def test_no_blockarg
     assert_raise(SyntaxError) do
-      eval <<-END, nil, __FILE__, __LINE__+1
+      eval <<-END
         yield(&:+)
       END
     end
@@ -830,7 +816,7 @@ x = __ENCODING__
   def test_all_symbols
     x = Symbol.all_symbols
     assert_kind_of(Array, x)
-    assert_empty(x.reject {|s| s.is_a?(Symbol) })
+    assert(x.all? {|s| s.is_a?(Symbol) })
   end
 
   def test_is_class_id
@@ -839,44 +825,4 @@ x = __ENCODING__
       c.instance_eval { remove_class_variable(:@var) }
     end
   end
-
-  def test_method_block_location
-    bug5614 = '[ruby-core:40936]'
-    expected = nil
-    e = assert_raise(NoMethodError) do
-      1.times do
-        expected = __LINE__+1
-      end.print do
-        #
-      end
-    end
-    actual = e.backtrace.first[/\A#{Regexp.quote(__FILE__)}:(\d+):/o, 1].to_i
-    assert_equal(expected, actual, bug5614)
-  end
-
-  def test_shadowing_variable
-    assert_warning(/shadowing outer local variable/) {eval("a=1; tap {|a|}")}
-    a = "\u{3042}"
-    assert_warning(/#{a}/o) {eval("#{a}=1; tap {|#{a}|}")}
-  end
-
-  def test_unused_variable
-    o = Object.new
-    assert_warning(/assigned but unused variable/) {o.instance_eval("def foo; a=1; nil; end")}
-    a = "\u{3042}"
-    assert_warning(/#{a}/) {o.instance_eval("def foo; #{a}=1; nil; end")}
-  end
-
-  def test_named_capture_conflict
-    a = 1
-    assert_warning(/named capture conflict/) {eval("a = 1; /(?<a>)/ =~ ''")}
-    a = "\u{3042}"
-    assert_warning(/#{a}/) {eval("#{a} = 1; /(?<#{a}>)/ =~ ''")}
-  end
-
-=begin
-  def test_past_scope_variable
-    assert_warning(/past scope/) {catch {|tag| eval("BEGIN{throw tag}; tap {a = 1}; a")}}
-  end
-=end
 end

@@ -1,11 +1,8 @@
 #!./miniruby
-# -*- coding: us-ascii -*-
 #
 #
 
 require 'erb'
-$:.unshift(File.dirname(__FILE__))
-require 'vpath'
 
 class RubyVM
   class Instruction
@@ -38,7 +35,7 @@ class RubyVM
       @sc << sci
       sci.set_sc
     end
-
+    
     attr_reader :name, :opes, :pops, :rets
     attr_reader :body, :comm
     attr_reader :nextsc, :pushsc
@@ -48,11 +45,11 @@ class RubyVM
     attr_reader :is_sc
     attr_reader :tvars
     attr_reader :sp_inc
-
+    
     def set_sc
       @is_sc = true
     end
-
+    
     def add_unif insns
       @unifs << insns
     end
@@ -64,19 +61,16 @@ class RubyVM
     def sp_increase_c_expr
       if(pops.any?{|t, v| v == '...'} ||
          rets.any?{|t, v| v == '...'})
-        # user definition
+        # user definision
         raise "no sp increase definition" if @sp_inc.nil?
         ret = "int inc = 0;\n"
 
         @opes.each_with_index{|(t, v), i|
-          if (t == 'rb_num_t' && ((re = /\b#{v}\b/n) =~ @sp_inc)) ||
-             (@defopes.any?{|t, val| re =~ val})
+          if t == 'rb_num_t' && ((re = /\b#{v}\b/n) =~ @sp_inc ||
+                                 @defopes.any?{|t, val| re =~ val})
             ret << "        int #{v} = FIX2INT(opes[#{i}]);\n"
-          elsif (t == 'CALL_INFO' && ((re = /\b#{v}\b/n) =~ @sp_inc))
-            ret << "        CALL_INFO #{v} = (CALL_INFO)(opes[#{i}]);\n"
           end
         }
-
         @defopes.each_with_index{|((t, var), val), i|
           if t == 'rb_num_t' && val != '*' && /\b#{var}\b/ =~ @sp_inc
             ret << "        #{t} #{var} = #{val};\n"
@@ -90,7 +84,7 @@ class RubyVM
         "return depth + #{rets.size - pops.size};"
       end
     end
-
+    
     def inspect
       "#<Instruction:#{@name}>"
     end
@@ -119,7 +113,7 @@ class RubyVM
 
     attr_reader :vpath
     attr_reader :destdir
-
+  
     %w[use_const verbose].each do |attr|
       attr_reader attr
       alias_method "#{attr}?", attr
@@ -309,7 +303,7 @@ class RubyVM
       opes = insn.opes
 
       if opes.size != opts.size
-        raise "operand size mismatch for #{insn.name} (opes: #{opes.size}, opts: #{opts.size})"
+        raise "operand size mismatcvh for #{insn.name} (opes: #{opes.size}, opts: #{opts.size})"
       end
 
       ninsn = insn.name + '_OP_' + opts.map{|e| label_escape(e)}.join('_')
@@ -461,7 +455,7 @@ class RubyVM
                   rv = rpvars[1]
                   "#define #{pv[1]} #{rv[1]}"
                 }.join("\n") +
-                "\n" +
+                "\n" + 
                 redef_vars.map{|v, type|
                   "#define #{v} #{v}_#{i}"
                 }.join("\n") + "\n" +
@@ -692,14 +686,14 @@ class RubyVM
 
       n = 0
       push_ba.each {|pushs| n += pushs.length}
-      commit "  CHECK_VM_STACK_OVERFLOW_FOR_INSN(REG_CFP, #{n});" if n > 0
+      commit "  CHECK_STACK_OVERFLOW(REG_CFP, #{n});" if n > 0
       push_ba.each{|pushs|
         pushs.each{|r|
           commit "  PUSH(SCREG(#{r}));"
         }
       }
     end
-
+  
     def make_header_operands insn
       comment "  /* declare and get from iseq */"
 
@@ -712,13 +706,10 @@ class RubyVM
           break
         end
 
-        # skip make operands when body has no reference to this operand
-        # TODO: really needed?
         re = /\b#{var}\b/n
-        if re =~ insn.body or re =~ insn.sp_inc or insn.rets.any?{|t, v| re =~ v} or re =~ 'ic' or re =~ 'ci'
+        if re =~ insn.body or re =~ insn.sp_inc or insn.rets.any?{|t, v| re =~ v} or re =~ 'ic'
           ops << "  #{type} #{var} = (#{type})GET_OPERAND(#{i+1});"
         end
-
         n   += 1
       }
       @opn = n
@@ -727,7 +718,7 @@ class RubyVM
       # ops.join
       commit ops.reverse
     end
-
+  
     def make_header_default_operands insn
       vars = insn.defopes
 
@@ -800,9 +791,9 @@ class RubyVM
     end
 
     def make_header_analysis insn
-      commit "  COLLECT_USAGE_INSN(BIN(#{insn.name}));"
+      commit "  USAGE_ANALYSIS_INSN(BIN(#{insn.name}));"
       insn.opes.each_with_index{|op, i|
-        commit "  COLLECT_USAGE_OPERAND(BIN(#{insn.name}), #{i}, #{op[1]});"
+        commit "  USAGE_ANALYSIS_OPERAND(BIN(#{insn.name}), #{i}, #{op[1]});"
       }
     end
 
@@ -816,7 +807,7 @@ class RubyVM
       commit  "  POPN(#{@popn});" if @popn > 0
     end
 
-    def make_header_debug insn
+    def make_hader_debug insn
       comment "  /* for debug */"
       commit  "  DEBUG_ENTER_INSN(\"#{insn.name}\");"
     end
@@ -842,7 +833,7 @@ class RubyVM
       each_footer_stack_val(insn){|v|
         n += 1 unless v[2]
       }
-      commit "  CHECK_VM_STACK_OVERFLOW_FOR_INSN(REG_CFP, #{n});" if n > 0
+      commit "  CHECK_STACK_OVERFLOW(REG_CFP, #{n});" if n > 0
       each_footer_stack_val(insn){|v|
         if v[2]
           commit "  SCREG(#{v[2]}) = #{v[1]};"
@@ -869,7 +860,7 @@ class RubyVM
       make_header_stack_pops insn
       make_header_temporary_vars insn
       #
-      make_header_debug insn
+      make_hader_debug insn
       make_header_pc insn
       make_header_popn insn
       make_header_defines insn
@@ -916,7 +907,7 @@ class RubyVM
           commit "  ELABEL_PTR(#{insn.name}),\n"
         }
       end
-
+    
       ERB.new(vpath.read('template/vmtc.inc.tmpl')).result(binding)
     end
   end
@@ -939,6 +930,8 @@ class RubyVM
         "TS_NUM"
       when /^lindex_t/
         "TS_LINDEX"
+      when /^dindex_t/
+        "TS_DINDEX"
       when /^VALUE/
         "TS_VALUE"
       when /^ID/
@@ -947,8 +940,6 @@ class RubyVM
         "TS_GENTRY"
       when /^IC/
         "TS_IC"
-      when /^CALL_INFO/
-        "TS_CALLINFO"
       when /^\.\.\./
         "TS_VARIABLE"
       when /^CDHASH/
@@ -966,11 +957,11 @@ class RubyVM
       'TS_OFFSET'    => 'O',
       'TS_NUM'       => 'N',
       'TS_LINDEX'    => 'L',
+      'TS_DINDEX'    => 'D',
       'TS_VALUE'     => 'V',
       'TS_ID'        => 'I',
       'TS_GENTRY'    => 'G',
-      'TS_IC'        => 'K',
-      'TS_CALLINFO'  => 'C',
+      'TS_IC'        => 'C',
       'TS_CDHASH'    => 'H',
       'TS_ISEQ'      => 'S',
       'TS_VARIABLE'  => '.',
@@ -1000,7 +991,7 @@ class RubyVM
         ot = opes.map{|type, var|
           TYPE_CHARS.fetch(op2typesig(type))
         }
-        operands_info << "\"#{ot.join}\"" << ",\n"
+        operands_info << "\"#{ot.join}\"" << ", \n"
 
         num = opes.size + 1
         operands_num_info << "  #{num},\n"
@@ -1033,7 +1024,7 @@ class RubyVM
       i=0
       insns = build_string do
         @insns.each{|insn|
-          commit "  %-30s = %d," % ["BIN(#{insn.name})", i]
+          commit "  %-30s = %d,\n" % ["BIN(#{insn.name})", i]
           i+=1
         }
       end
@@ -1049,7 +1040,7 @@ class RubyVM
       i=0
       defs = build_string do
         @insns.each{|insn|
-          commit "  rb_define_const(mYarvInsns, %-30s, INT2FIX(%d));" %
+          commit "  rb_define_const(mYarvInsns, %-30s, INT2FIX(%d));\n" %
                  ["\"I#{insn.name}\"", i]
           i+=1
         }
@@ -1073,7 +1064,7 @@ class RubyVM
       val  = op[1]
 
       case type
-      when /^long/, /^rb_num_t/, /^lindex_t/
+      when /^long/, /^rb_num_t/, /^lindex_t/, /^dindex_t/
         "INT2FIX(#{val})"
       when /^VALUE/
         val
@@ -1161,14 +1152,14 @@ class RubyVM
           uni_insn, uni_insns = *unif
           uni_insns = uni_insns[1..-1]
           unif_insns_each << "static const int UNIFIED_#{insn.name}_#{i}[] = {" +
-                             "  BIN(#{uni_insn.name}), #{uni_insns.size + 2},\n  " +
+                             "  BIN(#{uni_insn.name}), #{uni_insns.size + 2}, \n  " +
                              uni_insns.map{|e| "BIN(#{e.name})"}.join(", ") + "};\n"
           }
         else
-
+          
         end
         if size > 0
-          unif_insns << "static const int *const UNIFIED_#{insn.name}[] = {(int *)#{size+1},\n"
+          unif_insns << "static const int *const UNIFIED_#{insn.name}[] = {(int *)#{size+1}, \n"
           unif_insns << (0...size).map{|e| "  UNIFIED_#{insn.name}_#{e}"}.join(",\n") + "};\n"
           unif_insns_data << "  UNIFIED_#{insn.name}"
         else
@@ -1259,6 +1250,66 @@ class RubyVM
     end
   end
 
+  module VPATH
+    def search(meth, base, *rest)
+      begin
+        meth.call(base, *rest)
+      rescue Errno::ENOENT => error
+        each do |dir|
+          return meth.call(File.join(dir, base), *rest) rescue nil
+        end
+        raise error
+      end
+    end
+
+    def process(*args, &block)
+      search(File.method(__callee__), *args, &block)
+    end
+
+    alias stat process
+    alias lstat process
+
+    def open(*args)
+      f = search(File.method(:open), *args)
+      if block_given?
+        begin
+          yield f
+        ensure
+          f.close unless f.closed?
+        end
+      else
+        f
+      end
+    end
+
+    def read(*args)
+      open(*args) {|f| f.read}
+    end
+
+    def foreach(file, *args, &block)
+      open(file) {|f| f.each(*args, &block)}
+    end
+
+    def self.def_options(opt)
+      vpath = []
+      path_sep = ':'
+
+      opt.on("-I", "--srcdir=DIR", "add a directory to search path") {|dir|
+        vpath |= [dir]
+      }
+      opt.on("-L", "--vpath=PATH LIST", "add directories to search path") {|dirs|
+        vpath |= dirs.split(path_sep)
+      }
+      opt.on("--path-separator=SEP", /\A\W\z/, "separator for vpath") {|sep|
+        path_sep = sep
+      }
+
+      proc {
+        vpath.extend(self) unless vpath.empty?
+      }
+    end
+  end
+
   class SourceCodeGenerator
     Files = { # codes
       'vm.inc'         => VmBodyGenerator,
@@ -1325,17 +1376,16 @@ class RubyVM
         opts[:verbose] = v
       }
 
-      vpath = VPath.new
-      vpath.def_options(opt)
+      vpath = VPATH.def_options(opt)
 
       proc {
-        opts[:VPATH] = vpath
+        opts[:VPATH] = vpath.call
         build opts
       }
     end
 
     def self.build opts, vpath = ['./']
-      opts[:VPATH] ||= VPath.new(*vpath)
+      opts[:VPATH] = vpath.extend(VPATH) unless opts[:VPATH]
       self.new InstructionsLoader.new(opts)
     end
   end

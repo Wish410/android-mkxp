@@ -56,7 +56,7 @@ module Psych
       # Is this sequence started implicitly?
       attr_accessor :implicit
 
-      # The sequence style used
+      # The sequece style used
       attr_accessor :style
 
       ###

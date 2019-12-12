@@ -27,10 +27,7 @@ range.Select
 chart = workbook.Charts.Add;
 
 workbook.saved = TRUE;
-
-print "Now quit Excel... Please enter."
-gets
-
+sleep 0.5
 application.ActiveWorkbook.Close(0);
 application.Quit();
 

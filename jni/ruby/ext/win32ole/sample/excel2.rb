@@ -4,9 +4,11 @@ require 'win32ole'
 ChartTypeVal = -4100;
 
 #   Creates OLE object to Excel
+#excel = WIN32OLE.new("excel.application.5")
 excel = WIN32OLE.new("excel.application")
 
 # Create and rotate the chart
+
 excel.visible = TRUE;
 excel.Workbooks.Add();
 excel.Range("a1").value = 3;
@@ -16,15 +18,13 @@ excel.Range("a1:a3").Select();
 excelchart = excel.Charts.Add();
 excelchart.type = ChartTypeVal;
 
-i = 0
+i = 30
 i.step(180, 10) do |rot|
+#    excelchart['Rotation'] = rot;
     excelchart.rotation=rot;
-    sleep 0.1
 end
 # Done, bye
 
-print "Now quit Excel... Please enter."
-gets
-
 excel.ActiveWorkbook.Close(0);
 excel.Quit();
+

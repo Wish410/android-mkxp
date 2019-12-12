@@ -43,13 +43,12 @@ module REXML
       REFERENCE_RE = /#{REFERENCE}/
 
       DOCTYPE_START = /\A\s*<!DOCTYPE\s/um
-      DOCTYPE_END = /\A\s*\]\s*>/um
       DOCTYPE_PATTERN = /\s*<!DOCTYPE\s+(.*?)(\[|>)/um
       ATTRIBUTE_PATTERN = /\s*(#{NAME_STR})\s*=\s*(["'])(.*?)\4/um
       COMMENT_START = /\A<!--/u
       COMMENT_PATTERN = /<!--(.*?)-->/um
       CDATA_START = /\A<!\[CDATA\[/u
-      CDATA_END = /\A\s*\]\s*>/um
+      CDATA_END = /^\s*\]\s*>/um
       CDATA_PATTERN = /<!\[CDATA\[(.*?)\]\]>/um
       XMLDECL_START = /\A<\?xml\s/u;
       XMLDECL_PATTERN = /<\?xml\s+(.*?)\?>/um
@@ -62,11 +61,11 @@ module REXML
       ENCODING = /\bencoding\s*=\s*["'](.*?)['"]/um
       STANDALONE = /\bstandalone\s*=\s*["'](.*?)['"]/um
 
-      ENTITY_START = /\A\s*<!ENTITY/
+      ENTITY_START = /^\s*<!ENTITY/
       IDENTITY = /^([!\*\w\-]+)(\s+#{NCNAME_STR})?(\s+["'](.*?)['"])?(\s+['"](.*?)["'])?/u
-      ELEMENTDECL_START = /\A\s*<!ELEMENT/um
-      ELEMENTDECL_PATTERN = /\A\s*(<!ELEMENT.*?)>/um
-      SYSTEMENTITY = /\A\s*(%.*?;)\s*$/um
+      ELEMENTDECL_START = /^\s*<!ELEMENT/um
+      ELEMENTDECL_PATTERN = /^\s*(<!ELEMENT.*?)>/um
+      SYSTEMENTITY = /^\s*(%.*?;)\s*$/um
       ENUMERATION = "\\(\\s*#{NMTOKEN}(?:\\s*\\|\\s*#{NMTOKEN})*\\s*\\)"
       NOTATIONTYPE = "NOTATION\\s+\\(\\s*#{NAME}(?:\\s*\\|\\s*#{NAME})*\\s*\\)"
       ENUMERATEDTYPE = "(?:(?:#{NOTATIONTYPE})|(?:#{ENUMERATION}))"
@@ -75,11 +74,11 @@ module REXML
       DEFAULTDECL = "(#REQUIRED|#IMPLIED|(?:(#FIXED\\s+)?#{ATTVALUE}))"
       ATTDEF = "\\s+#{NAME}\\s+#{ATTTYPE}\\s+#{DEFAULTDECL}"
       ATTDEF_RE = /#{ATTDEF}/
-      ATTLISTDECL_START = /\A\s*<!ATTLIST/um
-      ATTLISTDECL_PATTERN = /\A\s*<!ATTLIST\s+#{NAME}(?:#{ATTDEF})*\s*>/um
-      NOTATIONDECL_START = /\A\s*<!NOTATION/um
-      PUBLIC = /\A\s*<!NOTATION\s+(\w[\-\w]*)\s+(PUBLIC)\s+(["'])(.*?)\3(?:\s+(["'])(.*?)\5)?\s*>/um
-      SYSTEM = /\A\s*<!NOTATION\s+(\w[\-\w]*)\s+(SYSTEM)\s+(["'])(.*?)\3\s*>/um
+      ATTLISTDECL_START = /^\s*<!ATTLIST/um
+      ATTLISTDECL_PATTERN = /^\s*<!ATTLIST\s+#{NAME}(?:#{ATTDEF})*\s*>/um
+      NOTATIONDECL_START = /^\s*<!NOTATION/um
+      PUBLIC = /^\s*<!NOTATION\s+(\w[\-\w]*)\s+(PUBLIC)\s+(["'])(.*?)\3(?:\s+(["'])(.*?)\5)?\s*>/um
+      SYSTEM = /^\s*<!NOTATION\s+(\w[\-\w]*)\s+(SYSTEM)\s+(["'])(.*?)\3\s*>/um
 
       TEXT_PATTERN = /\A([^<]*)/um
 
@@ -115,10 +114,22 @@ module REXML
 
       def initialize( source )
         self.stream = source
-        @listeners = []
       end
 
       def add_listener( listener )
+        if !defined?(@listeners) or !@listeners
+          @listeners = []
+          instance_eval <<-EOL
+            alias :_old_pull :pull
+            def pull
+              event = _old_pull
+              @listeners.each do |listener|
+                listener.receive event
+              end
+              event
+            end
+          EOL
+        end
         @listeners << listener
       end
 
@@ -181,14 +192,6 @@ module REXML
 
       # Returns the next event.  This is a +PullEvent+ object.
       def pull
-        pull_event.tap do |event|
-          @listeners.each do |listener|
-            listener.receive event
-          end
-        end
-      end
-
-      def pull_event
         if @closed
           x, @closed = @closed, nil
           return [ :end_element, x ]
@@ -213,12 +216,7 @@ module REXML
             version = version[1] unless version.nil?
             encoding = ENCODING.match(results)
             encoding = encoding[1] unless encoding.nil?
-            if need_source_encoding_update?(encoding)
-              @source.encoding = encoding
-            end
-            if encoding.nil? and /\AUTF-16(?:BE|LE)\z/i =~ @source.encoding
-              encoding = "UTF-16"
-            end
+            @source.encoding = encoding
             standalone = STANDALONE.match(results)
             standalone = standalone[1] unless standalone.nil?
             return [ :xmldecl, version, encoding, standalone ]
@@ -251,7 +249,9 @@ module REXML
             @source.read if @source.buffer.size<2
             md = @source.match(/\s*/um, true)
             if @source.encoding == "UTF-8"
-              @source.buffer.force_encoding(::Encoding::UTF_8)
+              if @source.buffer.respond_to? :force_encoding
+                @source.buffer.force_encoding(Encoding::UTF_8)
+              end
             end
           end
         end
@@ -283,8 +283,7 @@ module REXML
               # External reference
               match[3] = match[3][1..-2] # PUBID
               match[4] = match[4][1..-2] # HREF
-              match.delete_at(5) if match.size > 5 # Chop out NDATA decl
-              # match is [ :entity, name, PUBLIC, pubid, href(, ndata)? ]
+              # match is [ :entity, name, PUBLIC, pubid, href ]
             else
               match[2] = match[2][1..-2]
               match.pop if match.size == 4
@@ -324,9 +323,9 @@ module REXML
               raise REXML::ParseException.new( "error parsing notation: no matching pattern", @source )
             end
             return [ :notationdecl, *vals ]
-          when DOCTYPE_END
+          when CDATA_END
             @document_status = :after_doctype
-            @source.match( DOCTYPE_END, true )
+            @source.match( CDATA_END, true )
             return [ :end_doctype ]
           end
         end
@@ -349,7 +348,7 @@ module REXML
                 md = @source.match( COMMENT_PATTERN, true )
 
                 case md[1]
-                when /--/, /-\z/
+                when /--/, /-$/
                   raise REXML::ParseException.new("Malformed comment", @source)
                 end
 
@@ -380,31 +379,31 @@ module REXML
               if md[4].size > 0
                 attrs = md[4].scan( ATTRIBUTE_PATTERN )
                 raise REXML::ParseException.new( "error parsing attributes: [#{attrs.join ', '}], excess = \"#$'\"", @source) if $' and $'.strip.size > 0
-                attrs.each do |attr_name, prefix, local_part, quote, value|
-                  if prefix == "xmlns"
-                    if local_part == "xml"
-                      if value != "http://www.w3.org/XML/1998/namespace"
+                attrs.each { |a,b,c,d,e|
+                  if b == "xmlns"
+                    if c == "xml"
+                      if d != "http://www.w3.org/XML/1998/namespace"
                         msg = "The 'xml' prefix must not be bound to any other namespace "+
                         "(http://www.w3.org/TR/REC-xml-names/#ns-decl)"
                         raise REXML::ParseException.new( msg, @source, self )
                       end
-                    elsif local_part == "xmlns"
+                    elsif c == "xmlns"
                       msg = "The 'xmlns' prefix must not be declared "+
                       "(http://www.w3.org/TR/REC-xml-names/#ns-decl)"
                       raise REXML::ParseException.new( msg, @source, self)
                     end
-                    curr_ns << local_part
-                  elsif prefix
-                    prefixes << prefix unless prefix == "xml"
+                    curr_ns << c
+                  elsif b
+                    prefixes << b unless b == "xml"
                   end
 
-                  if attributes.has_key?(attr_name)
-                    msg = "Duplicate attribute #{attr_name.inspect}"
-                    raise REXML::ParseException.new(msg, @source, self)
+                  if attributes.has_key? a
+                    msg = "Duplicate attribute #{a.inspect}"
+                    raise REXML::ParseException.new( msg, @source, self)
                   end
 
-                  attributes[attr_name] = value
-                end
+                  attributes[a] = e
+                }
               end
 
               # Verify that all of the prefixes have been defined
@@ -443,7 +442,6 @@ module REXML
         end
         return [ :dummy ]
       end
-      private :pull_event
 
       def entity( reference, entities )
         value = nil
@@ -499,13 +497,6 @@ module REXML
           rv.gsub!( /&amp;/, '&' )
         end
         rv
-      end
-
-      private
-      def need_source_encoding_update?(xml_declaration_encoding)
-        return false if xml_declaration_encoding.nil?
-        return false if /\AUTF-16\z/i =~ xml_declaration_encoding
-        true
       end
     end
   end

@@ -18,7 +18,7 @@ require "bigdecimal/jacobian"
 #
 # f.zero:: returns 0.0
 # f.one:: returns 1.0
-# f.two:: returns 2.0
+# f.two:: returns 1.0
 # f.ten:: returns 10.0
 #
 # f.eps:: returns the convergence criterion (epsilon value) used to determine whether two values are considered equal. If |a-b| < epsilon, the two values are considered equal.
@@ -30,7 +30,7 @@ module Newton
   include Jacobian
   module_function
 
-  def norm(fv,zero=0.0) # :nodoc:
+  def norm(fv,zero=0.0)
     s = zero
     n = fv.size
     for i in 0...n do
@@ -39,7 +39,6 @@ module Newton
     s
   end
 
-  # See also Newton
   def nlsolve(f,x)
     nRetry = 0
     n = x.size

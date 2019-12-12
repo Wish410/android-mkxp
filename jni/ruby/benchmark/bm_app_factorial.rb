@@ -6,6 +6,6 @@ def fact(n)
   end
 end
 
-100.times {
+8.times{
   fact(5000)
 }

@@ -107,6 +107,10 @@ class PPInspectTest < Test::Unit::TestCase
     a.instance_eval { @a = nil }
     result = PP.pp(a, '')
     assert_equal("#{a.inspect}\n", result)
+    a = 1.0
+    a.instance_eval { @a = nil }
+    result = PP.pp(a, '')
+    assert_equal("#{a.inspect}\n", result)
   end
 
   def test_to_s_without_iv
@@ -114,6 +118,7 @@ class PPInspectTest < Test::Unit::TestCase
     def a.to_s() "aaa" end
     result = PP.pp(a, '')
     assert_equal("#{a.inspect}\n", result)
+    assert_equal("aaa\n", result)
   end
 end
 
@@ -181,14 +186,6 @@ class PPDelegateTest < Test::Unit::TestCase
 
   def test_delegate
     assert_equal("[]\n", A.new([]).pretty_inspect, "[ruby-core:25804]")
-  end
-end
-
-class PPFileStatTest < Test::Unit::TestCase
-  def test_nothing_raised
-    assert_nothing_raised do
-      File.stat(__FILE__).pretty_inspect
-    end
   end
 end
 

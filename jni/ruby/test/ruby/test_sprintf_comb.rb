@@ -107,9 +107,7 @@ class TestSprintfComb < Test::Unit::TestCase
   ]
   VS.reverse!
 
-  FLAGS = [['', ' '], ['', '#'], ['', '+'], ['', '-'], ['', '0']]
-
-  def self.combination(*args, &b)
+  def combination(*args, &b)
     #AllPairs.exhaustive_each(*args, &b)
     AllPairs.each(*args, &b)
   end
@@ -270,8 +268,17 @@ class TestSprintfComb < Test::Unit::TestCase
     str
   end
 
-  def self.assertions_format_integer(format)
-    proc {
+  def test_format_integer
+    combination(
+        %w[B b d o X x],
+        [nil, 0, 5, 20],
+        ["", ".", ".0", ".8", ".20"],
+        ['', ' '],
+        ['', '#'],
+        ['', '+'],
+        ['', '-'],
+        ['', '0']) {|type, width, precision, sp, hs, pl, mi, zr|
+      format = "%#{sp}#{hs}#{pl}#{mi}#{zr}#{width}#{precision}#{type}"
       VS.each {|v|
         r = sprintf format, v
         e = emu_int format, v
@@ -285,14 +292,6 @@ class TestSprintfComb < Test::Unit::TestCase
       }
     }
   end
-
-  combination(%w[B b d o X x],
-              [nil, 0, 5, 20],
-              ["", ".", ".0", ".8", ".20"],
-              *FLAGS) {|type, width, precision, sp, hs, pl, mi, zr|
-    format = "%#{sp}#{hs}#{pl}#{mi}#{zr}#{width}#{precision}#{type}"
-    define_method("test_format_integer(#{format})", assertions_format_integer(format))
-  }
 
   FLOAT_VALUES = [
     -1e100,
@@ -527,8 +526,17 @@ class TestSprintfComb < Test::Unit::TestCase
 
   end
 
-  def self.assertions_format_float(format)
-    proc {
+  def test_format_float
+    combination(
+        %w[e E f g G],
+        [nil, 0, 5, 20],
+        ["", ".", ".0", ".8", ".20", ".200"],
+        ['', ' '],
+        ['', '#'],
+        ['', '+'],
+        ['', '-'],
+        ['', '0']) {|type, width, precision, sp, hs, pl, mi, zr|
+      format = "%#{sp}#{hs}#{pl}#{mi}#{zr}#{width}#{precision}#{type}"
       FLOAT_VALUES.each {|v|
         r = sprintf format, v
         e = emu_float format, v
@@ -542,12 +550,4 @@ class TestSprintfComb < Test::Unit::TestCase
       }
     }
   end
-
-  combination(%w[e E f g G],
-              [nil, 0, 5, 20],
-              ["", ".", ".0", ".8", ".20", ".200", ".9999"],
-              *FLAGS) {|type, width, precision, sp, hs, pl, mi, zr|
-    format = "%#{sp}#{hs}#{pl}#{mi}#{zr}#{width}#{precision}#{type}"
-    define_method("test_format_float(#{format})", assertions_format_float(format))
-  }
 end

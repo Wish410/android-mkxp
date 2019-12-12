@@ -1,5 +1,5 @@
 /*
- * $Id: ossl_x509attr.c 48809 2014-12-12 23:38:44Z nobu $
+ * $Id: ossl_x509attr.c 27437 2010-04-22 08:04:13Z nobu $
  * 'OpenSSL for Ruby' project
  * Copyright (C) 2001 Michal Rokos <m.rokos@sh.cvut.cz>
  * All rights reserved.
@@ -11,20 +11,20 @@
 #include "ossl.h"
 
 #define WrapX509Attr(klass, obj, attr) do { \
-    if (!(attr)) { \
+    if (!attr) { \
 	ossl_raise(rb_eRuntimeError, "ATTR wasn't initialized!"); \
     } \
-    (obj) = TypedData_Wrap_Struct((klass), &ossl_x509attr_type, (attr)); \
+    obj = Data_Wrap_Struct(klass, 0, X509_ATTRIBUTE_free, attr); \
 } while (0)
 #define GetX509Attr(obj, attr) do { \
-    TypedData_Get_Struct((obj), X509_ATTRIBUTE, &ossl_x509attr_type, (attr)); \
-    if (!(attr)) { \
+    Data_Get_Struct(obj, X509_ATTRIBUTE, attr); \
+    if (!attr) { \
 	ossl_raise(rb_eRuntimeError, "ATTR wasn't initialized!"); \
     } \
 } while (0)
 #define SafeGetX509Attr(obj, attr) do { \
-    OSSL_Check_Kind((obj), cX509Attr); \
-    GetX509Attr((obj), (attr)); \
+    OSSL_Check_Kind(obj, cX509Attr); \
+    GetX509Attr(obj, attr); \
 } while (0)
 
 /*
@@ -32,20 +32,6 @@
  */
 VALUE cX509Attr;
 VALUE eX509AttrError;
-
-static void
-ossl_x509attr_free(void *ptr)
-{
-    X509_ATTRIBUTE_free(ptr);
-}
-
-static const rb_data_type_t ossl_x509attr_type = {
-    "OpenSSL/X509/ATTRIBUTE",
-    {
-	0, ossl_x509attr_free,
-    },
-    0, 0, RUBY_TYPED_FREE_IMMEDIATELY,
-};
 
 /*
  * Public
@@ -179,8 +165,8 @@ ossl_x509attr_get_oid(VALUE self)
 #  define OSSL_X509ATTR_IS_SINGLE(attr)  ((attr)->single)
 #  define OSSL_X509ATTR_SET_SINGLE(attr) ((attr)->single = 1)
 #else
-#  define OSSL_X509ATTR_IS_SINGLE(attr)  (!(attr)->value.set)
-#  define OSSL_X509ATTR_SET_SINGLE(attr) ((attr)->value.set = 0)
+#  define OSSL_X509ATTR_IS_SINGLE(attr)  (!(attr)->set)
+#  define OSSL_X509ATTR_SET_SINGLE(attr) ((attr)->set = 0)
 #endif
 
 /*
@@ -274,7 +260,7 @@ ossl_x509attr_to_der(VALUE self)
  * X509_ATTRIBUTE init
  */
 void
-Init_ossl_x509attr(void)
+Init_ossl_x509attr()
 {
     eX509AttrError = rb_define_class_under(mX509, "AttributeError", eOSSLError);
 

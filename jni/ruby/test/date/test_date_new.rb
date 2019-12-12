@@ -68,6 +68,9 @@ class TestDateNew < Test::Unit::TestCase
 
   def test_ordinal__ex
     assert_raise(ArgumentError) do
+      Date.ordinal(2001,1.1)
+    end
+    assert_raise(ArgumentError) do
       Date.ordinal(2001,366)
     end
     assert_raise(ArgumentError) do
@@ -126,6 +129,9 @@ class TestDateNew < Test::Unit::TestCase
   end
 
   def test_civil__ex
+    assert_raise(ArgumentError) do
+      Date.civil(2001,2,1.1)
+    end
     assert_raise(ArgumentError) do
       Date.civil(2001,2,29)
     end
@@ -194,6 +200,9 @@ class TestDateNew < Test::Unit::TestCase
 
   def test_commercial__ex
     assert_raise(ArgumentError) do
+      Date.commercial(1997,1,1.1)
+    end
+    assert_raise(ArgumentError) do
       Date.commercial(1997,53,1)
     end
     assert_raise(ArgumentError) do
@@ -202,7 +211,6 @@ class TestDateNew < Test::Unit::TestCase
   end
 
   def test_weeknum
-    skip unless Date.respond_to?(:weeknum, true)
     d = Date.__send__(:weeknum)
     dt = DateTime.__send__(:weeknum)
     assert_equal([-4712, 1, 1], [d.year, d.mon, d.mday])
@@ -225,7 +233,6 @@ class TestDateNew < Test::Unit::TestCase
   end
 
   def test_nth_kday
-    skip unless Date.respond_to?(:nth_kday, true)
     d = Date.__send__(:nth_kday)
     dt = DateTime.__send__(:nth_kday)
     assert_equal([-4712, 1, 1], [d.year, d.mon, d.mday])

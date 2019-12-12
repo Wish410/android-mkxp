@@ -4,9 +4,7 @@
 # contributed by Jesse Millikan
 
 # disable output
-alias puts_orig puts
-def puts str
-  # disable puts
+def STDOUT.write_ *args
 end
 
 def item_check(tree)
@@ -27,7 +25,7 @@ def bottom_up_tree(item, depth)
  end
 end
 
-max_depth = 16 # ARGV[0].to_i
+max_depth = 12 # 16 # ARGV[0].to_i
 min_depth = 4
 
 max_depth = min_depth + 2 if min_depth + 2 > max_depth
@@ -57,6 +55,3 @@ min_depth.step(max_depth + 1, 2) do |depth|
 end
 
 puts "long lived tree of depth #{max_depth}\t check: #{item_check(long_lived_tree)}"
-
-undef puts
-alias puts puts_orig

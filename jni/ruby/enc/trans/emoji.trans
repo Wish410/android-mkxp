@@ -30,7 +30,8 @@
 
 <%= transcode_generated_code %>
 
-TRANS_INIT(emoji)
+void
+Init_emoji(void)
 {
 <%= transcode_register_code %>
 }

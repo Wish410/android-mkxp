@@ -1,17 +1,25 @@
-# $Id: test_verbose.rb 39544 2013-03-01 02:09:42Z drbrain $
+# $Id: test_verbose.rb 25189 2009-10-02 12:04:37Z akr $
 
 require 'test/unit'
 require 'fileutils'
-require_relative 'visibility_tests'
 
 class TestFileUtilsVerbose < Test::Unit::TestCase
 
   include FileUtils::Verbose
-  include TestFileUtils::Visibility
 
-  def setup
-    super
-    @fu_module = FileUtils::Verbose
+  def test_visibility
+    FileUtils::METHODS.each do |m|
+      assert_equal true, FileUtils::Verbose.respond_to?(m, true),
+                   "FileUtils::Verbose.#{m} is not defined"
+      assert_equal true, FileUtils::Verbose.respond_to?(m, false),
+                   "FileUtils::Verbose.#{m} is not public"
+    end
+    FileUtils::METHODS.each do |m|
+      assert_equal true, respond_to?(m, true),
+                   "FileUtils::Verbose.#{m} is not defined"
+      assert_equal true, FileUtils::Verbose.private_method_defined?(m),
+                   "FileUtils::Verbose.#{m} is not private"
+    end
   end
 
 end

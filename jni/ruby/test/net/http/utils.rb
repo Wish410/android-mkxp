@@ -19,8 +19,7 @@ module TestNetHTTPUtils
   end
 
   def config(key)
-    @config ||= self.class::CONFIG
-    @config[key]
+    self.class::CONFIG[key]
   end
 
   def logfile
@@ -32,40 +31,43 @@ module TestNetHTTPUtils
   end
 
   def teardown
-    if @server
-      @server.shutdown
-      @server_thread.join
+    @server.shutdown
+    until @server.status == :Stop
+      sleep 0.1
     end
-    @log_tester.call(@log) if @log_tester
     # resume global state
     Net::HTTP.version_1_2
   end
 
   def spawn_server
-    @log = []
-    @log_tester = lambda {|log| assert_equal([], log ) }
-    @config = self.class::CONFIG
     server_config = {
       :BindAddress => config('host'),
-      :Port => 0,
-      :Logger => WEBrick::Log.new(@log, WEBrick::BasicLog::WARN),
+      :Port => config('port'),
+      :Logger => WEBrick::Log.new(NullWriter.new),
       :AccessLog => [],
+      :ShutdownSocketWithoutClose => true,
       :ServerType => Thread,
     }
     server_config[:OutputBufferSize] = 4 if config('chunked')
-    server_config[:RequestTimeout] = config('RequestTimeout') if config('RequestTimeout')
     if defined?(OpenSSL) and config('ssl_enable')
       server_config.update({
         :SSLEnable      => true,
         :SSLCertificate => config('ssl_certificate'),
         :SSLPrivateKey  => config('ssl_private_key'),
-        :SSLTmpDhCallback => proc { OpenSSL::TestUtils::TEST_KEY_DH1024 },
       })
     end
     @server = WEBrick::HTTPServer.new(server_config)
     @server.mount('/', Servlet, config('chunked'))
-    @server_thread = @server.start
-    @config['port'] = @server[:Port]
+    @server.start
+    n_try_max = 5
+    begin
+      TCPSocket.open(config('host'), config('port')).close
+    rescue Errno::ECONNREFUSED
+      sleep 0.2
+      n_try_max -= 1
+      raise 'cannot spawn server; give up' if n_try_max < 0
+      retry
+    end
   end
 
   $test_net_http = nil
@@ -86,13 +88,6 @@ module TestNetHTTPUtils
 
     # echo server
     def do_POST(req, res)
-      res['Content-Type'] = req['Content-Type']
-      res['X-request-uri'] = req.request_uri.to_s
-      res.body = req.body
-      res.chunked = @chunked
-    end
-
-    def do_PATCH(req, res)
       res['Content-Type'] = req['Content-Type']
       res.body = req.body
       res.chunked = @chunked

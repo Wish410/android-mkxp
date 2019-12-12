@@ -9,23 +9,31 @@
 #
 # Documentation: Wakou Aoyama (RDoc'd and embellished by William Webber)
 #
-
 # == Overview
 #
-# The Common Gateway Interface (CGI) is a simple protocol for passing an HTTP
-# request from a web server to a standalone program, and returning the output
-# to the web browser.  Basically, a CGI program is called with the parameters
-# of the request passed in either in the environment (GET) or via $stdin
-# (POST), and everything it prints to $stdout is returned to the client.
+# The Common Gateway Interface (CGI) is a simple protocol
+# for passing an HTTP request from a web server to a
+# standalone program, and returning the output to the web
+# browser.  Basically, a CGI program is called with the
+# parameters of the request passed in either in the
+# environment (GET) or via $stdin (POST), and everything
+# it prints to $stdout is returned to the client.
 #
-# This file holds the CGI class.  This class provides functionality for
-# retrieving HTTP request parameters, managing cookies, and generating HTML
-# output.
+# This file holds the +CGI+ class.  This class provides
+# functionality for retrieving HTTP request parameters,
+# managing cookies, and generating HTML output.  See the
+# class documentation for more details and examples of use.
 #
-# The file CGI::Session provides session management functionality; see that
-# class for more details.
+# The file cgi/session.rb provides session management
+# functionality; see that file for more details.
 #
-# See http://www.w3.org/CGI/ for more information on the CGI protocol.
+# See http://www.w3.org/CGI/ for more information on the CGI
+# protocol.
+
+raise "Please, use ruby 1.9.0 or later." if RUBY_VERSION < "1.9.0"
+
+# CGI class.  See documentation for the file cgi.rb for an overview
+# of the CGI protocol.
 #
 # == Introduction
 #
@@ -120,7 +128,7 @@
 #
 # The simplest way to send output to the HTTP client is using the #out() method.
 # This takes the HTTP headers as a hash parameter, and the body content
-# via a block.  The headers can be generated as a string using the #http_header()
+# via a block.  The headers can be generated as a string using the #header()
 # method.  The output stream can be written directly to using the #print()
 # method.
 #
@@ -141,11 +149,6 @@
 # take particular attributes where the attributes can be directly specified
 # as arguments, rather than via a hash.
 #
-# === Utility HTML escape and other methods like a function.
-#
-# There are some utility tool defined in cgi/util.rb .
-# And when include, you can use utility methods like a function.
-#
 # == Examples of use
 #
 # === Get form values
@@ -162,7 +165,7 @@
 #   cgi.include?('field_name')
 #
 # CAUTION! cgi['field_name'] returned an Array with the old
-# cgi.rb(included in Ruby 1.6)
+# cgi.rb(included in ruby 1.6)
 #
 # === Get form values as hash
 #
@@ -237,26 +240,22 @@
 # === Print http header and html string to $DEFAULT_OUTPUT ($>)
 #
 #   require "cgi"
-#   cgi = CGI.new("html4")  # add HTML generation methods
-#   cgi.out do
-#     cgi.html do
-#       cgi.head do
-#         cgi.title { "TITLE" }
-#       end +
-#       cgi.body do
-#         cgi.form("ACTION" => "uri") do
-#           cgi.p do
-#             cgi.textarea("get_text") +
-#             cgi.br +
-#             cgi.submit
-#           end
+#   cgi = CGI.new("html3")  # add HTML generation methods
+#   cgi.out() do
+#     cgi.html() do
+#       cgi.head{ cgi.title{"TITLE"} } +
+#       cgi.body() do
+#         cgi.form() do
+#           cgi.textarea("get_text") +
+#           cgi.br +
+#           cgi.submit
 #         end +
-#         cgi.pre do
+#         cgi.pre() do
 #           CGI::escapeHTML(
-#             "params: #{cgi.params.inspect}\n" +
-#             "cookies: #{cgi.cookies.inspect}\n" +
-#             ENV.collect do |key, value|
-#               "#{key} --> #{value}\n"
+#             "params: " + cgi.params.inspect + "\n" +
+#             "cookies: " + cgi.cookies.inspect + "\n" +
+#             ENV.collect() do |key, value|
+#               key + " --> " + value + "\n"
 #             end.join("")
 #           )
 #         end
@@ -269,26 +268,7 @@
 #   CGI.new("html4")    # html4.01 (Strict)
 #   CGI.new("html4Tr")  # html4.01 Transitional
 #   CGI.new("html4Fr")  # html4.01 Frameset
-#   CGI.new("html5")    # html5
 #
-# === Some utility methods
-#
-#   require 'cgi/util'
-#   CGI.escapeHTML('Usage: foo "bar" <baz>')
-#
-#
-# === Some utility methods like a function
-#
-#   require 'cgi/util'
-#   include CGI::Util
-#   escapeHTML('Usage: foo "bar" <baz>')
-#   h('Usage: foo "bar" <baz>') # alias
-#
-#
-
-class CGI
-end
-
 require 'cgi/core'
 require 'cgi/cookie'
 require 'cgi/util'

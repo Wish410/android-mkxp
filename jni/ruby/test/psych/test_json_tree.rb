@@ -45,21 +45,10 @@ module Psych
     def test_list_to_json
       list = %w{ one two }
       json = Psych.to_json(list)
-      assert_match(/\]$/, json)
+      assert_match(/]$/, json)
       assert_match(/^\[/, json)
       assert_match(/"one"/, json)
       assert_match(/"two"/, json)
-    end
-
-    def test_time
-      time = Time.utc(2010, 10, 10)
-      assert_equal "{\"a\": \"2010-10-10 00:00:00.000000000 Z\"}\n",
-Psych.to_json({'a' => time })
-    end
-
-    def test_datetime
-      time = Time.new(2010, 10, 10).to_datetime
-      assert_equal "{\"a\": \"#{time.strftime("%Y-%m-%d %H:%M:%S.%9N %:z")}\"}\n", Psych.to_json({'a' => time })
     end
   end
 end

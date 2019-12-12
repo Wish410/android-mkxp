@@ -1,10 +1,9 @@
+#
 # = uri/http.rb
 #
 # Author:: Akira Yamada <akira@ruby-lang.org>
 # License:: You can redistribute it and/or modify it under the same term as Ruby.
-# Revision:: $Id: http.rb 47072 2014-08-05 19:09:01Z naruse $
-#
-# See URI for general documentation
+# Revision:: $Id: http.rb 25189 2009-10-02 12:04:37Z akr $
 #
 
 require 'uri/generic'
@@ -20,10 +19,8 @@ module URI
   # update. See <URL:http://support.microsoft.com/kb/834489>.
   #
   class HTTP < Generic
-    # A Default port of 80 for URI::HTTP
     DEFAULT_PORT = 80
 
-    # An Array of the available components for URI::HTTP
     COMPONENT = [
       :scheme,
       :userinfo, :host, :port,
@@ -49,7 +46,7 @@ module URI
     # Example:
     #
     #     newuri = URI::HTTP.build({:host => 'www.example.com',
-    #       :path => '/foo/bar'})
+    #       :path> => '/foo/bar'})
     #
     #     newuri = URI::HTTP.build([nil, "www.example.com", nil, "/path",
     #       "query", 'fragment'])
@@ -74,11 +71,8 @@ module URI
     #
     # Example:
     #
-    #     uri = URI::HTTP.new('http', nil, "www.example.com", nil, "/path",
-    #       "query", 'fragment')
-    #
-    #
-    # See also URI::Generic.new
+    #     uri = URI::HTTP.new(['http', nil, "www.example.com", nil, "/path",
+    #       "query", 'fragment'])
     #
     def initialize(*arg)
       super(*arg)
@@ -93,12 +87,12 @@ module URI
     # Otherwise, the path is simply URI#path.
     #
     def request_uri
-      return nil unless @path
-      if @path.start_with?(?/.freeze)
-        @query ? "#@path?#@query" : @path.dup
-      else
-        @query ? "/#@path?#@query" : "/#@path"
+      r = path_query
+      if r[0] != ?/
+        r = '/' + r
       end
+
+      r
     end
   end
 

@@ -26,7 +26,8 @@
 
 <%= transcode_generated_code %>
 
-TRANS_INIT(emoji_sjis_softbank)
+void
+Init_emoji_sjis_softbank(void)
 {
 <%= transcode_register_code %>
 }

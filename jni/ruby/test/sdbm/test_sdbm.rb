@@ -33,6 +33,15 @@ class TestSDBM < Test::Unit::TestCase
     end
   end
 
+  def have_fork?
+    begin
+      fork{}
+      true
+    rescue NotImplementedError
+      false
+    end
+  end
+
   def test_version
     assert(! SDBM.const_defined?(:VERSION))
   end
@@ -67,43 +76,48 @@ class TestSDBM < Test::Unit::TestCase
   end
 =end
 
-  def open_db_child(dbname, *opts)
-    opts = [0644, *opts].map(&:inspect).join(', ')
-    args = [EnvUtil.rubybin, "-rsdbm", <<-SRC, dbname]
-    STDOUT.sync = true
-    gdbm = SDBM.open(ARGV.shift, #{opts})
-    puts sdbm.class
-    gets
-    SRC
-    IO.popen(args, "r+") do |f|
-      dbclass = f.gets
-      assert_equal("SDBM", dbclass.chomp)
-      yield
-    end
-  end
-
   def test_s_open_nolock
-    dbname = "#{@tmpdir}/#{@prefix}"
+    # sdbm 1.8.0 specific
+    if not defined? SDBM::NOLOCK
+      return
+    end
+    return unless have_fork?	# snip this test
 
-    open_db_child(dbname, SDBM::NOLOCK) do
+    pid = fork() {
+      assert_instance_of(SDBM, sdbm  = SDBM.open("#{@tmpdir}/#{@prefix}", 0644,
+						SDBM::NOLOCK))
+      sleep 2
+    }
+    sleep 1
+    begin
+      sdbm2 = nil
       assert_no_exception(Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::EACCES) {
-        SDBM.open(dbname, 0644) {|sdbm|
-          assert_instance_of(SDBM, sdbm)
-        }
+	assert_instance_of(SDBM, sdbm2 = SDBM.open("#{@tmpdir}/#{@prefix}", 0644))
       }
+    ensure
+      Process.wait pid
+      sdbm2.close if sdbm2
     end
 
     p Dir.glob("#{@tmpdir}/#{@prefix}*") if $DEBUG
 
-    open_db_child(dbname) do
+    pid = fork() {
+      assert_instance_of(SDBM, sdbm  = SDBM.open("#{@tmpdir}/#{@prefix}", 0644))
+      sleep 2
+    }
+    begin
+      sleep 1
+      sdbm2 = nil
       assert_no_exception(Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::EACCES) {
 	# this test is failed on Cygwin98 (???)
-        SDBM.open(dbname, 0644, SDBM::NOLOCK) {|sdbm|
-          assert_instance_of(SDBM, sdbm)
-        }
+	assert_instance_of(SDBM, sdbm2 = SDBM.open("#{@tmpdir}/#{@prefix}", 0644,
+						   SDBM::NOLOCK))
       }
+    ensure
+      Process.wait pid
+      sdbm2.close if sdbm2
     end
-  end if defined? SDBM::NOLOCK # sdbm 1.8.0 specific
+  end
 
   def test_s_open_error
     skip "doesn't support to avoid read access by owner on Windows" if /mswin|mingw/ =~ RUBY_PLATFORM
@@ -398,7 +412,7 @@ class TestSDBM < Test::Unit::TestCase
 	n+=1
 	true
       }
-    rescue RuntimeError
+    rescue
     end
     assert_equal(51, n)
     check_size(49, @sdbm)
@@ -537,5 +551,5 @@ class TestSDBM < Test::Unit::TestCase
     end
     assert_raise(ArgumentError) { @sdbm.update(obj) }
   end
-end if defined? SDBM
+end
 

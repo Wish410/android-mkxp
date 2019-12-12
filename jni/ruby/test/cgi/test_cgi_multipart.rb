@@ -107,7 +107,6 @@ class CGIMultipartTest < Test::Unit::TestCase
 
   def setup
     ENV['REQUEST_METHOD'] = 'POST'
-    @tempfiles = []
   end
 
   def teardown
@@ -116,14 +115,11 @@ class CGIMultipartTest < Test::Unit::TestCase
     end
     $stdin.close() if $stdin.is_a?(Tempfile)
     $stdin = STDIN
-    @tempfiles.each {|t|
-      t.close!
-    }
   end
 
   def _prepare(data)
     ## create multipart input
-    multipart = MultiPart.new(defined?(@boundary) ? @boundary : nil)
+    multipart = MultiPart.new(@boundary)
     data.each do |hash|
       multipart.append(hash[:name], hash[:value], hash[:filename])
     end
@@ -137,49 +133,40 @@ class CGIMultipartTest < Test::Unit::TestCase
     ENV['REQUEST_METHOD'] = 'POST'
     ## set $stdin
     tmpfile = Tempfile.new('test_cgi_multipart')
-    @tempfiles << tmpfile
     tmpfile.binmode
     tmpfile << input
     tmpfile.rewind()
     $stdin = tmpfile
   end
 
-  def _test_multipart(cgi_options={})
+  def _test_multipart
     caller(0).find {|s| s =~ /in `test_(.*?)'/ }
-    #testname = $1
+    testname = $1
     #$stderr.puts "*** debug: testname=#{testname.inspect}"
     _prepare(@data)
-    options = {:accept_charset=>"UTF-8"}
-    options.merge! cgi_options
-    cgi = CGI.new(options)
+    cgi = RUBY_VERSION>="1.9" ? CGI.new(:accept_charset=>"UTF-8") : CGI.new
     expected_names = @data.collect{|hash| hash[:name] }.sort
     assert_equal(expected_names, cgi.params.keys.sort)
     threshold = 1024*10
     @data.each do |hash|
       name = hash[:name]
       expected = hash[:value]
-      if hash[:filename] #if file
-        expected_class = @expected_class || (hash[:value].length < threshold ? StringIO : Tempfile)
-        assert(cgi.files.keys.member?(hash[:name]))
+      if RUBY_VERSION>="1.9"
+        if hash[:filename] #if file
+          expected_class = @expected_class || (hash[:value].length < threshold ? StringIO : Tempfile)
+          assert(cgi.files.keys.member?(hash[:name]))
+        else
+          expected_class = String
+          assert_equal(expected, cgi[name])
+          assert_equal(false,cgi.files.keys.member?(hash[:name]))
+        end
       else
-        expected_class = String
-        assert_equal(expected, cgi[name])
-        assert_equal(false,cgi.files.keys.member?(hash[:name]))
+        expected_class = @expected_class || (hash[:value].length < threshold ? StringIO : Tempfile)
       end
       assert_kind_of(expected_class, cgi[name])
       assert_equal(expected, cgi[name].read())
       assert_equal(hash[:filename] || '', cgi[name].original_filename)  #if hash[:filename]
       assert_equal(hash[:content_type] || '', cgi[name].content_type)  #if hash[:content_type]
-    end
-  ensure
-    if cgi
-      cgi.params.each {|name, vals|
-        vals.each {|val|
-          if val.kind_of?(Tempfile) && val.path
-            val.close!
-          end
-        }
-      }
     end
   end
 
@@ -240,29 +227,16 @@ class CGIMultipartTest < Test::Unit::TestCase
       {:name=>'image1', :value=>_read('large.png'),
        :filename=>'large.png', :content_type=>'image/png'},  # large image
     ]
+    original = _set_const(CGI, :MAX_MULTIPART_LENGTH, 2 * 1024)
     begin
       ex = assert_raise(StandardError) do
-        _test_multipart(:max_multipart_length=>2 * 1024) # set via simple scalar
+        _test_multipart()
       end
       assert_equal("too large multipart data.", ex.message)
     ensure
+      _set_const(CGI, :MAX_MULTIPART_LENGTH, original)
     end
-  end
-
-
-  def test_cgi_multipart_maxmultipartlength_lambda
-    @data = [
-      {:name=>'image1', :value=>_read('large.png'),
-       :filename=>'large.png', :content_type=>'image/png'},  # large image
-    ]
-    begin
-      ex = assert_raise(StandardError) do
-        _test_multipart(:max_multipart_length=>lambda{2*1024}) # set via lambda
-      end
-      assert_equal("too large multipart data.", ex.message)
-    ensure
-    end
-  end
+  end if CGI.const_defined?(:MAX_MULTIPART_LENGTH)
 
 
   def test_cgi_multipart_maxmultipartcount
@@ -296,9 +270,9 @@ class CGIMultipartTest < Test::Unit::TestCase
       input2
     end
     ex = assert_raise(EOFError) do
-      CGI.new(:accept_charset=>"UTF-8")
+      cgi = RUBY_VERSION>="1.9" ? CGI.new(:accept_charset=>"UTF-8") : CGI.new
     end
-    assert_equal("bad content body", ex.message)
+    assert_equal("bad boundary end of body part", ex.message)
     #
     _prepare(@data) do |input|
       input2 = input.sub(/--(\r\n)?\z/, "")
@@ -307,7 +281,7 @@ class CGIMultipartTest < Test::Unit::TestCase
       input2
     end
     ex = assert_raise(EOFError) do
-      CGI.new(:accept_charset=>"UTF-8")
+      cgi = RUBY_VERSION>="1.9" ? CGI.new(:accept_charset=>"UTF-8") : CGI.new
     end
     assert_equal("bad content body", ex.message)
   end
@@ -323,52 +297,10 @@ class CGIMultipartTest < Test::Unit::TestCase
       {:name=>'image1',  :value=>_read('small.png'),
        :filename=>'small.png',  :content_type=>'image/png'},  # small image
     ]
-    @data[1][:value].force_encoding("UTF-8")
+    @data[1][:value].force_encoding("UTF-8") if RUBY_VERSION>="1.9"
     _prepare(@data)
-    cgi = CGI.new(:accept_charset=>"UTF-8")
+    cgi = RUBY_VERSION>="1.9" ? CGI.new(:accept_charset=>"UTF-8") : CGI.new
     assert_equal('file1.html', cgi['file1'].original_filename)
-  end
-
-  def test_cgi_multipart_boundary_10240 # [Bug #3866]
-    @boundary = 'AaB03x'
-    @data = [
-      {:name=>'file',   :value=>"b"*10134,
-       :filename=>'file.txt', :content_type=>'text/plain'},
-      {:name=>'foo',  :value=>"bar"},
-    ]
-    _prepare(@data)
-    cgi = CGI.new(:accept_charset=>"UTF-8")
-    assert_equal(cgi['foo'], 'bar')
-    assert_equal(cgi['file'].read, 'b'*10134)
-    cgi['file'].close! if cgi['file'].kind_of? Tempfile
-  end
-
-  def test_cgi_multipart_without_tempfile
-    assert_in_out_err([], <<-'EOM')
-      require 'cgi'
-      require 'stringio'
-      ENV['REQUEST_METHOD'] = 'POST'
-      ENV['CONTENT_TYPE'] = 'multipart/form-data; boundary=foobar1234'
-      body = <<-BODY
---foobar1234
-Content-Disposition: form-data: name=\"name1\"
-
-value1
---foobar1234
-Content-Disposition: form-data: name=\"file1\"; filename=\"file1.html\"
-Content-Type: text/html
-
-<html>
-<body><p>Hello</p></body>
-</html>
-
---foobar1234--
-BODY
-      body.gsub!(/\n/, "\r\n")
-      ENV['CONTENT_LENGTH'] = body.size.to_s
-      $stdin = StringIO.new(body)
-      CGI.new
-    EOM
   end
 
   ###

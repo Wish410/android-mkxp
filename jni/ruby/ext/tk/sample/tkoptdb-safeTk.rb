@@ -20,7 +20,7 @@ if ENV['LANG'] =~ /^ja/
   # read Japanese resource
   ent = TkOptionDB.read_entries(File.expand_path('resource.ja',
                                                  File.dirname(__FILE__)),
-                                'utf-8')
+                                'euc-jp')
 else
   # read English resource
   ent = TkOptionDB.read_entries(File.expand_path('resource.en',

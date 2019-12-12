@@ -2,7 +2,7 @@
 # Create files
 #
 
-max = 200_000
+max = 50_000
 file = './tmpfile_of_bm_io_file_create'
 
 max.times{

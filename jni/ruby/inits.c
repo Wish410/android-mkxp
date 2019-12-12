@@ -9,14 +9,13 @@
 
 **********************************************************************/
 
-#include "internal.h"
+#include "ruby/ruby.h"
 
 #define CALL(n) {void Init_##n(void); Init_##n();}
 
 void
 rb_call_inits(void)
 {
-    CALL(Method);
     CALL(RandomSeed);
     CALL(sym);
     CALL(var_tables);
@@ -46,6 +45,7 @@ rb_call_inits(void)
     CALL(Time);
     CALL(Random);
     CALL(signal);
+    CALL(process);
     CALL(load);
     CALL(Proc);
     CALL(Binding);
@@ -55,12 +55,10 @@ rb_call_inits(void)
     CALL(VM);
     CALL(ISeq);
     CALL(Thread);
-    CALL(process);
     CALL(Cont);
     CALL(Rational);
     CALL(Complex);
     CALL(version);
-    CALL(vm_trace);
-    CALL(zlib);
+	CALL(zlib);
 }
 #undef CALL

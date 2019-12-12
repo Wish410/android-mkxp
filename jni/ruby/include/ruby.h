@@ -22,7 +22,6 @@
 #define HAVE_RUBY_REGEX_H       1
 #define HAVE_RUBY_RUBY_H        1
 #define HAVE_RUBY_ST_H          1
-#define HAVE_RUBY_THREAD_H      1
 #define HAVE_RUBY_UTIL_H        1
 #define HAVE_RUBY_VERSION_H     1
 #define HAVE_RUBY_VM_H          1

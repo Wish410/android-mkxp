@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # text (tag bindings) widget demo (called by 'widget')
 #
 
-# toplevel widget уБМхнШхЬиуБЩуВМуБ░хЙКщЩдуБЩуВЛ
+# toplevel widget дм┬╕║▀д╣дьд╨║я╜№д╣ды
 if defined?($bind_demo) && $bind_demo
   $bind_demo.destroy
   $bind_demo = nil
 end
 
-# demo чФиуБо toplevel widget уВТчФЯцИР
+# demo ═╤д╬ toplevel widget дЄ└╕└о
 $bind_demo = TkToplevel.new {|w|
   title("Text Demonstration - Tag Bindings")
   iconname("bind")
@@ -18,11 +18,11 @@ $bind_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($bind_demo).pack(:fill=>:both, :expand=>true)
 
-# frame чФЯцИР
+# frame └╕└о
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'ф║Жшзг'
-    text 'щЦЙуБШуВЛ'
+    #text '╬╗▓Є'
+    text '╩─д╕ды'
     command proc{
       tmppath = $bind_demo
       $bind_demo = nil
@@ -31,20 +31,20 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'уВ│уГ╝уГЙхПВчЕз'
+    text 'е│б╝е╔╗▓╛╚'
     command proc{showCode 'bind'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# bind чФиуГбуВ╜уГГуГЙ
+# bind ═╤есе╜е├е╔
 def tag_binding_for_bind_demo(tag, enter_style, leave_style)
   tag.bind('Any-Enter', proc{tag.configure enter_style})
   tag.bind('Any-Leave', proc{tag.configure leave_style})
 end
 
-# text чФЯцИР
+# text └╕└о
 txt = TkText.new(base_frame){|t|
-  # чФЯцИР
+  # └╕└о
   setgrid 'true'
   #width  60
   #height 24
@@ -57,7 +57,7 @@ txt = TkText.new(base_frame){|t|
   }
   pack('expand'=>'yes', 'fill'=>'both')
 
-  # уВ╣уВ┐уВдуГлшинхоЪ
+  # е╣е┐едеы└▀─ъ
   if TkWinfo.depth($root).to_i > 1
     tagstyle_bold = {'background'=>'#43ce80', 'relief'=>'raised',
                      'borderwidth'=>1}
@@ -67,25 +67,25 @@ txt = TkText.new(base_frame){|t|
     tagstyle_normal = {'foreground'=>'', 'background'=>''}
   end
 
-  # уГЖуВнуВ╣уГИцМ┐хЕе
-  insert 'insert', "уГЖуВнуВ╣уГИwidgetуБошбичд║уВ╣уВ┐уВдуГлуВТхИ╢х╛буБЩуВЛуБоуБихРМуБШуВ┐уВ░уБоуГбуВлуГЛуВ║уГауВТф╜┐уБгуБжуАБуГЖуВнуВ╣уГИуБлTclуБоуВ│уГЮуГ│уГЙуВТхЙ▓уВКх╜УуБжуВЛуБУуБиуБМуБзуБНуБ╛уБЩуАВуБУуВМуБлуВИуВКуАБуГЮуВжуВ╣уВДуВнуГ╝уГЬуГ╝уГЙуБоуВвуВпуВ╖уГзуГ│уБзчЙ╣хоЪуБоTclуБоуВ│уГЮуГ│уГЙуБМхоЯшбМуБХуВМуВЛуВИуБЖуБлуБкуВКуБ╛уБЩуАВф╛ЛуБИуБ░уАБф╕ЛуБоуВнуГгуГ│уГРуВ╣уБоуГЗуГвуГЧуГнуВ░уГйуГауБлуБдуБДуБжуБошкмцШОцЦЗуБлуБпуБЭуБоуВИуБЖуБкуВ┐уВ░уБМуБдуБДуБжуБДуБ╛уБЩуАВуГЮуВжуВ╣уВТшкмцШОцЦЗуБоф╕КуБлцМБуБгуБжуБДуБПуБишкмцШОцЦЗуБМхЕЙуВКуАБуГЬуВ┐уГ│1уВТцК╝уБЩуБиуБЭуБошкмцШОуБоуГЗуГвуБМхзЛуБ╛уВКуБ╛уБЩуАВ
+  # е╞ене╣е╚┴▐╞■
+  insert 'insert', "е╞ене╣е╚widgetд╬╔╜╝ие╣е┐едеыдЄ└й╕цд╣дыд╬д╚╞▒д╕е┐е░д╬еселе╦е║ердЄ╗╚д├д╞бве╞ене╣е╚д╦Tclд╬е│е▐еєе╔дЄ│фдъ┼Ўд╞дыд│д╚дмд╟днд▐д╣бгд│дьд╦дшдъбве▐еже╣дфенб╝е▄б╝е╔д╬евепе╖ечеєд╟╞├─ъд╬Tclд╬е│е▐еєе╔дм╝┬╣╘д╡дьдыдшджд╦д╩дъд▐д╣бг╬удид╨бв▓╝д╬енеуеєе╨е╣д╬е╟ете╫еэе░ещерд╦д─ддд╞д╬└т╠└╩╕д╦д╧д╜д╬дшджд╩е┐е░дмд─ддд╞ддд▐д╣бге▐еже╣дЄ└т╠└╩╕д╬╛хд╦╗¤д├д╞дддпд╚└т╠└╩╕дм╕ўдъбве▄е┐еє1дЄ▓бд╣д╚д╜д╬└т╠└д╬е╟етдм╗╧д▐дъд▐д╣бг
 
 "
-  insert('end', '1. уВнуГгуГ│уГРуВ╣ widget уБлф╜ЬуВЛуБУуБиуБоуБзуБНуВЛуВвуВдуГЖуГауБочиощбЮхЕиуБжуБлщЦвуБЩуВЛуВ╡уГ│уГЧуГлуАВ', (d1 = TkTextTag.new(t)) )
+  insert('end', '1. енеуеєе╨е╣ widget д╦║юдыд│д╚д╬д╟дндыеведе╞ерд╬╝я╬р┴┤д╞д╦┤╪д╣дые╡еєе╫еыбг', (d1 = TkTextTag.new(t)) )
   insert('end', "\n\n")
-  insert('end', '2. ч░бхНШуБк 2цмбхЕГуБоуГЧуГнуГГуГИуАВуГЗуГ╝уВ┐уВТшбиуБЩчВ╣уВТхЛХуБЛуБЩуБУуБиуБМуБзуБНуВЛуАВ', (d2 = TkTextTag.new(t)) )
+  insert('end', '2. ┤╩├▒д╩ 2╝б╕╡д╬е╫еэе├е╚бге╟б╝е┐дЄ╔╜д╣┼└дЄ╞░длд╣д│д╚дмд╟дндыбг', (d2 = TkTextTag.new(t)) )
   insert('end', "\n\n")
-  insert('end', '3. уГЖуВнуВ╣уГИуВвуВдуГЖуГауБоуВвуГ│уВлуГ╝уБишбМцПГуБИуАВ',
+  insert('end', '3. е╞ене╣е╚еведе╞ерд╬евеєелб╝д╚╣╘┬╖дибг',
          (d3 = TkTextTag.new(t)) )
   insert('end', "\n\n")
-  insert('end', '4. уГйуВдуГ│уВвуВдуГЖуГауБоуБЯуВБуБочЯвхН░уБощануБох╜вуБоуВиуГЗуВгуВ┐уАВ',
+  insert('end', '4. ещедеєеведе╞ерд╬д┐дсд╬╠Ё░їд╬╞мд╬╖┴д╬еие╟еге┐бг',
          (d4 = TkTextTag.new(t)) )
   insert('end', "\n\n")
-  insert('end', '5. уВ┐уГЦуВ╣уГИуГГуГЧуВТхдЙцЫ┤уБЩуВЛуБЯуВБуБоцйЯшГ╜уБдуБНуБоуГлуГ╝уГйуГ╝уАВ',
+  insert('end', '5. е┐е╓е╣е╚е├е╫дЄ╩╤╣╣д╣дыд┐дсд╬╡б╟╜д─днд╬еыб╝ещб╝бг',
          (d5 = TkTextTag.new(t)) )
   insert('end', "\n\n")
   insert('end',
-         '6. уВнуГгуГ│уГРуВ╣уБМуБйуБЖуВДуБгуБжуВ╣уВпуГнуГ╝уГлуБЩуВЛуБоуБЛуВТчд║уБЩуВ░уГкуГГуГЙуАВ',
+         '6. енеуеєе╨е╣дмд╔дждфд├д╞е╣епеэб╝еыд╣дыд╬длдЄ╝ид╣е░еъе├е╔бг',
          (d6 = TkTextTag.new(t)) )
 
   # binding

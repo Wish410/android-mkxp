@@ -12,7 +12,7 @@
 
 /*
  * call-seq:
- *   TCPServer.new([hostname,] port) => tcpserver
+ *   TCPServer.new([hostname,] port)                    => tcpserver
  *
  * Creates a new server socket bound to _port_.
  *
@@ -22,13 +22,6 @@
  *   s = serv.accept
  *   s.puts Time.now
  *   s.close
- *
- * Internally, TCPServer.new calls getaddrinfo() function to
- * obtain addresses.
- * If getaddrinfo() returns multiple addresses,
- * TCPServer.new tries to create a server socket for each address
- * and returns first one that is successful.
- *
  */
 static VALUE
 tcp_svr_init(int argc, VALUE *argv, VALUE sock)
@@ -43,8 +36,6 @@ tcp_svr_init(int argc, VALUE *argv, VALUE sock)
  * call-seq:
  *   tcpserver.accept => tcpsocket
  *
- * Accepts an incoming connection. It returns a new TCPSocket object.
- *
  *   TCPServer.open("127.0.0.1", 14641) {|serv|
  *     s = serv.accept
  *     s.puts Time.now
@@ -56,17 +47,18 @@ static VALUE
 tcp_accept(VALUE sock)
 {
     rb_io_t *fptr;
-    union_sockaddr from;
+    struct sockaddr_storage from;
     socklen_t fromlen;
 
     GetOpenFile(sock, fptr);
     fromlen = (socklen_t)sizeof(from);
-    return rsock_s_accept(rb_cTCPSocket, fptr->fd, &from.addr, &fromlen);
+    return rsock_s_accept(rb_cTCPSocket, fptr->fd,
+		          (struct sockaddr*)&from, &fromlen);
 }
 
 /*
  * call-seq:
- *   tcpserver.accept_nonblock => tcpsocket
+ * 	tcpserver.accept_nonblock => tcpsocket
  *
  * Accepts an incoming connection using accept(2) after
  * O_NONBLOCK is set for the underlying file descriptor.
@@ -101,12 +93,13 @@ static VALUE
 tcp_accept_nonblock(VALUE sock)
 {
     rb_io_t *fptr;
-    union_sockaddr from;
+    struct sockaddr_storage from;
     socklen_t fromlen;
 
     GetOpenFile(sock, fptr);
     fromlen = (socklen_t)sizeof(from);
-    return rsock_s_accept_nonblock(rb_cTCPSocket, fptr, &from.addr, &fromlen);
+    return rsock_s_accept_nonblock(rb_cTCPSocket, fptr,
+			           (struct sockaddr *)&from, &fromlen);
 }
 
 /*
@@ -127,48 +120,22 @@ static VALUE
 tcp_sysaccept(VALUE sock)
 {
     rb_io_t *fptr;
-    union_sockaddr from;
+    struct sockaddr_storage from;
     socklen_t fromlen;
 
     GetOpenFile(sock, fptr);
     fromlen = (socklen_t)sizeof(from);
-    return rsock_s_accept(0, fptr->fd, &from.addr, &fromlen);
+    return rsock_s_accept(0, fptr->fd, (struct sockaddr*)&from, &fromlen);
 }
 
+/*
+ * Document-class: ::TCPServer < TCPSocket
+ *
+ * TCPServer represents a TCP/IP server socket.
+ */
 void
 rsock_init_tcpserver(void)
 {
-    /*
-     * Document-class: TCPServer < TCPSocket
-     *
-     * TCPServer represents a TCP/IP server socket.
-     *
-     * A simple TCP server may look like:
-     *
-     *   require 'socket'
-     *
-     *   server = TCPServer.new 2000 # Server bind to port 2000
-     *   loop do
-     *     client = server.accept    # Wait for a client to connect
-     *     client.puts "Hello !"
-     *     client.puts "Time is #{Time.now}"
-     *     client.close
-     *   end
-     *
-     * A more usable server (serving multiple clients):
-     *
-     *   require 'socket'
-     *
-     *   server = TCPServer.new 2000
-     *   loop do
-     *     Thread.start(server.accept) do |client|
-     *       client.puts "Hello !"
-     *       client.puts "Time is #{Time.now}"
-     *       client.close
-     *     end
-     *   end
-     *
-     */
     rb_cTCPServer = rb_define_class("TCPServer", rb_cTCPSocket);
     rb_define_method(rb_cTCPServer, "accept", tcp_accept, 0);
     rb_define_method(rb_cTCPServer, "accept_nonblock", tcp_accept_nonblock, 0);

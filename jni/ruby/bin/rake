@@ -23,11 +23,9 @@
 #++
 
 begin
-  require 'rubygems'
-  gem 'rake'
+  require 'rake'
 rescue LoadError
+  require 'rubygems'
+  require 'rake'
 end
-
-require 'rake'
-
 Rake.application.run

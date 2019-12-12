@@ -2,7 +2,7 @@
 
   sprintf.c -
 
-  $Author: akr $
+  $Author: yugui $
   created at: Fri Oct 15 10:39:26 JST 1993
 
   Copyright (C) 1993-2007 Yukihiro Matsumoto
@@ -11,9 +11,9 @@
 
 **********************************************************************/
 
-#include "internal.h"
+#include "ruby/ruby.h"
 #include "ruby/re.h"
-#include "id.h"
+#include "ruby/encoding.h"
 #include <math.h>
 #include <stdarg.h>
 
@@ -22,8 +22,37 @@
 #endif
 
 #define BIT_DIGITS(N)   (((N)*146)/485 + 1)  /* log2(10) =~ 146/485 */
+#define BITSPERDIG (SIZEOF_BDIGITS*CHAR_BIT)
+#define EXTENDSIGN(n, l) (((~0 << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0 << (n)))
 
 static void fmt_setup(char*,size_t,int,int,int,int);
+
+static char*
+remove_sign_bits(char *str, int base)
+{
+    char *s, *t;
+
+    s = t = str;
+
+    if (base == 16) {
+	while (*t == 'f') {
+	    t++;
+	}
+    }
+    else if (base == 8) {
+	*t |= EXTENDSIGN(3, strlen(t));
+	while (*t == '7') {
+	    t++;
+	}
+    }
+    else if (base == 2) {
+	while (*t == '1') {
+	    t++;
+	}
+    }
+
+    return t;
+}
 
 static char
 sign_bits(int base, const char *p)
@@ -65,37 +94,51 @@ sign_bits(int base, const char *p)
 
 #define PUSH(s, l) do { \
     CHECK(l);\
-    memcpy(&buf[blen], (s), (l));\
+    memcpy(&buf[blen], s, l);\
     blen += (l);\
 } while (0)
 
 #define FILL(c, l) do { \
     CHECK(l);\
-    memset(&buf[blen], (c), (l));\
+    memset(&buf[blen], c, l);\
     blen += (l);\
 } while (0)
 
 #define GETARG() (nextvalue != Qundef ? nextvalue : \
-		  GETNEXTARG())
-
-#define GETNEXTARG() ( \
-    check_next_arg(posarg, nextarg), \
+    posarg == -1 ? \
+    (rb_raise(rb_eArgError, "unnumbered(%d) mixed with numbered", nextarg), 0) : \
+    posarg == -2 ? \
+    (rb_raise(rb_eArgError, "unnumbered(%d) mixed with named", nextarg), 0) : \
     (posarg = nextarg++, GETNTHARG(posarg)))
 
-#define GETPOSARG(n) ( \
-    check_pos_arg(posarg, (n)), \
-    (posarg = -1, GETNTHARG(n)))
+#define GETPOSARG(n) (posarg > 0 ? \
+    (rb_raise(rb_eArgError, "numbered(%d) after unnumbered(%d)", n, posarg), 0) : \
+    posarg == -2 ? \
+    (rb_raise(rb_eArgError, "numbered(%d) after named", n), 0) : \
+    ((n < 1) ? (rb_raise(rb_eArgError, "invalid index - %d$", n), 0) : \
+	       (posarg = -1, GETNTHARG(n))))
 
 #define GETNTHARG(nth) \
-    (((nth) >= argc) ? (rb_raise(rb_eArgError, "too few arguments"), 0) : argv[(nth)])
+    ((nth >= argc) ? (rb_raise(rb_eArgError, "too few arguments"), 0) : argv[nth])
 
-#define CHECKNAMEARG(name, len, enc) ( \
-    check_name_arg(posarg, name, len, enc), \
-    posarg = -2)
+#define GETNAMEARG(id, name, len) ( \
+    posarg > 0 ? \
+    (rb_raise(rb_eArgError, "named%.*s after unnumbered(%d)", (len), (name), posarg), 0) : \
+    posarg == -1 ? \
+    (rb_raise(rb_eArgError, "named%.*s after numbered", (len), (name)), 0) :	\
+    (posarg = -2, rb_hash_lookup2(get_hash(&hash, argc, argv), id, Qundef)))
 
 #define GETNUM(n, val) \
-    (!(p = get_num(p, end, enc, &(n))) ? \
-     rb_raise(rb_eArgError, #val " too big") : (void)0)
+    for (; p < end && rb_enc_isdigit(*p, enc); p++) {	\
+	int next_n = 10 * n + (*p - '0'); \
+        if (next_n / 10 != n) {\
+	    rb_raise(rb_eArgError, #val " too big"); \
+	} \
+	n = next_n; \
+    } \
+    if (p >= end) { \
+	rb_raise(rb_eArgError, "malformed format string - %%*[0-9]"); \
+    }
 
 #define GETASTER(val) do { \
     t = p++; \
@@ -105,66 +148,11 @@ sign_bits(int base, const char *p)
 	tmp = GETPOSARG(n); \
     } \
     else { \
-	tmp = GETNEXTARG(); \
+	tmp = GETARG(); \
 	p = t; \
     } \
-    (val) = NUM2INT(tmp); \
+    val = NUM2INT(tmp); \
 } while (0)
-
-static const char *
-get_num(const char *p, const char *end, rb_encoding *enc, int *valp)
-{
-    int next_n = *valp;
-    for (; p < end && rb_enc_isdigit(*p, enc); p++) {
-	if (MUL_OVERFLOW_INT_P(10, next_n))
-	    return NULL;
-	next_n *= 10;
-	if (INT_MAX - (*p - '0') < next_n)
-	    return NULL;
-	next_n += *p - '0';
-    }
-    if (p >= end) {
-	rb_raise(rb_eArgError, "malformed format string - %%*[0-9]");
-    }
-    *valp = next_n;
-    return p;
-}
-
-static void
-check_next_arg(int posarg, int nextarg)
-{
-    switch (posarg) {
-      case -1:
-	rb_raise(rb_eArgError, "unnumbered(%d) mixed with numbered", nextarg);
-      case -2:
-	rb_raise(rb_eArgError, "unnumbered(%d) mixed with named", nextarg);
-    }
-}
-
-static void
-check_pos_arg(int posarg, int n)
-{
-    if (posarg > 0) {
-	rb_raise(rb_eArgError, "numbered(%d) after unnumbered(%d)", n, posarg);
-    }
-    if (posarg == -2) {
-	rb_raise(rb_eArgError, "numbered(%d) after named", n);
-    }
-    if (n < 1) {
-	rb_raise(rb_eArgError, "invalid index - %d$", n);
-    }
-}
-
-static void
-check_name_arg(int posarg, const char *name, int len, rb_encoding *enc)
-{
-    if (posarg > 0) {
-	rb_enc_raise(enc, rb_eArgError, "named%.*s after unnumbered(%d)", len, name, posarg);
-    }
-    if (posarg == -1) {
-	rb_enc_raise(enc, rb_eArgError, "named%.*s after numbered", len, name);
-    }
-}
 
 static VALUE
 get_hash(volatile VALUE *hash, int argc, const VALUE *argv)
@@ -175,7 +163,7 @@ get_hash(volatile VALUE *hash, int argc, const VALUE *argv)
     if (argc != 2) {
 	rb_raise(rb_eArgError, "one hash required");
     }
-    tmp = rb_check_hash_type(argv[1]);
+    tmp = rb_check_convert_type(argv[1], T_HASH, "Hash", "to_hash");
     if (NIL_P(tmp)) {
 	rb_raise(rb_eArgError, "one hash required");
     }
@@ -436,7 +424,7 @@ get_hash(volatile VALUE *hash, int argc, const VALUE *argv)
  *  For more complex formatting, Ruby supports a reference by name.
  *  %<name>s style uses format style, but %{name} style doesn't.
  *
- *  Examples:
+ *  Exapmles:
  *    sprintf("%<foo>d : %<bar>f", { :foo => 1, :bar => 2 })
  *      #=> 1 : 2.000000
  *    sprintf("%{foo}f", { :foo => 1 })
@@ -452,7 +440,6 @@ rb_f_sprintf(int argc, const VALUE *argv)
 VALUE
 rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 {
-    enum {default_float_precision = 6};
     rb_encoding *enc;
     const char *p, *end;
     char *buf;
@@ -504,7 +491,7 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
     for (; p < end; p++) {
 	const char *t;
 	int n;
-	VALUE sym = Qnil;
+	ID id = 0;
 
 	for (t = p; t < end && *t != '%'; t++) ;
 	PUSH(p, t - p);
@@ -581,7 +568,6 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 	    {
 		const char *start = p;
 		char term = (*p == '<') ? '>' : '}';
-		int len;
 
 		for (; p < end && *p != term; ) {
 		    p += rb_enc_mbclen(p, end, enc);
@@ -589,28 +575,14 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 		if (p >= end) {
 		    rb_raise(rb_eArgError, "malformed name - unmatched parenthesis");
 		}
-#if SIZEOF_INT < SIZEOF_SIZE_T
-		if ((size_t)(p - start) >= INT_MAX) {
-		    const int message_limit = 20;
-		    len = (int)(rb_enc_right_char_head(start, start + message_limit, p, enc) - start);
-		    rb_enc_raise(enc, rb_eArgError,
-				 "too long name (%"PRIdSIZE" bytes) - %.*s...%c",
-				 (size_t)(p - start - 2), len, start, term);
+		if (id) {
+		    rb_raise(rb_eArgError, "name%.*s after <%s>",
+			     (int)(p - start + 1), start, rb_id2name(id));
 		}
-#endif
-		len = (int)(p - start + 1); /* including parenthesis */
-		if (sym != Qnil) {
-		    rb_enc_raise(enc, rb_eArgError, "named%.*s after <%"PRIsVALUE">",
-				 len, start, rb_sym2str(sym));
-		}
-		CHECKNAMEARG(start, len, enc);
-		get_hash(&hash, argc, argv);
-		sym = rb_check_symbol_cstr(start + 1,
-					   len - 2 /* without parenthesis */,
-					   enc);
-		if (sym != Qnil) nextvalue = rb_hash_lookup2(hash, sym, Qundef);
+		id = rb_intern3(start + 1, p - start - 1, enc);
+		nextvalue = GETNAMEARG(ID2SYM(id), start, (int)(p - start + 1));
 		if (nextvalue == Qundef) {
-		    rb_enc_raise(enc, rb_eKeyError, "key%.*s not found", len, start);
+		    rb_raise(rb_eKeyError, "key%.*s not found", (int)(p - start + 1), start);
 		}
 		if (term == '}') goto format_s;
 		p++;
@@ -671,7 +643,6 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 			rb_raise(rb_eArgError, "%%c requires a character");
 		    }
 		    c = rb_enc_codepoint_len(RSTRING_PTR(tmp), RSTRING_END(tmp), &n, enc);
-		    RB_GC_GUARD(tmp);
 		}
 		else {
 		    c = NUM2INT(val);
@@ -742,7 +713,6 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 			}
 			CHECK(len);
 			memcpy(&buf[blen], RSTRING_PTR(str), len);
-			RB_GC_GUARD(str);
 			blen += len;
 			if (flags&FMINUS) {
 			    CHECK(width);
@@ -755,7 +725,6 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 		    }
 		}
 		PUSH(RSTRING_PTR(str), len);
-		RB_GC_GUARD(str);
 		rb_enc_associate(result, enc);
 	    }
 	    break;
@@ -769,15 +738,15 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 	  case 'B':
 	  case 'u':
 	    {
+		volatile VALUE tmp1;
 		volatile VALUE val = GETARG();
-                int valsign;
-		char nbuf[64], *s;
+		char fbuf[32], nbuf[64], *s;
 		const char *prefix = 0;
 		int sign = 0, dots = 0;
 		char sc = 0;
 		long v = 0;
 		int base, bignum = 0;
-		int len;
+		int len, pos;
 
 		switch (*p) {
 		  case 'd':
@@ -848,101 +817,100 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 		    base = 10; break;
 		}
 
-                if (base != 10) {
-                    int numbits = ffs(base)-1;
-                    size_t abs_nlz_bits;
-                    size_t numdigits = rb_absint_numwords(val, numbits, &abs_nlz_bits);
-                    long i;
-                    if (INT_MAX-1 < numdigits) /* INT_MAX is used because rb_long2int is used later. */
-                        rb_raise(rb_eArgError, "size too big");
-                    if (sign) {
-                        if (numdigits == 0)
-                            numdigits = 1;
-                        tmp = rb_str_new(NULL, numdigits);
-                        valsign = rb_integer_pack(val, RSTRING_PTR(tmp), RSTRING_LEN(tmp),
-                                1, CHAR_BIT-numbits, INTEGER_PACK_BIG_ENDIAN);
-                        for (i = 0; i < RSTRING_LEN(tmp); i++)
-                            RSTRING_PTR(tmp)[i] = ruby_digitmap[((unsigned char *)RSTRING_PTR(tmp))[i]];
-                        s = RSTRING_PTR(tmp);
-                        if (valsign < 0) {
-                            sc = '-';
-                            width--;
-                        }
-                        else if (flags & FPLUS) {
-                            sc = '+';
-                            width--;
-                        }
-                        else if (flags & FSPACE) {
-                            sc = ' ';
-                            width--;
-                        }
-                    }
-                    else {
-                        /* Following conditional "numdigits++" guarantees the
-                         * most significant digit as
-                         * - '1'(bin), '7'(oct) or 'f'(hex) for negative numbers
-                         * - '0' for zero
-                         * - not '0' for positive numbers.
-                         *
-                         * It also guarantees the most significant two
-                         * digits will not be '11'(bin), '77'(oct), 'ff'(hex)
-                         * or '00'.  */
-                        if (numdigits == 0 ||
-                                ((abs_nlz_bits != (size_t)(numbits-1) ||
-                                  !rb_absint_singlebit_p(val)) &&
-                                 (!bignum ? v < 0 : BIGNUM_NEGATIVE_P(val))))
-                            numdigits++;
-                        tmp = rb_str_new(NULL, numdigits);
-                        valsign = rb_integer_pack(val, RSTRING_PTR(tmp), RSTRING_LEN(tmp),
-                                1, CHAR_BIT-numbits, INTEGER_PACK_2COMP | INTEGER_PACK_BIG_ENDIAN);
-                        for (i = 0; i < RSTRING_LEN(tmp); i++)
-                            RSTRING_PTR(tmp)[i] = ruby_digitmap[((unsigned char *)RSTRING_PTR(tmp))[i]];
-                        s = RSTRING_PTR(tmp);
-                        dots = valsign < 0;
-                    }
-                    len = rb_long2int(RSTRING_END(tmp) - s);
-                }
-                else if (!bignum) {
-                    valsign = 1;
-                    if (v < 0) {
-                        v = -v;
-                        sc = '-';
-                        width--;
-                        valsign = -1;
-                    }
-                    else if (flags & FPLUS) {
-                        sc = '+';
-                        width--;
-                    }
-                    else if (flags & FSPACE) {
-                        sc = ' ';
-                        width--;
-                    }
-                    snprintf(nbuf, sizeof(nbuf), "%ld", v);
-                    s = nbuf;
+		if (!bignum) {
+		    if (base == 2) {
+			val = rb_int2big(v);
+			goto bin_retry;
+		    }
+		    if (sign) {
+			char c = *p;
+			if (c == 'i') c = 'd'; /* %d and %i are identical */
+			if (v < 0) {
+			    v = -v;
+			    sc = '-';
+			    width--;
+			}
+			else if (flags & FPLUS) {
+			    sc = '+';
+			    width--;
+			}
+			else if (flags & FSPACE) {
+			    sc = ' ';
+			    width--;
+			}
+			snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
+			snprintf(nbuf, sizeof(nbuf), fbuf, v);
+			s = nbuf;
+		    }
+		    else {
+			s = nbuf;
+			if (v < 0) {
+			    dots = 1;
+			}
+			snprintf(fbuf, sizeof(fbuf), "%%l%c", *p == 'X' ? 'x' : *p);
+			snprintf(++s, sizeof(nbuf) - 1, fbuf, v);
+			if (v < 0) {
+			    char d = 0;
+
+			    s = remove_sign_bits(s, base);
+			    switch (base) {
+			      case 16:
+				d = 'f'; break;
+			      case 8:
+				d = '7'; break;
+			    }
+			    if (d && *s != d) {
+				*--s = d;
+			    }
+			}
+		    }
 		    len = (int)strlen(s);
 		}
 		else {
-                    tmp = rb_big2str(val, 10);
-                    s = RSTRING_PTR(tmp);
-                    valsign = 1;
-                    if (s[0] == '-') {
-                        s++;
-                        sc = '-';
-                        width--;
-                        valsign = -1;
-                    }
-                    else if (flags & FPLUS) {
-                        sc = '+';
-                        width--;
-                    }
-                    else if (flags & FSPACE) {
-                        sc = ' ';
-                        width--;
-                    }
+		    if (sign) {
+			tmp = rb_big2str(val, base);
+			s = RSTRING_PTR(tmp);
+			if (s[0] == '-') {
+			    s++;
+			    sc = '-';
+			    width--;
+			}
+			else if (flags & FPLUS) {
+			    sc = '+';
+			    width--;
+			}
+			else if (flags & FSPACE) {
+			    sc = ' ';
+			    width--;
+			}
+		    }
+		    else {
+			if (!RBIGNUM_SIGN(val)) {
+			    val = rb_big_clone(val);
+			    rb_big_2comp(val);
+			}
+			tmp1 = tmp = rb_big2str0(val, base, RBIGNUM_SIGN(val));
+			s = RSTRING_PTR(tmp);
+			if (*s == '-') {
+			    dots = 1;
+			    if (base == 10) {
+				rb_warning("negative number for %%u specifier");
+			    }
+			    s = remove_sign_bits(++s, base);
+			    switch (base) {
+			      case 16:
+				if (s[0] != 'f') *--s = 'f'; break;
+			      case 8:
+				if (s[0] != '7') *--s = '7'; break;
+			      case 2:
+				if (s[0] != '1') *--s = '1'; break;
+			    }
+			}
+		    }
 		    len = rb_long2int(RSTRING_END(tmp) - s);
 		}
 
+		pos = -1;
 		if (dots) {
 		    prec -= 2;
 		    width -= 2;
@@ -998,19 +966,24 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 		}
 		CHECK(prec - len);
 		if (dots) PUSH("..", 2);
-		if (!sign && valsign < 0) {
+		if (!bignum && v < 0) {
 		    char c = sign_bits(base, p);
 		    while (len < prec--) {
 			buf[blen++] = c;
 		    }
 		}
 		else if ((flags & (FMINUS|FPREC)) != FMINUS) {
+		    char c;
+
+		    if (!sign && bignum && !RBIGNUM_SIGN(val))
+			c = sign_bits(base, p);
+		    else
+			c = '0';
 		    while (len < prec--) {
-			buf[blen++] = '0';
+			buf[blen++] = c;
 		    }
 		}
 		PUSH(s, len);
-		RB_GC_GUARD(tmp);
 		CHECK(width);
 		while (width-- > 0) {
 		    buf[blen++] = ' ';
@@ -1019,108 +992,16 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 	    break;
 
 	  case 'f':
-	    {
-		VALUE val = GETARG(), num, den;
-		int sign = (flags&FPLUS) ? 1 : 0, zero = 0;
-		long len, done = 0;
-		int prefix = 0;
-		if (!RB_TYPE_P(val, T_RATIONAL)) {
-		    nextvalue = val;
-		    goto float_value;
-		}
-		if (!(flags&FPREC)) prec = default_float_precision;
-		den = rb_rational_den(val);
-		num = rb_rational_num(val);
-		if (FIXNUM_P(num)) {
-		    if ((SIGNED_VALUE)num < 0) {
-			long n = -FIX2LONG(num);
-			num = LONG2FIX(n);
-			sign = -1;
-		    }
-		}
-		else if (rb_num_negative_p(num)) {
-		    sign = -1;
-		    num = rb_funcallv(num, idUMinus, 0, 0);
-		}
-		if (den != INT2FIX(1) || prec > 1) {
-		    const ID idDiv = rb_intern("div");
-		    VALUE p10 = rb_int_positive_pow(10, prec);
-		    VALUE den_2 = rb_funcall(den, idDiv, 1, INT2FIX(2));
-		    num = rb_funcallv(num, '*', 1, &p10);
-		    num = rb_funcallv(num, '+', 1, &den_2);
-		    num = rb_funcallv(num, idDiv, 1, &den);
-		}
-		else if (prec >= 0) {
-		    zero = prec;
-		}
-		val = rb_obj_as_string(num);
-		len = RSTRING_LEN(val) + zero;
-		if (prec >= len) ++len; /* integer part 0 */
-		if (sign || (flags&FSPACE)) ++len;
-		if (prec > 0) ++len; /* period */
-		CHECK(len > width ? len : width);
-		if (sign || (flags&FSPACE)) {
-		    buf[blen++] = sign > 0 ? '+' : sign < 0 ? '-' : ' ';
-		    prefix++;
-		    done++;
-		}
-		len = RSTRING_LEN(val) + zero;
-		t = RSTRING_PTR(val);
-		if (len > prec) {
-		    memcpy(&buf[blen], t, len - prec);
-		    blen += len - prec;
-		    done += len - prec;
-		}
-		else {
-		    buf[blen++] = '0';
-		    done++;
-		}
-		if (prec > 0) {
-		    buf[blen++] = '.';
-		    done++;
-		}
-		if (zero) {
-		    FILL('0', zero);
-		    done += zero;
-		}
-		else if (prec > len) {
-		    FILL('0', prec - len);
-		    memcpy(&buf[blen], t, len);
-		    blen += len;
-		    done += prec;
-		}
-		else if (prec > 0) {
-		    memcpy(&buf[blen], t + len - prec, prec);
-		    blen += prec;
-		    done += prec;
-		}
-		if ((flags & FWIDTH) && width > done) {
-		    if (!(flags&FMINUS)) {
-			long i, shifting = (flags&FZERO) ? done - prefix : done;
-			for (i = 1; i <= shifting; i++)
-			    buf[width - i] = buf[done - i];
-			blen -= shifting;
-			FILL((flags&FZERO) ? '0' : ' ', width - done);
-			blen += shifting;
-		    } else {
-			FILL(' ', width - done);
-		    }
-		}
-		RB_GC_GUARD(val);
-		break;
-	    }
 	  case 'g':
 	  case 'G':
 	  case 'e':
 	  case 'E':
-	    /* TODO: rational support */
 	  case 'a':
 	  case 'A':
-	  float_value:
 	    {
 		VALUE val = GETARG();
 		double fval;
-		int i, need;
+		int i, need = 6;
 		char fbuf[32];
 
 		fval = RFLOAT_VALUE(rb_Float(val));
@@ -1172,7 +1053,7 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 		    if (i > 0)
 			need = BIT_DIGITS(i);
 		}
-		need += (flags&FPREC) ? prec : default_float_precision;
+		need += (flags&FPREC) ? prec : 6;
 		if ((flags&FWIDTH) && need < width)
 		    need = width;
 		need += 20;
@@ -1187,7 +1068,6 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
     }
 
   sprint_exit:
-    RB_GC_GUARD(fmt);
     /* XXX - We cannot validate the number of arguments if (digit)$ style used.
      */
     if (posarg >= 0 && nextarg < argc) {
@@ -1241,23 +1121,10 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
 #  define quad_t LONG_LONG
 #  define u_quad_t unsigned LONG_LONG
 # endif
-#elif SIZEOF_LONG != SIZEOF_LONG_LONG && SIZEOF_LONG_LONG == 8
-# define _HAVE_SANE_QUAD_
-# define quad_t LONG_LONG
-# define u_quad_t unsigned LONG_LONG
 #endif
 #define FLOATING_POINT 1
 #define BSD__dtoa ruby_dtoa
-#define BSD__hdtoa ruby_hdtoa
-#ifdef RUBY_PRI_VALUE_MARK
-# define PRI_EXTRA_MARK RUBY_PRI_VALUE_MARK
-#endif
 #include "vsnprintf.c"
-
-typedef struct {
-    rb_printf_buffer base;
-    volatile VALUE value;
-} rb_printf_buffer_extra;
 
 static int
 ruby__sfvwrite(register rb_printf_buffer *fp, register struct __suio *uio)
@@ -1282,76 +1149,27 @@ ruby__sfvwrite(register rb_printf_buffer *fp, register struct __suio *uio)
 	len -= n;
     }
     fp->_p = (unsigned char *)buf;
-    rb_str_set_len(result, buf - RSTRING_PTR(result));
     return 0;
-}
-
-static char *
-ruby__sfvextra(rb_printf_buffer *fp, size_t valsize, void *valp, long *sz, int sign)
-{
-    VALUE value, result = (VALUE)fp->_bf._base;
-    rb_encoding *enc;
-    char *cp;
-
-    if (valsize != sizeof(VALUE)) return 0;
-    value = *(VALUE *)valp;
-    if (RBASIC(result)->klass) {
-	rb_raise(rb_eRuntimeError, "rb_vsprintf reentered");
-    }
-    if (sign == '+') {
-	value = rb_inspect(value);
-    }
-    else {
-	value = rb_obj_as_string(value);
-	if (sign == ' ') value = QUOTE(value);
-    }
-    enc = rb_enc_compatible(result, value);
-    if (enc) {
-	rb_enc_associate(result, enc);
-    }
-    else {
-	enc = rb_enc_get(result);
-	value = rb_str_conv_enc_opts(value, rb_enc_get(value), enc,
-				     ECONV_UNDEF_REPLACE|ECONV_INVALID_REPLACE,
-				     Qnil);
-	*(volatile VALUE *)valp = value;
-    }
-    StringValueCStr(value);
-    RSTRING_GETMEM(value, cp, *sz);
-    ((rb_printf_buffer_extra *)fp)->value = value;
-    OBJ_INFECT(result, value);
-    return cp;
 }
 
 VALUE
 rb_enc_vsprintf(rb_encoding *enc, const char *fmt, va_list ap)
 {
-    rb_printf_buffer_extra buffer;
-#define f buffer.base
+    rb_printf_buffer f;
     VALUE result;
 
     f._flags = __SWR | __SSTR;
     f._bf._size = 0;
     f._w = 120;
     result = rb_str_buf_new(f._w);
-    if (enc) {
-	if (rb_enc_mbminlen(enc) > 1) {
-	    /* the implementation deeply depends on plain char */
-	    rb_raise(rb_eArgError, "cannot construct wchar_t based encoding string: %s",
-		     rb_enc_name(enc));
-	}
-	rb_enc_associate(result, enc);
-    }
+    if (enc) rb_enc_associate(result, enc);
     f._bf._base = (unsigned char *)result;
     f._p = (unsigned char *)RSTRING_PTR(result);
-    RBASIC_CLEAR_CLASS(result);
+    RBASIC(result)->klass = 0;
     f.vwrite = ruby__sfvwrite;
-    f.vextra = ruby__sfvextra;
-    buffer.value = 0;
     BSD_vfprintf(&f, fmt, ap);
-    RBASIC_SET_CLASS_RAW(result, rb_cString);
+    RBASIC(result)->klass = rb_cString;
     rb_str_resize(result, (char *)f._p - RSTRING_PTR(result));
-#undef f
 
     return result;
 }
@@ -1391,8 +1209,7 @@ rb_sprintf(const char *format, ...)
 VALUE
 rb_str_vcatf(VALUE str, const char *fmt, va_list ap)
 {
-    rb_printf_buffer_extra buffer;
-#define f buffer.base
+    rb_printf_buffer f;
     VALUE klass;
 
     StringValue(str);
@@ -1403,14 +1220,11 @@ rb_str_vcatf(VALUE str, const char *fmt, va_list ap)
     f._bf._base = (unsigned char *)str;
     f._p = (unsigned char *)RSTRING_END(str);
     klass = RBASIC(str)->klass;
-    RBASIC_CLEAR_CLASS(str);
+    RBASIC(str)->klass = 0;
     f.vwrite = ruby__sfvwrite;
-    f.vextra = ruby__sfvextra;
-    buffer.value = 0;
     BSD_vfprintf(&f, fmt, ap);
-    RBASIC_SET_CLASS_RAW(str, klass);
+    RBASIC(str)->klass = klass;
     rb_str_resize(str, (char *)f._p - RSTRING_PTR(str));
-#undef f
 
     return str;
 }

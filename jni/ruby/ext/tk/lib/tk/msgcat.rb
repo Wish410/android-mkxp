@@ -125,8 +125,6 @@ class TkMsgCatalog < TkObject
 
     when 2 # src and trans, or, trans_list and enc
       if args[0].kind_of?(Array)
-        # trans_list
-        self.set_translation_list(loc, *args)
       else
         #self.set_translation(loc, args[0], Tk::UTF8_String.new(args[1]))
         self.set_translation(loc, *args)
@@ -201,11 +199,7 @@ class TkMsgCatalog < TkObject
       file = File.join(dir, loc + self::MSGCAT_EXT)
       if File.readable?(file)
         count += 1
-        if TkCore::WITH_ENCODING
-          eval(IO.read(file, :encoding=>"ASCII-8BIT"))
-        else
-          eval(IO.read(file))
-        end
+        eval(open(file){|f| f.read})
       end
     }
     count
@@ -221,11 +215,7 @@ class TkMsgCatalog < TkObject
       file = File.join(dir, loc + @msgcat_ext)
       if File.readable?(file)
         count += 1
-        if TkCore::WITH_ENCODING
-          @namespace.eval(IO.read(file, :encoding=>"ASCII-8BIT"))
-        else
-          @namespace.eval(IO.read(file))
-        end
+        @namespace.eval(open(file){|f| f.read})
       end
     }
     count
@@ -239,21 +229,30 @@ class TkMsgCatalog < TkObject
   def self.set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
       trans_str = Tk.UTF8_String(_toUTF8(trans_str, enc))
-      Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}"))
+      Tk.UTF8_String(tk_call_without_enc('::msgcat::mcset',
+                                         locale,
+                                         _get_eval_string(src_str, true),
+                                         trans_str))
     else
-      Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}}"))
+      Tk.UTF8_String(tk_call_without_enc('::msgcat::mcset',
+                                         locale,
+                                         _get_eval_string(src_str, true)))
     end
   end
   def set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
       trans_str = Tk.UTF8_String(_toUTF8(trans_str, enc))
       Tk.UTF8_String(@namespace.eval{
-                       ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}")
+                       tk_call_without_enc('::msgcat::mcset',
+                                           locale,
+                                           _get_eval_string(src_str, true),
+                                           trans_str)
                      })
     else
       Tk.UTF8_String(@namespace.eval{
-                       ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}}")
-                     })
+                       tk_call_without_enc('::msgcat::mcset',
+                                           locale,
+                                           _get_eval_string(src_str, true))})
     end
   end
 
@@ -263,13 +262,12 @@ class TkMsgCatalog < TkObject
     trans_list.each{|src, trans|
       if trans && trans != None
         list << _get_eval_string(src, true)
-        list << Tk.UTF8_String(_toUTF8(trans, enc))
+        list << Tk.UTF8_Stirng(_toUTF8(trans, enc))
       else
         list << _get_eval_string(src, true) << ''
       end
     }
-    #number(tk_call_without_enc('::msgcat::mcmset', locale, list))
-    number(ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}"))
+    number(tk_call_without_enc('::msgcat::mcmset', locale, list))
   end
   def set_translation_list(locale, trans_list, enc='utf-8')
     # trans_list ::= [ [src, trans], [src, trans], ... ]
@@ -283,8 +281,7 @@ class TkMsgCatalog < TkObject
       end
     }
     number(@namespace.eval{
-             #tk_call_without_enc('::msgcat::mcmset', locale, list)
-             ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}")
+             tk_call_without_enc('::msgcat::mcmset', locale, list)
            })
   end
 

@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 
 require 'test/unit'
-require File.join(File.dirname(__FILE__), 'setup_variant')
+case ENV['JSON']
+when 'pure' then require 'json/pure'
+when 'ext'  then require 'json/ext'
+else             require 'json'
+end
 
-class TestJSONUnicode < Test::Unit::TestCase
+class TC_JSONUnicode < Test::Unit::TestCase
   include JSON
 
   def test_unicode

@@ -1,7 +1,7 @@
 /* $RoughId: sha1init.c,v 1.2 2001/07/13 19:49:10 knu Exp $ */
-/* $Id: sha1init.c 47745 2014-09-30 08:29:02Z nobu $ */
+/* $Id: sha1init.c 28341 2010-06-16 09:38:14Z knu $ */
 
-#include "digest.h"
+#include "../digest.h"
 #if defined(HAVE_OPENSSL_SHA_H)
 #include "sha1ossl.h"
 #else
@@ -24,22 +24,17 @@ static const rb_digest_metadata_t sha1 = {
  * Technology), described in FIPS PUB 180-1.
  */
 void
-Init_sha1(void)
+Init_sha1()
 {
     VALUE mDigest, cDigest_Base, cDigest_SHA1;
 
     rb_require("digest");
 
-#if 0
-    mDigest = rb_define_module("Digest"); /* let rdoc know */
-#endif
     mDigest = rb_path2class("Digest");
     cDigest_Base = rb_path2class("Digest::Base");
 
     cDigest_SHA1 = rb_define_class_under(mDigest, "SHA1", cDigest_Base);
 
-#undef RUBY_UNTYPED_DATA_WARNING
-#define RUBY_UNTYPED_DATA_WARNING 0
     rb_ivar_set(cDigest_SHA1, rb_intern("metadata"),
-		Data_Wrap_Struct(0, 0, 0, (void *)&sha1));
+      Data_Wrap_Struct(rb_cObject, 0, 0, (void *)&sha1));
 }

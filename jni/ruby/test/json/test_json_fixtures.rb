@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 
 require 'test/unit'
-require File.join(File.dirname(__FILE__), 'setup_variant')
+case ENV['JSON']
+when 'pure' then require 'json/pure'
+when 'ext'  then require 'json/ext'
+else             require 'json'
+end
 
-class TestJSONFixtures < Test::Unit::TestCase
+class TC_JSONFixtures < Test::Unit::TestCase
   def setup
     fixtures = File.join(File.dirname(__FILE__), 'fixtures/*.json')
     passed, failed = Dir[fixtures].partition { |f| f['pass'] }
@@ -14,20 +18,15 @@ class TestJSONFixtures < Test::Unit::TestCase
 
   def test_passing
     for name, source in @passed
-      begin
-        assert JSON.parse(source),
-          "Did not pass for fixture '#{name}': #{source.inspect}"
-      rescue => e
-        warn "\nCaught #{e.class}(#{e}) for fixture '#{name}': #{source.inspect}\n#{e.backtrace * "\n"}"
-        raise e
-      end
+      assert JSON.parse(source),
+        "Did not pass for fixture '#{name}'"
     end
   end
 
   def test_failing
     for name, source in @failed
       assert_raises(JSON::ParserError, JSON::NestingError,
-        "Did not fail for fixture '#{name}': #{source.inspect}") do
+        "Did not fail for fixture '#{name}'") do
         JSON.parse(source)
       end
     end

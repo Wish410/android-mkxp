@@ -26,10 +26,6 @@ class TestMailTo < Test::Unit::TestCase
     ok[-1] << ["chris@example.com", nil]
     ok[-1] << {:to => "chris@example.com"}
 
-    ok << ["mailto:foo+@example.com,bar@example.com"]
-    ok[-1] << [["foo+@example.com", "bar@example.com"], nil]
-    ok[-1] << {:to => "foo+@example.com,bar@example.com"}
-
     # mailto:infobot@example.com?subject=current-issue
     ok << ["mailto:infobot@example.com?subject=current-issue"]
     ok[-1] << ["infobot@example.com", ["subject=current-issue"]]
@@ -85,16 +81,6 @@ class TestMailTo < Test::Unit::TestCase
     ok[-1] << ["unlikely%3Faddress@example.com", ["blat=foop"]]
     ok[-1] << {:to => "unlikely%3Faddress@example.com",
       :headers => ["blat=foop"]}
-
-    # mailto:john@example.com?Subject=Ruby&Cc=jack@example.com
-    ok << ["mailto:john@example.com?Subject=Ruby&Cc=jack@example.com"]
-    ok[-1] << ['john@example.com', [['Subject', 'Ruby'], ['Cc', 'jack@example.com']]]
-    ok[-1] << {:to=>"john@example.com", :headers=>[["Subject", "Ruby"], ["Cc", "jack@example.com"]]}
-
-    # mailto:listman@example.com?subject=subscribe
-    ok << ["mailto:listman@example.com?subject=subscribe"]
-    ok[-1] << {:to => 'listman@example.com', :headers => [['subject', 'subscribe']]}
-    ok[-1] << {:to => 'listman@example.com', :headers => [['subject', 'subscribe']]}
 
     ok_all = ok.flatten.join("\0")
 

@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # animated label widget demo (called by 'widget')
 #
 # based on Tcl/Tk8.5a2 widget demos
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($anilabel_demo) && $anilabel_demo
   $anilabel_demo.destroy
   $anilabel_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $anilabel_demo = TkToplevel.new {|w|
   title("Animated Label Demonstration")
   iconname("anilabel")
@@ -19,20 +19,20 @@ $anilabel_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($anilabel_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 msg = TkLabel.new(base_frame) {
   font $font
   wraplength '4i'
   justify 'left'
-  text "ä¸‹ã«ã¯4ã¤ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ©ãƒ™ãƒ«ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚å·¦å´ã«ã‚ã‚‹ãƒ©ãƒ™ãƒ«ã¯ã€å†…éƒ¨ã®ãƒ†ã‚­ã‚¹ãƒˆãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã—ãŸã‚ˆã†ã«è¦‹ã›ã‚‹ã“ã¨ã§å‹•ãã‚’ä»˜ã‘ã¦ã„ã¾ã™ã€‚å³å´ã®ãƒ©ãƒ™ãƒ«ã¯ã€è¡¨ç¤ºã™ã‚‹ã‚¤ãƒ¡ãƒ¼ã‚¸ã‚’å¤‰åŒ–ã•ã›ã‚‹ã“ã¨ã§å‹•ãã‚’ä¸Žãˆã¦ã„ã¾ã™ã€‚"
+  text "²¼¤Ë¤Ï4¤Ä¤Î¥¢¥Ë¥á¡¼¥·¥ç¥ó¥é¥Ù¥ë¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£º¸Â¦¤Ë¤¢¤ë¥é¥Ù¥ë¤Ï¡¢ÆâÉô¤Î¥Æ¥­¥¹¥È¥á¥Ã¥»¡¼¥¸¤ò¥¹¥¯¥í¡¼¥ë¤·¤¿¤è¤¦¤Ë¸«¤»¤ë¤³¤È¤ÇÆ°¤­¤òÉÕ¤±¤Æ¤¤¤Þ¤¹¡£±¦Â¦¤Î¥é¥Ù¥ë¤Ï¡¢É½¼¨¤¹¤ë¥¤¥á¡¼¥¸¤òÊÑ²½¤µ¤»¤ë¤³¤È¤ÇÆ°¤­¤òÍ¿¤¨¤Æ¤¤¤Þ¤¹¡£"
 }
 msg.pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $anilabel_demo
       $anilabel_demo = nil
@@ -41,13 +41,13 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'anilabel'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# label demo ç”¨ãƒ•ãƒ¬ãƒ¼ãƒ ç”Ÿæˆ
+# label demo ÍÑ¥Õ¥ì¡¼¥àÀ¸À®
 f_left = TkLabelFrame.new(base_frame,  :text=>'Scrolling Texts')
 f_right = TkLabelFrame.new(base_frame, :text=>'GIF Image')
 Tk.pack(f_left, f_right, 'side'=>'left', 'expand'=>'yes', 'fill'=>'both',
@@ -123,7 +123,7 @@ class AnimatedImageLabel < AnimatedTextLabel
   private :_animation_callback
 end
 
-# label ç”Ÿæˆ
+# label À¸À®
 l1 = AnimatedTextLabel.new(f_left, :borderwidth=>4, :relief=>:ridge,
                            :font=>{:family=>'Courier', :size=>10})
 l2 = AnimatedTextLabel.new(f_left, :borderwidth=>4, :relief=>:groove,

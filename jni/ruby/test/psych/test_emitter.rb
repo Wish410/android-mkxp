@@ -10,11 +10,6 @@ module Psych
       @emitter = Psych::Emitter.new @out
     end
 
-    def test_line_width
-      @emitter.line_width = 10
-      assert_equal 10, @emitter.line_width
-    end
-
     def test_set_canonical
       @emitter.canonical = true
       assert_equal true, @emitter.canonical
@@ -69,7 +64,6 @@ module Psych
         ['foo', Object.new, nil, false, true, 1],
         ['foo', nil, Object.new, false, true, 1],
         ['foo', nil, nil, false, true, :foo],
-        [nil, nil, nil, false, true, 1],
       ].each do |args|
         assert_raises(TypeError) do
           @emitter.scalar(*args)

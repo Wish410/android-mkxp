@@ -1,6 +1,4 @@
 require 'stringio'
-require 'psych/class_loader'
-require 'psych/scalar_scanner'
 
 module Psych
   module Nodes
@@ -8,8 +6,6 @@ module Psych
     # The base class for any Node in a YAML parse tree.  This class should
     # never be instantiated.
     class Node
-      include Enumerable
-
       # The children of this node
       attr_reader :children
 
@@ -22,19 +18,11 @@ module Psych
       end
 
       ###
-      # Iterate over each node in the tree. Yields each node to +block+ depth
-      # first.
-      def each &block
-        return enum_for :each unless block_given?
-        Visitors::DepthFirst.new(block).accept self
-      end
-
-      ###
       # Convert this node to Ruby.
       #
       # See also Psych::Visitors::ToRuby
       def to_ruby
-        Visitors::ToRuby.create.accept(self)
+        Visitors::ToRuby.new.accept self
       end
       alias :transform :to_ruby
 
@@ -42,14 +30,13 @@ module Psych
       # Convert this node to YAML.
       #
       # See also Psych::Visitors::Emitter
-      def yaml io = nil, options = {}
-        real_io = io || StringIO.new(''.encode('utf-8'))
+      def to_yaml io = nil
+        real_io = io || StringIO.new
 
-        Visitors::Emitter.new(real_io, options).accept self
+        Visitors::Emitter.new(real_io).accept self
         return real_io.string unless io
         io
       end
-      alias :to_yaml :yaml
     end
   end
 end

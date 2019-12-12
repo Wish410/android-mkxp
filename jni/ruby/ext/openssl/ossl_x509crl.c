@@ -1,5 +1,5 @@
 /*
- * $Id: ossl_x509crl.c 48811 2014-12-12 23:39:04Z nobu $
+ * $Id: ossl_x509crl.c 27440 2010-04-22 08:21:01Z nobu $
  * 'OpenSSL for Ruby' project
  * Copyright (C) 2001-2002 Michal Rokos <m.rokos@sh.cvut.cz>
  * All rights reserved.
@@ -11,20 +11,20 @@
 #include "ossl.h"
 
 #define WrapX509CRL(klass, obj, crl) do { \
-    if (!(crl)) { \
+    if (!crl) { \
 	ossl_raise(rb_eRuntimeError, "CRL wasn't initialized!"); \
     } \
-    (obj) = TypedData_Wrap_Struct((klass), &ossl_x509crl_type, (crl)); \
+    obj = Data_Wrap_Struct(klass, 0, X509_CRL_free, crl); \
 } while (0)
 #define GetX509CRL(obj, crl) do { \
-    TypedData_Get_Struct((obj), X509_CRL, &ossl_x509crl_type, (crl)); \
-    if (!(crl)) { \
+    Data_Get_Struct(obj, X509_CRL, crl); \
+    if (!crl) { \
 	ossl_raise(rb_eRuntimeError, "CRL wasn't initialized!"); \
     } \
 } while (0)
 #define SafeGetX509CRL(obj, crl) do { \
-    OSSL_Check_Kind((obj), cX509CRL); \
-    GetX509CRL((obj), (crl)); \
+    OSSL_Check_Kind(obj, cX509CRL); \
+    GetX509CRL(obj, crl); \
 } while (0)
 
 /*
@@ -32,20 +32,6 @@
  */
 VALUE cX509CRL;
 VALUE eX509CRLError;
-
-static void
-ossl_x509crl_free(void *ptr)
-{
-    X509_CRL_free(ptr);
-}
-
-static const rb_data_type_t ossl_x509crl_type = {
-    "OpenSSL/X509/CRL",
-    {
-	0, ossl_x509crl_free,
-    },
-    0, 0, RUBY_TYPED_FREE_IMMEDIATELY,
-};
 
 /*
  * PUBLIC
@@ -116,7 +102,7 @@ ossl_x509crl_initialize(int argc, VALUE *argv, VALUE self)
     crl = PEM_read_bio_X509_CRL(in, &x, NULL, NULL);
     DATA_PTR(self) = x;
     if (!crl) {
-	OSSL_BIO_reset(in);
+	(void)BIO_reset(in);
 	crl = d2i_X509_CRL_bio(in, &x);
 	DATA_PTR(self) = x;
     }
@@ -516,7 +502,7 @@ ossl_x509crl_add_extension(VALUE self, VALUE extension)
  * INIT
  */
 void
-Init_ossl_x509crl(void)
+Init_ossl_x509crl()
 {
     eX509CRLError = rb_define_class_under(mX509, "CRLError", eOSSLError);
 

@@ -1,4 +1,3 @@
-# -*- coding: us-ascii -*-
 require 'test/unit'
 require 'erb'
 
@@ -38,46 +37,6 @@ class TestERB < Test::Unit::TestCase
     }
     assert_match(/\Atest filename:1\b/, e.backtrace[0])
   end
-
-  def test_with_filename_lineno
-    erb = ERB.new("<% raise ::TestERB::MyError %>")
-    erb.filename = "test filename"
-    erb.lineno = 100
-    e = assert_raise(MyError) {
-      erb.result
-    }
-    assert_match(/\Atest filename:101\b/, e.backtrace[0])
-  end
-
-  def test_with_location
-    erb = ERB.new("<% raise ::TestERB::MyError %>")
-    erb.location = ["test filename", 200]
-    e = assert_raise(MyError) {
-      erb.result
-    }
-    assert_match(/\Atest filename:201\b/, e.backtrace[0])
-  end
-
-  def test_html_escape
-    assert_equal(" !&quot;\#$%&amp;&#39;()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-                 ERB::Util.html_escape(" !\"\#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"))
-
-    assert_equal("", ERB::Util.html_escape(""))
-    assert_equal("abc", ERB::Util.html_escape("abc"))
-    assert_equal("&lt;&lt;", ERB::Util.html_escape("<\<"))
-
-    assert_equal("", ERB::Util.html_escape(nil))
-    assert_equal("123", ERB::Util.html_escape(123))
-  end
-
-  def test_concurrent_default_binding
-    template1 = 'one <%= ERB.new(template2).result %>'
-
-    eval 'template2 = "two"', TOPLEVEL_BINDING
-
-    bug7046 = '[ruby-core:47638]'
-    assert_equal("one two", ERB.new(template1).result, bug7046)
-  end
 end
 
 class TestERBCore < Test::Unit::TestCase
@@ -90,13 +49,7 @@ class TestERBCore < Test::Unit::TestCase
     _test_core(0)
     _test_core(1)
     _test_core(2)
-    orig = $VERBOSE
-    begin
-      $VERBOSE = false
-      _test_core(3)
-    ensure
-      $VERBOSE = orig
-    end
+    _test_core(3)
   end
 
   def _test_core(safe)
@@ -204,6 +157,11 @@ EOS
     assert_equal(ans, erb.result)
   end
 
+  def test_safe_04
+    erb = @erb.new('<%=$SAFE%>', 4)
+    assert_equal('4', erb.result(TOPLEVEL_BINDING.taint))
+  end
+
   class Foo; end
 
   def test_def_class
@@ -224,26 +182,26 @@ EOS
 %n = 1
 <%= n%>
 EOS
-    assert_equal("1\n", ERB.new(src, nil, '%').result(binding))
+    assert_equal("1\n", ERB.new(src, nil, '%').result)
 
     src = <<EOS
 <%
 %>
 EOS
     ans = "\n"
-    assert_equal(ans, ERB.new(src, nil, '%').result(binding))
+    assert_equal(ans, ERB.new(src, nil, '%').result)
 
     src = "<%\n%>"
     # ans = "\n"
     ans = ""
-    assert_equal(ans, ERB.new(src, nil, '%').result(binding))
+    assert_equal(ans, ERB.new(src, nil, '%').result)
 
     src = <<EOS
 <%
 n = 1
 %><%= n%>
 EOS
-    assert_equal("1\n", ERB.new(src, nil, '%').result(binding))
+    assert_equal("1\n", ERB.new(src, nil, '%').result)
 
     src = <<EOS
 %n = 1
@@ -254,12 +212,12 @@ end%>
 %%%
 EOS
     ans = <<EOS
-%\s
+% 
 % %%><%0
 % %%><%1
 %%
 EOS
-    assert_equal(ans, ERB.new(src, nil, '%').result(binding))
+    assert_equal(ans, ERB.new(src, nil, '%').result)
   end
 
   def test_def_erb_method
@@ -342,7 +300,7 @@ EOS
 
   def test_keep_lineno
     src = <<EOS
-Hello,\s
+Hello, 
 % x = "World"
 <%= x%>
 % raise("lineno")
@@ -358,21 +316,21 @@ EOS
 
     src = <<EOS
 %>
-Hello,\s
+Hello, 
 <% x = "World%%>
 "%>
 <%= x%>
 EOS
 
     ans = <<EOS
-%>Hello,\s
+%>Hello, 
 World%>
 EOS
     assert_equal(ans, ERB.new(src, nil, '>').result)
 
     ans = <<EOS
 %>
-Hello,\s
+Hello, 
 
 World%>
 EOS
@@ -380,7 +338,7 @@ EOS
 
     ans = <<EOS
 %>
-Hello,\s
+Hello, 
 
 World%>
 
@@ -388,7 +346,7 @@ EOS
     assert_equal(ans, ERB.new(src).result)
 
     src = <<EOS
-Hello,\s
+Hello, 
 <% x = "World%%>
 "%>
 <%= x%>
@@ -423,7 +381,7 @@ EOS
 % y = 'Hello'
 <%- x = "World%%>
 "-%>
-<%= x %><%- x = nil -%>\s
+<%= x %><%- x = nil -%> 
 <% raise("lineno") %>
 EOS
 
@@ -459,19 +417,19 @@ NotSkip <%- y = x -%> NotSkip
    <%- up = w.upcase -%>
    * <%= up %>
  <%- end -%>
-KeepNewLine <%- z = nil -%>\s
+KeepNewLine <%- z = nil -%> 
 EOS
 
    ans = <<EOS
 NotSkip  NotSkip
   * HELLO
   * WORLD
- NotSkip\s
+ NotSkip 
    * hello
    * HELLO
    * world
    * WORLD
-KeepNewLine \s
+KeepNewLine  
 EOS
    assert_equal(ans, ERB.new(src, nil, '-').result)
    assert_equal(ans, ERB.new(src, nil, '-%').result)

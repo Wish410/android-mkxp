@@ -2,7 +2,7 @@
 
   transcode_data.h -
 
-  $Author: nobu $
+  $Author: duerst $
   created at: Mon 10 Dec 2007 14:01:47 JST 2007
 
   Copyright (C) 2007 Martin Duerst
@@ -13,8 +13,6 @@
 
 #ifndef RUBY_TRANSCODE_DATA_H
 #define RUBY_TRANSCODE_DATA_H 1
-
-RUBY_SYMBOL_EXPORT_BEGIN
 
 #define WORDINDEX_SHIFT_BITS 2
 #define WORDINDEX2INFO(widx)      ((widx) << WORDINDEX_SHIFT_BITS)
@@ -58,9 +56,9 @@ RUBY_SYMBOL_EXPORT_BEGIN
 #define getBT0(a)	(((unsigned char)((a)>> 5)&0x07)|0xF0)   /* for UTF-8 only!!! */
 
 #define getGB4bt0(a)	((unsigned char)((a)>> 8))
-#define getGB4bt1(a)	(((unsigned char)((a)>>24)&0x0F)|0x30)
+#define getGB4bt1(a)	((unsigned char)((a)>>24)&0x0F|0x30)
 #define getGB4bt2(a)	((unsigned char)((a)>>16))
-#define getGB4bt3(a)	(((unsigned char)((a)>>28)&0x0F)|0x30)
+#define getGB4bt3(a)	((unsigned char)((a)>>28)&0x0F|0x30)
 
 #define o2FUNii(b1,b2)	(PType((((unsigned char)(b1))<<8)|(((unsigned char)(b2))<<16)|FUNii))
 
@@ -107,17 +105,5 @@ struct rb_transcoder {
 
 void rb_declare_transcoder(const char *enc1, const char *enc2, const char *lib);
 void rb_register_transcoder(const rb_transcoder *);
-
-/*
- * To get rid of collision of initializer symbols in statically-linked encodings
- * and transcoders
- */
-#if defined(EXTSTATIC) && EXTSTATIC
-# define TRANS_INIT(name) void Init_trans_ ## name(void)
-#else
-# define TRANS_INIT(name) void Init_ ## name(void)
-#endif
-
-RUBY_SYMBOL_EXPORT_END
 
 #endif /* RUBY_TRANSCODE_DATA_H */

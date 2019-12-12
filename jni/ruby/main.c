@@ -2,7 +2,7 @@
 
   main.c -
 
-  $Author: ko1 $
+  $Author: akr $
   created at: Fri Aug 19 13:19:58 JST 1994
 
   Copyright (C) 1993-2007 Yukihiro Matsumoto
@@ -11,13 +11,12 @@
 
 #undef RUBY_EXPORT
 #include "ruby.h"
-#include "vm_debug.h"
+#include "debug.h"
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
-#ifdef RUBY_DEBUG_ENV
-#include <stdlib.h>
-#endif
+
+RUBY_GLOBAL_SETUP
 
 int
 main(int argc, char **argv)

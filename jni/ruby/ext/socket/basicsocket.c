@@ -66,6 +66,9 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
     int how;
     rb_io_t *fptr;
 
+    if (rb_safe_level() >= 4 && !OBJ_TAINTED(sock)) {
+	rb_raise(rb_eSecurityError, "Insecure: can't shutdown socket");
+    }
     rb_scan_args(argc, argv, "01", &howto);
     if (howto == Qnil)
 	how = SHUT_RDWR;
@@ -77,7 +80,7 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
     }
     GetOpenFile(sock, fptr);
     if (shutdown(fptr->fd, how) == -1)
-	rb_sys_fail("shutdown(2)");
+	rb_sys_fail(0);
 
     return INT2FIX(0);
 }
@@ -97,6 +100,9 @@ bsock_close_read(VALUE sock)
 {
     rb_io_t *fptr;
 
+    if (rb_safe_level() >= 4 && !OBJ_TAINTED(sock)) {
+	rb_raise(rb_eSecurityError, "Insecure: can't close socket");
+    }
     GetOpenFile(sock, fptr);
     shutdown(fptr->fd, 0);
     if (!(fptr->mode & FMODE_WRITABLE)) {
@@ -127,6 +133,9 @@ bsock_close_write(VALUE sock)
 {
     rb_io_t *fptr;
 
+    if (rb_safe_level() >= 4 && !OBJ_TAINTED(sock)) {
+	rb_raise(rb_eSecurityError, "Insecure: can't close socket");
+    }
     GetOpenFile(sock, fptr);
     if (!(fptr->mode & FMODE_READABLE)) {
 	return rb_io_close(sock);
@@ -234,13 +243,15 @@ bsock_setsockopt(int argc, VALUE *argv, VALUE sock)
       default:
 	StringValue(val);
 	v = RSTRING_PTR(val);
-	vlen = RSTRING_SOCKLEN(val);
+	vlen = RSTRING_LENINT(val);
 	break;
     }
 
+#define rb_sys_fail_path(path) rb_sys_fail(NIL_P(path) ? 0 : RSTRING_PTR(path))
+
     rb_io_check_closed(fptr);
     if (setsockopt(fptr->fd, level, option, v, vlen) < 0)
-        rsock_sys_fail_path("setsockopt(2)", fptr->pathv);
+	rb_sys_fail_path(fptr->pathv);
 
     return INT2FIX(0);
 }
@@ -321,7 +332,7 @@ bsock_getsockopt(VALUE sock, VALUE lev, VALUE optname)
     rb_io_check_closed(fptr);
 
     if (getsockopt(fptr->fd, level, option, buf, &len) < 0)
-	rsock_sys_fail_path("getsockopt(2)", fptr->pathv);
+	rb_sys_fail_path(fptr->pathv);
 
     return rsock_sockopt_new(family, level, option, rb_str_new(buf, len));
 }
@@ -345,15 +356,13 @@ bsock_getsockopt(VALUE sock, VALUE lev, VALUE optname)
 static VALUE
 bsock_getsockname(VALUE sock)
 {
-    union_sockaddr buf;
+    struct sockaddr_storage buf;
     socklen_t len = (socklen_t)sizeof buf;
-    socklen_t len0 = len;
     rb_io_t *fptr;
 
     GetOpenFile(sock, fptr);
-    if (getsockname(fptr->fd, &buf.addr, &len) < 0)
+    if (getsockname(fptr->fd, (struct sockaddr*)&buf, &len) < 0)
 	rb_sys_fail("getsockname(2)");
-    if (len0 < len) len = len0;
     return rb_str_new((char*)&buf, len);
 }
 
@@ -376,15 +385,13 @@ bsock_getsockname(VALUE sock)
 static VALUE
 bsock_getpeername(VALUE sock)
 {
-    union_sockaddr buf;
+    struct sockaddr_storage buf;
     socklen_t len = (socklen_t)sizeof buf;
-    socklen_t len0 = len;
     rb_io_t *fptr;
 
     GetOpenFile(sock, fptr);
-    if (getpeername(fptr->fd, &buf.addr, &len) < 0)
+    if (getpeername(fptr->fd, (struct sockaddr*)&buf, &len) < 0)
 	rb_sys_fail("getpeername(2)");
-    if (len0 < len) len = len0;
     return rb_str_new((char*)&buf, len);
 }
 
@@ -420,7 +427,7 @@ bsock_getpeereid(VALUE self)
     gid_t egid;
     GetOpenFile(self, fptr);
     if (getpeereid(fptr->fd, &euid, &egid) == -1)
-	rb_sys_fail("getpeereid(3)");
+	rb_sys_fail("getpeereid");
     return rb_assoc_new(UIDT2NUM(euid), GIDT2NUM(egid));
 #elif defined(SO_PEERCRED) /* GNU/Linux */
     rb_io_t *fptr;
@@ -436,7 +443,7 @@ bsock_getpeereid(VALUE self)
     VALUE ret;
     GetOpenFile(self, fptr);
     if (getpeerucred(fptr->fd, &uc) == -1)
-	rb_sys_fail("getpeerucred(3C)");
+	rb_sys_fail("getpeerucred");
     ret = rb_assoc_new(UIDT2NUM(ucred_geteuid(uc)), GIDT2NUM(ucred_getegid(uc)));
     ucred_free(uc);
     return ret;
@@ -466,16 +473,14 @@ bsock_getpeereid(VALUE self)
 static VALUE
 bsock_local_address(VALUE sock)
 {
-    union_sockaddr buf;
+    struct sockaddr_storage buf;
     socklen_t len = (socklen_t)sizeof buf;
-    socklen_t len0 = len;
     rb_io_t *fptr;
 
     GetOpenFile(sock, fptr);
-    if (getsockname(fptr->fd, &buf.addr, &len) < 0)
+    if (getsockname(fptr->fd, (struct sockaddr*)&buf, &len) < 0)
 	rb_sys_fail("getsockname(2)");
-    if (len0 < len) len = len0;
-    return rsock_fd_socket_addrinfo(fptr->fd, &buf.addr, len);
+    return rsock_fd_socket_addrinfo(fptr->fd, (struct sockaddr *)&buf, len);
 }
 
 /*
@@ -500,16 +505,14 @@ bsock_local_address(VALUE sock)
 static VALUE
 bsock_remote_address(VALUE sock)
 {
-    union_sockaddr buf;
+    struct sockaddr_storage buf;
     socklen_t len = (socklen_t)sizeof buf;
-    socklen_t len0 = len;
     rb_io_t *fptr;
 
     GetOpenFile(sock, fptr);
-    if (getpeername(fptr->fd, &buf.addr, &len) < 0)
+    if (getpeername(fptr->fd, (struct sockaddr*)&buf, &len) < 0)
 	rb_sys_fail("getpeername(2)");
-    if (len0 < len) len = len0;
-    return rsock_fd_socket_addrinfo(fptr->fd, &buf.addr, len);
+    return rsock_fd_socket_addrinfo(fptr->fd, (struct sockaddr *)&buf, len);
 }
 
 /*
@@ -538,6 +541,7 @@ rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
     int n;
     rb_blocking_function_t *func;
 
+    rb_secure(4);
     rb_scan_args(argc, argv, "21", &arg.mesg, &flags, &to);
 
     StringValue(arg.mesg);
@@ -545,7 +549,7 @@ rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
 	SockAddrStringValue(to);
 	to = rb_str_new4(to);
 	arg.to = (struct sockaddr *)RSTRING_PTR(to);
-	arg.tolen = RSTRING_SOCKLEN(to);
+	arg.tolen = (socklen_t)RSTRING_LENINT(to);
 	func = rsock_sendto_blocking;
     }
     else {
@@ -554,8 +558,8 @@ rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
     GetOpenFile(sock, fptr);
     arg.fd = fptr->fd;
     arg.flags = NUM2INT(flags);
-    while (rsock_maybe_fd_writable(arg.fd),
-	   (n = (int)BLOCKING_REGION_FD(func, &arg)) < 0) {
+    while (rb_thread_fd_writable(arg.fd),
+	   (n = (int)BLOCKING_REGION(func, &arg)) < 0) {
 	if (rb_io_wait_writable(arg.fd)) {
 	    continue;
 	}
@@ -603,6 +607,7 @@ bsock_do_not_reverse_lookup_set(VALUE sock, VALUE state)
 {
     rb_io_t *fptr;
 
+    rb_secure(4);
     GetOpenFile(sock, fptr);
     if (RTEST(state)) {
 	fptr->mode |= FMODE_NOREVLOOKUP;
@@ -722,18 +727,17 @@ bsock_do_not_rev_lookup(void)
 static VALUE
 bsock_do_not_rev_lookup_set(VALUE self, VALUE val)
 {
+    rb_secure(4);
     rsock_do_not_reverse_lookup = RTEST(val);
     return val;
 }
 
+/*
+ * BasicSocket is the super class for the all socket classes.
+ */
 void
 rsock_init_basicsocket(void)
 {
-    /*
-     * Document-class: BasicSocket < IO
-     *
-     * BasicSocket is the super class for all the Socket classes.
-     */
     rb_cBasicSocket = rb_define_class("BasicSocket", rb_cIO);
     rb_undef_method(rb_cBasicSocket, "initialize");
 

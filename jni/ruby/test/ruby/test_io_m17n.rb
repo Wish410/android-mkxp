@@ -1,7 +1,7 @@
-# coding: US-ASCII
 require 'test/unit'
 require 'tmpdir'
 require 'timeout'
+require_relative 'envutil'
 
 class TestIO_M17N < Test::Unit::TestCase
   ENCS = [
@@ -71,7 +71,7 @@ class TestIO_M17N < Test::Unit::TestCase
 #{encdump expected} expected but not equal to
 #{encdump actual}.
 EOT
-    assert_equal(expected, actual, full_message)
+    assert_block(full_message) { expected == actual }
   end
 
   def test_open_r
@@ -101,42 +101,6 @@ EOT
         assert_equal(Encoding::EUC_JP, f.external_encoding)
         assert_equal(nil, f.internal_encoding)
       }
-    }
-  end
-
-  def test_open_r_ascii8bit
-    with_tmpdir {
-      generate_file('tmp', "")
-      EnvUtil.with_default_external(Encoding::ASCII_8BIT) do
-        EnvUtil.with_default_internal(Encoding::UTF_8) do
-          open("tmp", "r") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-          open("tmp", "r:ascii-8bit") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-          open("tmp", "r:ascii-8bit:utf-16") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-        end
-        EnvUtil.with_default_internal(nil) do
-          open("tmp", "r") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-          open("tmp", "r:ascii-8bit") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-          open("tmp", "r:ascii-8bit:utf-16") {|f|
-            assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-            assert_equal(nil, f.internal_encoding)
-          }
-        end
-      end
     }
   end
 
@@ -311,24 +275,13 @@ EOT
     }
   end
 
-  def test_ignored_encoding_option
-    enc = "\u{30a8 30f3 30b3 30fc 30c7 30a3 30f3 30b0}"
-    pattern = /#{enc}/
-    assert_warning(pattern) {
-      open(IO::NULL, external_encoding: "us-ascii", encoding: enc) {}
-    }
-    assert_warning(pattern) {
-      open(IO::NULL, internal_encoding: "us-ascii", encoding: enc) {}
-    }
-  end
-
   def test_io_new_enc
     with_tmpdir {
       generate_file("tmp", "\xa1")
       fd = IO.sysopen("tmp")
       f = IO.new(fd, "r:sjis")
       begin
-        assert_equal(Encoding::Windows_31J, f.read.encoding)
+        assert_equal(Encoding::Shift_JIS, f.read.encoding)
       ensure
         f.close
       end
@@ -525,13 +478,14 @@ EOT
     with_tmpdir {
       src = "\u3042"
       generate_file('tmp', src)
-      EnvUtil.with_default_external(Encoding::UTF_8) do
-        open("tmp", "rt") {|f|
-          s = f.getc
-          assert_equal(true, s.valid_encoding?)
-          assert_equal("\u3042", s)
-        }
-      end
+      defext = Encoding.default_external
+      Encoding.default_external = Encoding::UTF_8
+      open("tmp", "rt") {|f|
+        s = f.getc
+        assert_equal(true, s.valid_encoding?)
+        assert_equal("\u3042", s)
+      }
+      Encoding.default_external = defext
     }
   end
 
@@ -539,16 +493,17 @@ EOT
     with_tmpdir {
       src = "\xE3\x81"
       generate_file('tmp', src)
-      EnvUtil.with_default_external(Encoding::UTF_8) do
-        open("tmp", "rt") {|f|
-          s = f.getc
-          assert_equal(false, s.valid_encoding?)
-          assert_equal("\xE3".force_encoding("UTF-8"), s)
-          s = f.getc
-          assert_equal(false, s.valid_encoding?)
-          assert_equal("\x81".force_encoding("UTF-8"), s)
-        }
-      end
+      defext = Encoding.default_external
+      Encoding.default_external = Encoding::UTF_8
+      open("tmp", "rt") {|f|
+        s = f.getc
+        assert_equal(false, s.valid_encoding?)
+        assert_equal("\xE3".force_encoding("UTF-8"), s)
+        s = f.getc
+        assert_equal(false, s.valid_encoding?)
+        assert_equal("\x81".force_encoding("UTF-8"), s)
+      }
+      Encoding.default_external = defext
     }
   end
 
@@ -773,12 +728,10 @@ EOT
            assert_equal(eucjp, r.read)
          end)
 
-    assert_raise_with_message(ArgumentError, /invalid name encoding/) do
-      with_pipe("UTF-8", "UTF-8".encode("UTF-32BE")) {}
-    end
-    assert_raise_with_message(ArgumentError, /invalid name encoding/) do
-      with_pipe("UTF-8".encode("UTF-32BE")) {}
-    end
+    e = assert_raise(ArgumentError) {with_pipe("UTF-8", "UTF-8".encode("UTF-32BE")) {}}
+    assert_match(/invalid name encoding/, e.message)
+    e = assert_raise(ArgumentError) {with_pipe("UTF-8".encode("UTF-32BE")) {}}
+    assert_match(/invalid name encoding/, e.message)
 
     ENCS.each {|enc|
       pipe(enc,
@@ -1031,33 +984,6 @@ EOT
          end)
   end
 
-  def test_set_encoding_identical
-    #bug5568 = '[ruby-core:40727]'
-    bug6324 = '[ruby-core:44455]'
-    open(__FILE__, "r") do |f|
-      assert_warning('', bug6324) {
-        f.set_encoding("eucjp:euc-jp")
-      }
-      assert_warning('', bug6324) {
-        f.set_encoding("eucjp", "euc-jp")
-      }
-      assert_warning('', bug6324) {
-        f.set_encoding(Encoding::EUC_JP, "euc-jp")
-      }
-      assert_warning('', bug6324) {
-        f.set_encoding("eucjp", Encoding::EUC_JP)
-      }
-      assert_warning('', bug6324) {
-        f.set_encoding(Encoding::EUC_JP, Encoding::EUC_JP)
-      }
-      nonstr = Object.new
-      def nonstr.to_str; "eucjp"; end
-      assert_warning('', bug6324) {
-        f.set_encoding(nonstr, nonstr)
-      }
-    end
-  end
-
   def test_set_encoding_undef
     pipe(proc do |w|
            w << "\ufffd"
@@ -1113,46 +1039,6 @@ EOT
     assert_nothing_raised {
       open(__FILE__, "rt") {|f|
         f.binmode
-        f.set_encoding("iso-2022-jp")
-      }
-    }
-    assert_nothing_raised {
-      open(__FILE__, "r", binmode: true) {|f|
-        assert_equal(Encoding::ASCII_8BIT, f.external_encoding)
-        f.set_encoding("iso-2022-jp")
-      }
-    }
-    assert_raise(ArgumentError) {
-      open(__FILE__, "rb", binmode: true) {|f|
-        f.set_encoding("iso-2022-jp")
-      }
-    }
-    assert_raise(ArgumentError) {
-      open(__FILE__, "rb", binmode: false) {|f|
-        f.set_encoding("iso-2022-jp")
-      }
-    }
-  end
-
-  def test_set_encoding_unsupported
-    bug5567 = '[ruby-core:40726]'
-    IO.pipe do |r, w|
-      assert_nothing_raised(bug5567) do
-        assert_warning(/Unsupported/, bug5567) {r.set_encoding("fffffffffffxx")}
-        assert_warning(/Unsupported/, bug5567) {r.set_encoding("fffffffffffxx", "us-ascii")}
-        assert_warning(/Unsupported/, bug5567) {r.set_encoding("us-ascii", "fffffffffffxx")}
-      end
-    end
-  end
-
-  def test_textmode_twice
-    assert_raise(ArgumentError) {
-      open(__FILE__, "rt", textmode: true) {|f|
-        f.set_encoding("iso-2022-jp")
-      }
-    }
-    assert_raise(ArgumentError) {
-      open(__FILE__, "rt", textmode: false) {|f|
         f.set_encoding("iso-2022-jp")
       }
     }
@@ -1321,16 +1207,6 @@ EOT
     }
   end
 
-  def test_open_pipe_r_enc2
-    open("|#{EnvUtil.rubybin} -e 'putc \"\\u3042\"'", "r:UTF-8") {|f|
-      assert_equal(Encoding::UTF_8, f.external_encoding)
-      assert_equal(nil, f.internal_encoding)
-      s = f.read
-      assert_equal(Encoding::UTF_8, s.encoding)
-      assert_equal("\u3042", s)
-    }
-  end
-
   def test_s_foreach_enc
     with_tmpdir {
       generate_file("t", "\xff")
@@ -1452,12 +1328,7 @@ EOT
   end
 
   def test_both_textmode_binmode
-    bug5918 = '[ruby-core:42199]'
-    assert_raise(ArgumentError, bug5918) { open("not-exist", "r", :textmode=>true, :binmode=>true) }
-    assert_raise(ArgumentError, bug5918) { open("not-exist", "rt", :binmode=>true) }
-    assert_raise(ArgumentError, bug5918) { open("not-exist", "rt", :binmode=>false) }
-    assert_raise(ArgumentError, bug5918) { open("not-exist", "rb", :textmode=>true) }
-    assert_raise(ArgumentError, bug5918) { open("not-exist", "rb", :textmode=>false) }
+    assert_raise(ArgumentError) { open("not-exist", "r", :textmode=>true, :binmode=>true) }
   end
 
   def test_textmode_decode_universal_newline_read
@@ -1468,9 +1339,6 @@ EOT
       open("t.crlf", "rt:euc-jp:utf-8") {|f| assert_equal("a\nb\nc\n", f.read) }
       open("t.crlf", "rt") {|f| assert_equal("a\nb\nc\n", f.read) }
       open("t.crlf", "r", :textmode=>true) {|f| assert_equal("a\nb\nc\n", f.read) }
-      open("t.crlf", "r", textmode: true, universal_newline: false) {|f|
-        assert_equal("a\r\nb\r\nc\r\n", f.read)
-      }
 
       generate_file("t.cr", "a\rb\rc\r")
       assert_equal("a\nb\nc\n", File.read("t.cr", mode:"rt:euc-jp:utf-8"))
@@ -1727,7 +1595,7 @@ EOT
     u16 = "\x85\x35\0\r\x00\xa2\0\r\0\n\0\n".force_encoding("utf-16be")
     i = "\e$B\x42\x22\e(B\r\e$B\x21\x71\e(B\r\n\n".force_encoding("iso-2022-jp")
     n = system_newline
-    n.encode("utf-16be").force_encoding("ascii-8bit")
+    un = n.encode("utf-16be").force_encoding("ascii-8bit")
 
     assert_write("a\rb\r#{n}c#{n}", "wt", a)
     assert_write("\xc2\xa2", "wt", e)
@@ -2045,7 +1913,6 @@ EOT
   def test_strip_bom
     with_tmpdir {
       text = "\uFEFFa"
-      stripped = "a"
       %w/UTF-8 UTF-16BE UTF-16LE UTF-32BE UTF-32LE/.each do |name|
         path = '%s-bom.txt' % name
         content = text.encode(name)
@@ -2053,32 +1920,11 @@ EOT
         result = File.read(path, mode: 'rb:BOM|UTF-8')
         assert_equal(content[1].force_encoding("ascii-8bit"),
                      result.force_encoding("ascii-8bit"))
-        result = File.read(path, mode: 'rb:BOM|UTF-8:UTF-8')
-        assert_equal(Encoding::UTF_8, result.encoding)
-        assert_equal(stripped, result)
       end
 
       bug3407 = '[ruby-core:30641]'
-      path = 'UTF-8-bom.txt'
-      result = File.read(path, encoding: 'BOM|UTF-8')
+      result = File.read('UTF-8-bom.txt', encoding: 'BOM|UTF-8')
       assert_equal("a", result.force_encoding("ascii-8bit"), bug3407)
-
-      bug8323 = '[ruby-core:54563] [Bug #8323]'
-      expected = "a\xff".force_encoding("utf-8")
-      open(path, 'ab') {|f| f.write("\xff")}
-      result = File.read(path, encoding: 'BOM|UTF-8')
-      assert_not_predicate(result, :valid_encoding?, bug8323)
-      assert_equal(expected, result, bug8323)
-      result = File.read(path, encoding: 'BOM|UTF-8:UTF-8')
-      assert_not_predicate(result, :valid_encoding?, bug8323)
-      assert_equal(expected, result, bug8323)
-
-      path = 'ascii.txt'
-      generate_file(path, stripped)
-      result = File.read(path, encoding: 'BOM|UTF-8')
-      assert_equal(stripped, result, bug8323)
-      result = File.read(path, encoding: 'BOM|UTF-8:UTF-8')
-      assert_equal(stripped, result, bug8323)
     }
   end
 
@@ -2109,7 +1955,7 @@ EOT
       open("ff", "w") {|f| }
       open("ff", "rt") {|f|
         f.ungetc "a"
-        assert_not_predicate(f, :eof?, "[ruby-dev:40506] (3)")
+        assert(!f.eof?, "[ruby-dev:40506] (3)")
       }
     }
   end
@@ -2152,34 +1998,32 @@ EOT
 
   def test_textmode_paragraph_nonasciicompat
     bug3534 = ['[ruby-dev:41803]', '[Bug #3534]']
-    IO.pipe {|r, w|
-      [Encoding::UTF_32BE, Encoding::UTF_32LE,
-       Encoding::UTF_16BE, Encoding::UTF_16LE,
-       Encoding::UTF_8].each do |e|
-        r.set_encoding(Encoding::US_ASCII, e)
-        wthr = Thread.new{ w.print(bug3534[0], "\n\n\n\n", bug3534[1], "\n") }
-        assert_equal((bug3534[0]+"\n\n").encode(e), r.gets(""), bug3534[0])
-        assert_equal((bug3534[1]+"\n").encode(e), r.gets(), bug3534[1])
-        wthr.join
-      end
-    }
+    r, w = IO.pipe
+    [Encoding::UTF_32BE, Encoding::UTF_32LE,
+     Encoding::UTF_16BE, Encoding::UTF_16LE,
+     Encoding::UTF_8].each do |e|
+      r.set_encoding(Encoding::US_ASCII, e)
+      wthr = Thread.new{ w.print(bug3534[0], "\n\n\n\n", bug3534[1], "\n") }
+      assert_equal((bug3534[0]+"\n\n").encode(e), r.gets(""), bug3534[0])
+      assert_equal((bug3534[1]+"\n").encode(e), r.gets(), bug3534[1])
+      wthr.join
+    end
   end
 
   def test_binmode_paragraph_nonasciicompat
     bug3534 = ['[ruby-dev:41803]', '[Bug #3534]']
-    IO.pipe {|r, w|
-      r.binmode
-      w.binmode
-      [Encoding::UTF_32BE, Encoding::UTF_32LE,
-       Encoding::UTF_16BE, Encoding::UTF_16LE,
-       Encoding::UTF_8].each do |e|
-        r.set_encoding(Encoding::US_ASCII, e)
-        wthr = Thread.new{ w.print(bug3534[0], "\n\n\n\n", bug3534[1], "\n") }
-        assert_equal((bug3534[0]+"\n\n").encode(e), r.gets(""), bug3534[0])
-        assert_equal((bug3534[1]+"\n").encode(e), r.gets(), bug3534[1])
-        wthr.join
-      end
-    }
+    r, w = IO.pipe
+    r.binmode
+    w.binmode
+    [Encoding::UTF_32BE, Encoding::UTF_32LE,
+     Encoding::UTF_16BE, Encoding::UTF_16LE,
+     Encoding::UTF_8].each do |e|
+      r.set_encoding(Encoding::US_ASCII, e)
+      wthr = Thread.new{ w.print(bug3534[0], "\n\n\n\n", bug3534[1], "\n") }
+      assert_equal((bug3534[0]+"\n\n").encode(e), r.gets(""), bug3534[0])
+      assert_equal((bug3534[1]+"\n").encode(e), r.gets(), bug3534[1])
+      wthr.join
+    end
   end
 
   def test_puts_widechar
@@ -2210,357 +2054,7 @@ EOT
       open("a", "wb") {|f| f.puts "a"}
       open("a", "rt") {|f| f.getc}
     }
-    assert_predicate(c, :ascii_only?, bug4557)
-  end
-
-  def test_getc_conversion
-    bug8516 = '[ruby-core:55444] [Bug #8516]'
-    c = with_tmpdir {
-      open("a", "wb") {|f| f.putc "\xe1"}
-      open("a", "r:iso-8859-1:utf-8") {|f| f.getc}
-    }
-    assert_not_predicate(c, :ascii_only?, bug8516)
-    assert_equal(1, c.size, bug8516)
-  end
-
-  def test_default_mode_on_dosish
-    with_tmpdir {
-      open("a", "w") {|f| f.write "\n"}
-      assert_equal("\r\n", IO.binread("a"))
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_default_mode_on_unix
-    with_tmpdir {
-      open("a", "w") {|f| f.write "\n"}
-      assert_equal("\n", IO.binread("a"))
-    }
-  end unless /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_text_mode
-    with_tmpdir {
-      open("a", "wb") {|f| f.write "\r\n"}
-      assert_equal("\n", open("a", "rt"){|f| f.read})
-    }
-  end
-
-  def test_binary_mode
-    with_tmpdir {
-      open("a", "wb") {|f| f.write "\r\n"}
-      assert_equal("\r\n", open("a", "rb"){|f| f.read})
-    }
-  end
-
-  def test_default_stdout_stderr_mode
-    with_pipe do |in_r, in_w|
-      with_pipe do |out_r, out_w|
-        pid = Process.spawn({}, EnvUtil.rubybin, in: in_r, out: out_w, err: out_w)
-        in_r.close
-        out_w.close
-        in_w.write <<-EOS
-          STDOUT.puts "abc"
-          STDOUT.flush
-          STDERR.puts "def"
-          STDERR.flush
-        EOS
-        in_w.close
-        Process.wait pid
-        assert_equal "abc\r\ndef\r\n", out_r.binmode.read
-        out_r.close
-      end
-    end
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_cr_decorator_on_stdout
-    with_pipe do |in_r, in_w|
-      with_pipe do |out_r, out_w|
-        pid = Process.spawn({}, EnvUtil.rubybin, in: in_r, out: out_w)
-        in_r.close
-        out_w.close
-        in_w.write <<-EOS
-          STDOUT.set_encoding('locale', nil, newline: :cr)
-          STDOUT.puts "abc"
-          STDOUT.flush
-        EOS
-        in_w.close
-        Process.wait pid
-        assert_equal "abc\r", out_r.binmode.read
-        out_r.close
-      end
-    end
-  end
-
-  def test_lf_decorator_on_stdout
-    with_pipe do |in_r, in_w|
-      with_pipe do |out_r, out_w|
-        pid = Process.spawn({}, EnvUtil.rubybin, in: in_r, out: out_w)
-        in_r.close
-        out_w.close
-        in_w.write <<-EOS
-          STDOUT.set_encoding('locale', nil, newline: :lf)
-          STDOUT.puts "abc"
-          STDOUT.flush
-        EOS
-        in_w.close
-        Process.wait pid
-        assert_equal "abc\n", out_r.binmode.read
-        out_r.close
-      end
-    end
-  end
-
-  def test_crlf_decorator_on_stdout
-    with_pipe do |in_r, in_w|
-      with_pipe do |out_r, out_w|
-        pid = Process.spawn({}, EnvUtil.rubybin, in: in_r, out: out_w)
-        in_r.close
-        out_w.close
-        in_w.write <<-EOS
-          STDOUT.set_encoding('locale', nil, newline: :crlf)
-          STDOUT.puts "abc"
-          STDOUT.flush
-        EOS
-        in_w.close
-        Process.wait pid
-        assert_equal "abc\r\n", out_r.binmode.read
-        out_r.close
-      end
-    end
-  end
-
-  def test_binmode_with_pipe
-    with_pipe do |r, w|
-      src = "a\r\nb\r\nc\r\n"
-      w.binmode.write src
-      w.close
-
-      assert_equal("a", r.getc)
-      assert_equal("\n", r.getc)
-      r.binmode
-      assert_equal("b", r.getc)
-      assert_equal("\r", r.getc)
-      assert_equal("\n", r.getc)
-      assert_equal("c", r.getc)
-      assert_equal("\r", r.getc)
-      assert_equal("\n", r.getc)
-      assert_equal(nil, r.getc)
-      r.close
-    end
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_stdin_binmode
-    with_pipe do |in_r, in_w|
-      with_pipe do |out_r, out_w|
-        pid = Process.spawn({}, EnvUtil.rubybin, '-e', <<-'End', in: in_r, out: out_w)
-          STDOUT.binmode
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDIN.binmode
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-          STDOUT.write STDIN.getc
-        End
-        in_r.close
-        out_w.close
-        src = "a\r\nb\r\nc\r\n"
-        in_w.binmode.write src
-        in_w.close
-        Process.wait pid
-        assert_equal "a\nb\r\nc\r\n", out_r.binmode.read
-        out_r.close
-      end
-    end
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_with_length
-    with_tmpdir {
-      str = "a\nb"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        assert_equal(str, f.read(3))
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_with_length_binmode
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        # read with length should be binary mode
-        assert_equal("a\r\n", f.read(3)) # binary
-        assert_equal("b\nc\n\n", f.read) # text
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_gets_and_read_with_binmode
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n\n\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        assert_equal("a\n", f.gets)      # text
-        assert_equal("b\r\n", f.read(3)) # binary
-        assert_equal("c\r\n", f.read(3)) # binary
-        assert_equal("\n\n", f.read)     # text
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_getc_and_read_with_binmode
-    with_tmpdir {
-      str = "a\r\nb\r\nc\n\n\r\n\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        assert_equal("a", f.getc)         # text
-        assert_equal("\n", f.getc)        # text
-        assert_equal("b\r\n", f.read(3))  # binary
-        assert_equal("c\n\n\n\n", f.read) # text
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_with_binmode_and_gets
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n\r\n"
-      open("tmp", "wb") { |f| f.write str }
-      open("tmp", "r") do |f|
-        assert_equal("a", f.getc)         # text
-        assert_equal("\n", f.getc)        # text
-        assert_equal("b\r\n", f.read(3))  # binary
-        assert_equal("c\n", f.gets)       # text
-        assert_equal("\n", f.gets)        # text
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_with_binmode_and_getc
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n\r\n"
-      open("tmp", "wb") { |f| f.write str }
-      open("tmp", "r") do |f|
-        assert_equal("a", f.getc)         # text
-        assert_equal("\n", f.getc)        # text
-        assert_equal("b\r\n", f.read(3))  # binary
-        assert_equal("c", f.getc)         # text
-        assert_equal("\n", f.getc)        # text
-        assert_equal("\n", f.getc)        # text
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_write_with_binmode
-    with_tmpdir {
-      str = "a\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r+") do |f|
-        assert_equal("a\r\n", f.read(3))  # binary
-        f.write("b\n\n");                 # text
-        f.rewind
-        assert_equal("a\nb\n\n", f.read)  # text
-        f.rewind
-        assert_equal("a\r\nb\r\n\r\n", f.binmode.read) # binary
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_seek_with_setting_binmode
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n\r\n\n\n\n\n\n\n\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        assert_equal("a\n", f.gets)      # text
-        assert_equal("b\r\n", f.read(3)) # binary
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_error_nonascii
-    bug6071 = '[ruby-dev:45279]'
-    paths = ["\u{3042}".encode("sjis"), "\u{ff}".encode("iso-8859-1")]
-    encs = with_tmpdir {
-      paths.map {|path|
-        open(path) rescue $!.message.encoding
-      }
-    }
-    assert_equal(paths.map(&:encoding), encs, bug6071)
-  end
-
-  def test_inspect_nonascii
-    bug6072 = '[ruby-dev:45280]'
-    paths = ["\u{3042}".encode("sjis"), "\u{ff}".encode("iso-8859-1")]
-    encs = with_tmpdir {
-      paths.map {|path|
-        open(path, "wb") {|f| f.inspect.encoding}
-      }
-    }
-    assert_equal(paths.map(&:encoding), encs, bug6072)
-  end
-
-  def test_pos_dont_move_cursor_position
-    bug6179 = '[ruby-core:43497]'
-    with_tmpdir {
-      str = "line one\r\nline two\r\nline three\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        assert_equal("line one\n", f.readline)
-        assert_equal(10, f.pos, bug6179)
-        assert_equal("line two\n", f.readline, bug6179)
-        assert_equal(20, f.pos, bug6179)
-        assert_equal("line three\n", f.readline, bug6179)
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_pos_with_buffer_end_cr
-    bug6401 = '[ruby-core:44874]'
-    with_tmpdir {
-      # Read buffer size is 8191. This generates '\r' at 8191.
-      lines = ["X" * 8187, "X"]
-      generate_file("tmp", lines.join("\r\n") + "\r\n")
-
-      open("tmp", "r") do |f|
-        lines.each do |line|
-          f.pos
-          assert_equal(line, f.readline.chomp, bug6401)
-        end
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_crlf_and_eof
-    bug6271 = '[ruby-core:44189]'
-    with_tmpdir {
-      str = "a\r\nb\r\nc\r\n"
-      generate_file("tmp", str)
-      open("tmp", "r") do |f|
-        i = 0
-        until f.eof?
-          assert_equal(str[i], f.read(1), bug6271)
-          i += 1
-        end
-        assert_equal(str.size, i, bug6271)
-      end
-    }
-  end if /mswin|mingw/ =~ RUBY_PLATFORM
-
-  def test_read_with_buf_broken_ascii_only
-    a, b = IO.pipe
-    a.binmode
-    b.binmode
-    b.write("\xE2\x9C\x93")
-    b.close
-
-    buf = "".force_encoding("binary")
-    assert buf.ascii_only?, "should have been ascii_only?"
-    a.read(1, buf)
-    assert !buf.ascii_only?, "should not have been ascii_only?"
-  ensure
-    a.close rescue nil
-    b.close rescue nil
+    assert(c.ascii_only?, "should be ascii_only #{bug4557}")
   end
 end
+

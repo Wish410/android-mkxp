@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # text (embedded windows) widget demo (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($twind_demo) && $twind_demo
   $twind_demo.destroy
   $twind_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $twind_demo = TkToplevel.new {|w|
   title("Text Demonstration - Embedded Windows")
   iconname("Embedded Windows")
@@ -18,11 +18,11 @@ $twind_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($twind_demo).pack(:fill=>:both, :expand=>true)
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 $twind_buttons = TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $twind_demo
       $twind_demo = nil
@@ -31,13 +31,13 @@ $twind_buttons = TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'twind'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }
 $twind_buttons.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 $twind_text = nil
 TkFrame.new(base_frame, 'highlightthickness'=>2, 'borderwidth'=>2,
             'relief'=>'sunken') {|f|
@@ -51,7 +51,7 @@ TkFrame.new(base_frame, 'highlightthickness'=>2, 'borderwidth'=>2,
   }.pack('expand'=>'yes', 'fill'=>'both')
 }.pack('expand'=>'yes', 'fill'=>'both')
 
-# ã‚¿ã‚°ç”Ÿæˆ
+# ¥¿¥°À¸À®
 $tag_center = TkTextTag.new($twind_text,
                             'justify' =>'center',
                             'spacing1'=>'5m',
@@ -64,70 +64,70 @@ $tag_buttons = TkTextTag.new($twind_text,
                              'spacing2'=>0,
                              'spacing3'=>0 )
 
-# ãƒ†ã‚­ã‚¹ãƒˆã®ç”Ÿæˆ
+# ¥Æ¥­¥¹¥È¤ÎÀ¸À®
 $twind_text.insert('end',
-                  'ãƒ†ã‚­ã‚¹ãƒˆwidgetä¸Šã«ä»–ã®widgetã‚’çµ„ã¿è¾¼ã‚€ã“ã¨ãŒã§ãã¾ã™ã€‚')
+                  '¥Æ¥­¥¹¥Èwidget¾å¤ËÂ¾¤Îwidget¤òÁÈ¤ß¹þ¤à¤³¤È¤¬¤Ç¤­¤Þ¤¹¡£')
 $twind_text.insert('end',
-                  'çµ„ã¿è¾¼ã¿ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã¨å‘¼ã°ã‚Œã€ä»»æ„ã®widgetãŒå¯èƒ½ã§ã™ã€‚')
+                  'ÁÈ¤ß¹þ¤ß¥¦¥£¥ó¥É¥¦¤È¸Æ¤Ð¤ì¡¢Ç¤°Õ¤Îwidget¤¬²ÄÇ½¤Ç¤¹¡£')
 $twind_text.insert('end',
-                  'ä¾‹ãˆã°ã€ã“ã“ã«2ã¤ã®ãƒœã‚¿ãƒ³widgetãŒçµ„ã¿è¾¼ã¾ã‚Œã¦ã„ã¾ã™ã€‚')
-$twind_text.insert('end', 'æœ€åˆã®ãƒœã‚¿ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã¨æ°´å¹³æ–¹å‘ã®ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã‚’')
+                  'Îã¤¨¤Ð¡¢¤³¤³¤Ë2¤Ä¤Î¥Ü¥¿¥ówidget¤¬ÁÈ¤ß¹þ¤Þ¤ì¤Æ¤¤¤Þ¤¹¡£')
+$twind_text.insert('end', 'ºÇ½é¤Î¥Ü¥¿¥ó¤ò¥¯¥ê¥Ã¥¯¤¹¤È¿åÊ¿Êý¸þ¤Î¥¹¥¯¥í¡¼¥ë¤ò')
 TkTextWindow.new($twind_text, 'end',
                  'window'=>TkButton.new($twind_text) {
                    #text 'ON'
-                   text 'ã‚ªãƒ³'
+                   text '¥ª¥ó'
                    command proc{textWindOn $twind_text,$twind_buttons}
                    cursor 'top_left_arrow'
                  })
-$twind_text.insert('end', "ã«ã—ã¾ã™ã€‚ã¾ãŸ2ã¤ã‚ã®ãƒœã‚¿ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨\n")
-$twind_text.insert('end', 'æ°´å¹³æ–¹å‘ã®ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã‚’')
+$twind_text.insert('end', "¤Ë¤·¤Þ¤¹¡£¤Þ¤¿2¤Ä¤á¤Î¥Ü¥¿¥ó¤ò¥¯¥ê¥Ã¥¯¤¹¤ë¤È\n")
+$twind_text.insert('end', '¿åÊ¿Êý¸þ¤Î¥¹¥¯¥í¡¼¥ë¤ò')
 TkTextWindow.new($twind_text, 'end',
                  'window'=>TkButton.new($twind_text) {
                    #text 'OFF'
-                   text 'ã‚ªãƒ•'
+                   text '¥ª¥Õ'
                    command proc{textWindOff $twind_text}
                    cursor 'top_left_arrow'
                  })
-$twind_text.insert('end', 'ã«ã—ã¾ã™ã€‚')
+$twind_text.insert('end', '¤Ë¤·¤Þ¤¹¡£')
 
-$twind_text.insert('end', 'ã‚‚ã†ã²ã¨ã¤ã®ä¾‹ã§ã™ã€‚')
+$twind_text.insert('end', '¤â¤¦¤Ò¤È¤Ä¤ÎÎã¤Ç¤¹¡£')
 TkTextWindow.new($twind_text, 'end',
                  'window'=>TkButton.new($twind_text) {
-                   text 'ã“ã“ã‚’ã‚¯ãƒªãƒƒã‚¯'
+                   text '¤³¤³¤ò¥¯¥ê¥Ã¥¯'
                    command proc{textWindPlot $twind_text}
                    cursor 'top_left_arrow'
                  })
-$twind_text.insert('end', 'ã™ã‚‹ã¨ã€x-yãƒ—ãƒ­ãƒƒãƒˆãŒã“ã“ã«ç¾ã‚Œã¾ã™ã€‚')
+$twind_text.insert('end', '¤¹¤ë¤È¡¢x-y¥×¥í¥Ã¥È¤¬¤³¤³¤Ë¸½¤ì¤Þ¤¹¡£')
 $mark_plot = TkTextMark.new($twind_text, 'insert')
 $mark_plot.gravity='left'
-$twind_text.insert('end', 'ãƒžã‚¦ã‚¹ã§ãƒ‡ãƒ¼ã‚¿ã‚’æç”»ã™ã‚‹ã“ã¨ãŒã§ãã¾ã™ã€‚')
+$twind_text.insert('end', '¥Þ¥¦¥¹¤Ç¥Ç¡¼¥¿¤òÉÁ²è¤¹¤ë¤³¤È¤¬¤Ç¤­¤Þ¤¹¡£')
 TkTextWindow.new($twind_text, 'end',
                  'window'=>TkButton.new($twind_text) {
-                   text 'æ¶ˆåŽ»'
+                   text '¾Ãµî'
                    command proc{textWindDel $twind_text}
                    cursor 'top_left_arrow'
                  })
-$twind_text.insert('end', 'ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨å…ƒã«æˆ»ã‚Šã¾ã™ã€‚
+$twind_text.insert('end', '¤ò¥¯¥ê¥Ã¥¯¤¹¤ë¤È¸µ¤ËÌá¤ê¤Þ¤¹¡£
 
 ')
 
-$twind_text.insert('end', 'çµ„ã¿è¾¼ã¿ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã ã‘ã‚’ãƒ†ã‚­ã‚¹ãƒˆwidgetä¸Šã«ã€å®Ÿéš›ã®')
-$twind_text.insert('end', 'ãƒ†ã‚­ã‚¹ãƒˆã¯ãªã—ã§çµ„ã¿è¾¼ã‚€ã“ã¨ã¯ä¾¿åˆ©ã§ã™ã€‚')
-$twind_text.insert('end', 'ã“ã®å ´åˆã¯ã€ãƒ†ã‚­ã‚¹ãƒˆwidgetã¯ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒžãƒãƒ¼ã‚¸ãƒ£ã®')
-$twind_text.insert('end', 'ã‚ˆã†ã«å‹•ä½œã—ã¾ã™ã€‚ä¾‹ãˆã°ã€ã“ã“ã«ã¯ãƒ†ã‚­ã‚¹ãƒˆwidgetã«')
-$twind_text.insert('end', 'ã‚ˆã£ã¦ãƒœã‚¿ãƒ³ãŒãã‚Œã„ã«ä¸¦ã¹ã‚‰ã‚Œã¦ã„ã¾ã™ã€‚')
-$twind_text.insert('end', 'ã“ã‚Œã‚‰ã®ãƒœã‚¿ãƒ³ã§èƒŒæ™¯è‰²ã‚’å¤‰ãˆã‚‹ã“ã¨ãŒã§ãã¾ã™')
-$twind_text.insert('end', '("Default"ã§å…ƒã®è‰²ã«æˆ»ã™ã“ã¨ãŒã§ãã¾ã™)ã€‚')
-$twind_text.insert('end', '"Short"ã¨ã„ã†ãƒœã‚¿ãƒ³ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨æ–‡å­—åˆ—ã®é•·ã•ãŒ')
-$twind_text.insert('end', 'å¤‰ã‚ã‚Šã¾ã™ã€‚ã™ã‚‹ã¨è‡ªå‹•çš„ã«ãƒ†ã‚­ã‚¹ãƒˆwidgetãŒ')
-$twind_text.insert('end', 'ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’æ•´ãˆã¦ãã‚Œã¾ã™ã€‚')
-$twind_text.insert('end', 'ã‚‚ã†ä¸€åº¦åŒã˜ãƒœã‚¿ãƒ³ã‚’æŠ¼ã™ã¨å…ƒã«æˆ»ã‚Šã¾ã™ã€‚
+$twind_text.insert('end', 'ÁÈ¤ß¹þ¤ß¥¦¥£¥ó¥É¥¦¤À¤±¤ò¥Æ¥­¥¹¥Èwidget¾å¤Ë¡¢¼ÂºÝ¤Î')
+$twind_text.insert('end', '¥Æ¥­¥¹¥È¤Ï¤Ê¤·¤ÇÁÈ¤ß¹þ¤à¤³¤È¤ÏÊØÍø¤Ç¤¹¡£')
+$twind_text.insert('end', '¤³¤Î¾ì¹ç¤Ï¡¢¥Æ¥­¥¹¥Èwidget¤Ï¥¦¥£¥ó¥É¥¦¥Þ¥Í¡¼¥¸¥ã¤Î')
+$twind_text.insert('end', '¤è¤¦¤ËÆ°ºî¤·¤Þ¤¹¡£Îã¤¨¤Ð¡¢¤³¤³¤Ë¤Ï¥Æ¥­¥¹¥Èwidget¤Ë')
+$twind_text.insert('end', '¤è¤Ã¤Æ¥Ü¥¿¥ó¤¬¤­¤ì¤¤¤ËÊÂ¤Ù¤é¤ì¤Æ¤¤¤Þ¤¹¡£')
+$twind_text.insert('end', '¤³¤ì¤é¤Î¥Ü¥¿¥ó¤ÇÇØ·Ê¿§¤òÊÑ¤¨¤ë¤³¤È¤¬¤Ç¤­¤Þ¤¹')
+$twind_text.insert('end', '("Default"¤Ç¸µ¤Î¿§¤ËÌá¤¹¤³¤È¤¬¤Ç¤­¤Þ¤¹)¡£')
+$twind_text.insert('end', '"Short"¤È¤¤¤¦¥Ü¥¿¥ó¤ò¥¯¥ê¥Ã¥¯¤¹¤ë¤ÈÊ¸»úÎó¤ÎÄ¹¤µ¤¬')
+$twind_text.insert('end', 'ÊÑ¤ï¤ê¤Þ¤¹¡£¤¹¤ë¤È¼«Æ°Åª¤Ë¥Æ¥­¥¹¥Èwidget¤¬')
+$twind_text.insert('end', '¥ì¥¤¥¢¥¦¥È¤òÀ°¤¨¤Æ¤¯¤ì¤Þ¤¹¡£')
+$twind_text.insert('end', '¤â¤¦°ìÅÙÆ±¤¸¥Ü¥¿¥ó¤ò²¡¤¹¤È¸µ¤ËÌá¤ê¤Þ¤¹¡£
 
 ')
 
 TkTextWindow.new($twind_text, 'end',
                  'window'=>TkButton.new($twind_text) {|b|
-                   text 'ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆ'
+                   text '¥Ç¥Õ¥©¥ë¥È'
                    command proc{embDefBg $twind_text}
                    cursor 'top_left_arrow'
                    $tag_buttons.add('end')
@@ -163,7 +163,7 @@ TkTextWindow.new($twind_text, 'end',
                    'pady'=>2 )
 }
 
-# ãƒ¡ã‚½ãƒƒãƒ‰å®šç¾©
+# ¥á¥½¥Ã¥ÉÄêµÁ
 def textWindOn (w,f)
   if defined? $twind_scroll
     begin

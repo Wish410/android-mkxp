@@ -1,7 +1,7 @@
 #
 #   irb/lc/error.rb -
 #   	$Release Version: 0.9.6$
-#   	$Revision: 38600 $
+#   	$Revision: 25189 $
 #   	by Keiju ISHITSUKA(keiju@ruby-lang.org)
 #
 # --
@@ -10,7 +10,6 @@
 #
 require "e2mmap"
 
-# :stopdoc:
 module IRB
 
   # exceptions
@@ -25,7 +24,6 @@ module IRB
   def_exception :CantShiftToMultiIrbMode, "Can't shift to multi irb mode."
   def_exception :CantChangeBinding, "Can't change binding to (%s)."
   def_exception :UndefinedPromptMode, "Undefined prompt mode(%s)."
-  def_exception :IllegalRCGenerator, 'Define illegal RC_NAME_GENERATOR.'
 
 end
-# :startdoc:
+

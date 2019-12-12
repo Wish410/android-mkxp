@@ -1,35 +1,35 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # widget demo prompts the user to select a color (called by 'widget')
 #
 #  Note: don't support ttk_wrapper. work with standard widgets only.
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($clrpick_demo) && $clrpick_demo
   $clrpick_demo.destroy
   $clrpick_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $clrpick_demo = TkToplevel.new {|w|
   title("Color Selection Dialogs")
   iconname("colors")
   positionWindow(w)
 }
 
-# label ç”Ÿæˆ
+# label À¸À®
 #TkLabel.new($clrpick_demo,'font'=>$font,'wraplength'=>'4i','justify'=>'left',
 Tk::Label.new($clrpick_demo,'font'=>$font,'wraplength'=>'4i','justify'=>'left',
-            'text'=>"ä»¥ä¸‹ã®ãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ã¦ã€ã“ã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ä¸Šã«ã‚ã‚‹ã‚¦ã‚£ã‚¸ã‚§ãƒƒãƒˆã®å‰æ™¯è‰²ã¨èƒŒæ™¯è‰²ã‚’é¸æŠžã—ã¦ä¸‹ã•ã„ã€‚").pack('side'=>'top')
+            'text'=>"°Ê²¼¤Î¥Ü¥¿¥ó¤ò²¡¤·¤Æ¡¢¤³¤Î¥¦¥£¥ó¥É¥¦¾å¤Ë¤¢¤ë¥¦¥£¥¸¥§¥Ã¥È¤ÎÁ°·Ê¿§¤ÈÇØ·Ê¿§¤òÁªÂò¤·¤Æ²¼¤µ¤¤¡£").pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 # TkFrame.new($clrpick_demo) {|frame|
 Tk::Frame.new($clrpick_demo) {|frame|
   # TkButton.new(frame) {
   Tk::Button.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $clrpick_demo
       $clrpick_demo = nil
@@ -39,21 +39,21 @@ Tk::Frame.new($clrpick_demo) {|frame|
 
   # TkButton.new(frame) {
   Tk::Button.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'clrpick'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# button ç”Ÿæˆ
-# TkButton.new($clrpick_demo, 'text'=>'èƒŒæ™¯è‰²ã‚’è¨­å®š ...') {|b|
-Tk::Button.new($clrpick_demo, 'text'=>'èƒŒæ™¯è‰²ã‚’è¨­å®š ...') {|b|
+# button À¸À®
+# TkButton.new($clrpick_demo, 'text'=>'ÇØ·Ê¿§¤òÀßÄê ...') {|b|
+Tk::Button.new($clrpick_demo, 'text'=>'ÇØ·Ê¿§¤òÀßÄê ...') {|b|
   command(proc{setColor $clrpick_demo, b, 'background',
               ['background', 'highlightbackground']})
   pack('side'=>'top', 'anchor'=>'c', 'pady'=>'2m')
 }
 
-# TkButton.new($clrpick_demo, 'text'=>'å‰æ™¯è‰²ã‚’è¨­å®š ...') {|b|
-Tk::Button.new($clrpick_demo, 'text'=>'å‰æ™¯è‰²ã‚’è¨­å®š ...') {|b|
+# TkButton.new($clrpick_demo, 'text'=>'Á°·Ê¿§¤òÀßÄê ...') {|b|
+Tk::Button.new($clrpick_demo, 'text'=>'Á°·Ê¿§¤òÀßÄê ...') {|b|
   command(proc{setColor $clrpick_demo, b, 'foreground', ['foreground']})
   pack('side'=>'top', 'anchor'=>'c', 'pady'=>'2m')
 }

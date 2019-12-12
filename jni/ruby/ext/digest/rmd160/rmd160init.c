@@ -1,7 +1,7 @@
 /* $RoughId: rmd160init.c,v 1.3 2001/07/13 20:00:43 knu Exp $ */
-/* $Id: rmd160init.c 47745 2014-09-30 08:29:02Z nobu $ */
+/* $Id: rmd160init.c 28341 2010-06-16 09:38:14Z knu $ */
 
-#include "digest.h"
+#include "../digest.h"
 #if defined(HAVE_OPENSSL_RIPEMD_H)
 #include "rmd160ossl.h"
 #else
@@ -24,22 +24,17 @@ static const rb_digest_metadata_t rmd160 = {
  * Bosselaers, and Bart Preneel.
  */
 void
-Init_rmd160(void)
+Init_rmd160()
 {
     VALUE mDigest, cDigest_Base, cDigest_RMD160;
 
     rb_require("digest");
 
-#if 0
-    mDigest = rb_define_module("Digest"); /* let rdoc know */
-#endif
     mDigest = rb_path2class("Digest");
     cDigest_Base = rb_path2class("Digest::Base");
 
     cDigest_RMD160 = rb_define_class_under(mDigest, "RMD160", cDigest_Base);
 
-#undef RUBY_UNTYPED_DATA_WARNING
-#define RUBY_UNTYPED_DATA_WARNING 0
     rb_ivar_set(cDigest_RMD160, rb_intern("metadata"),
-		Data_Wrap_Struct(0, 0, 0, (void *)&rmd160));
+      Data_Wrap_Struct(rb_cObject, 0, 0, (void *)&rmd160));
 }

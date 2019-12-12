@@ -27,7 +27,8 @@
 
 <%= transcode_generated_code %>
 
-TRANS_INIT(emoji_sjis_kddi)
+void
+Init_emoji_sjis_kddi(void)
 {
 <%= transcode_register_code %>
 }

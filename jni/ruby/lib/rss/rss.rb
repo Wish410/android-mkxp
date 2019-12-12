@@ -3,14 +3,6 @@ require "time"
 class Time
   class << self
     unless respond_to?(:w3cdtf)
-      # This method converts a W3CDTF string date/time format to Time object.
-      #
-      # The W3CDTF format is defined here: http://www.w3.org/TR/NOTE-datetime
-      #
-      #   Time.w3cdtf('2003-02-15T13:50:05-05:00')
-      #   # => 2003-02-15 10:50:05 -0800
-      #   Time.w3cdtf('2003-02-15T13:50:05-05:00').class
-      #   # => Time
       def w3cdtf(date)
         if /\A\s*
             (-?\d+)-(\d\d)-(\d\d)
@@ -28,7 +20,7 @@ class Time
             datetime = apply_offset(*(datetime + [off]))
             datetime << usec
             time = Time.utc(*datetime)
-            force_zone!(time, zone, off)
+            time.localtime unless zone_utc?(zone)
             time
           else
             datetime << usec
@@ -42,13 +34,6 @@ class Time
   end
 
   unless method_defined?(:w3cdtf)
-    # This method converts a Time object to a String. The String contains the
-    # time in W3CDTF date/time format.
-    #
-    # The W3CDTF format is defined here: http://www.w3.org/TR/NOTE-datetime
-    #
-    #  Time.now.w3cdtf
-    #  # => "2013-08-26T14:12:10.817124-07:00"
     def w3cdtf
       if usec.zero?
         fraction_digits = 0
@@ -68,20 +53,14 @@ require "rss/xml-stylesheet"
 
 module RSS
 
-  # The current version of RSS
   VERSION = "0.2.7"
 
-  # The URI of the RSS 1.0 specification
   URI = "http://purl.org/rss/1.0/"
 
-  DEBUG = false # :nodoc:
+  DEBUG = false
 
-  # The basic error all other RSS errors stem from. Rescue this error if you
-  # want to handle any given RSS error and you don't care about the details.
   class Error < StandardError; end
 
-  # RSS, being an XML-based format, has namespace support. If two namespaces are
-  # declared with the same name, an OverlappedPrefixError will be raised.
   class OverlappedPrefixError < Error
     attr_reader :prefix
     def initialize(prefix)
@@ -89,13 +68,8 @@ module RSS
     end
   end
 
-  # The InvalidRSSError error is the base class for a variety of errors
-  # related to a poorly-formed RSS feed. Rescue this error if you only
-  # care that a file could be invalid, but don't care how it is invalid.
   class InvalidRSSError < Error; end
 
-  # Since RSS is based on XML, it must have opening and closing tags that
-  # match. If they don't, a MissingTagError will be raised.
   class MissingTagError < InvalidRSSError
     attr_reader :tag, :parent
     def initialize(tag, parent)
@@ -104,9 +78,6 @@ module RSS
     end
   end
 
-  # Some tags must only exist a specific number of times in a given RSS feed.
-  # If a feed has too many occurrences of one of these tags, a TooMuchTagError
-  # will be raised.
   class TooMuchTagError < InvalidRSSError
     attr_reader :tag, :parent
     def initialize(tag, parent)
@@ -115,8 +86,6 @@ module RSS
     end
   end
 
-  # Certain attributes are required on specific tags in an RSS feed. If a feed
-  # is missing one of these attributes, a MissingAttributeError is raised.
   class MissingAttributeError < InvalidRSSError
     attr_reader :tag, :attribute
     def initialize(tag, attribute)
@@ -125,8 +94,6 @@ module RSS
     end
   end
 
-  # RSS does not allow for free-form tag names, so if an RSS feed contains a
-  # tag that we don't know about, an UnknownTagError is raised.
   class UnknownTagError < InvalidRSSError
     attr_reader :tag, :uri
     def initialize(tag, uri)
@@ -135,7 +102,6 @@ module RSS
     end
   end
 
-  # Raised when an unexpected tag is encountered.
   class NotExpectedTagError < InvalidRSSError
     attr_reader :tag, :uri, :parent
     def initialize(tag, uri, parent)
@@ -144,10 +110,8 @@ module RSS
     end
   end
   # For backward compatibility :X
-  NotExceptedTagError = NotExpectedTagError # :nodoc:
+  NotExceptedTagError = NotExpectedTagError
 
-  # Attributes are in key-value form, and if there's no value provided for an
-  # attribute, a NotAvailableValueError will be raised.
   class NotAvailableValueError < InvalidRSSError
     attr_reader :tag, :value, :attribute
     def initialize(tag, value, attribute=nil)
@@ -159,7 +123,6 @@ module RSS
     end
   end
 
-  # Raised when an unknown conversion error occurs.
   class UnknownConversionMethodError < Error
     attr_reader :to, :from
     def initialize(to, from)
@@ -169,9 +132,8 @@ module RSS
     end
   end
   # for backward compatibility
-  UnknownConvertMethod = UnknownConversionMethodError # :nodoc:
+  UnknownConvertMethod = UnknownConversionMethodError
 
-  # Raised when a conversion failure occurs.
   class ConversionError < Error
     attr_reader :string, :to, :from
     def initialize(string, to, from)
@@ -182,7 +144,6 @@ module RSS
     end
   end
 
-  # Raised when a required variable is not set.
   class NotSetError < Error
     attr_reader :name, :variables
     def initialize(name, variables)
@@ -192,7 +153,6 @@ module RSS
     end
   end
 
-  # Raised when a RSS::Maker attempts to use an unknown maker.
   class UnsupportedMakerVersionError < Error
     attr_reader :version
     def initialize(version)
@@ -269,7 +229,7 @@ EOC
           else
             rv << value
           end
-            rv << "</#{elem_name}>"
+    	    rv << "</#{elem_name}>"
           rv
         else
           ''
@@ -300,7 +260,7 @@ EOC
           else
             rv << value
           end
-            rv << "</#{elem_name}>"
+    	    rv << "</#{elem_name}>"
           rv
         else
           ''
@@ -711,18 +671,18 @@ EOC
       end
 
       def inherited(klass)
-        klass.const_set(:MUST_CALL_VALIDATORS, {})
-        klass.const_set(:MODELS, [])
-        klass.const_set(:GET_ATTRIBUTES, [])
-        klass.const_set(:HAVE_CHILDREN_ELEMENTS, [])
-        klass.const_set(:TO_ELEMENT_METHODS, [])
-        klass.const_set(:NEED_INITIALIZE_VARIABLES, [])
-        klass.const_set(:PLURAL_FORMS, {})
+        klass.const_set("MUST_CALL_VALIDATORS", {})
+        klass.const_set("MODELS", [])
+        klass.const_set("GET_ATTRIBUTES", [])
+        klass.const_set("HAVE_CHILDREN_ELEMENTS", [])
+        klass.const_set("TO_ELEMENT_METHODS", [])
+        klass.const_set("NEED_INITIALIZE_VARIABLES", [])
+        klass.const_set("PLURAL_FORMS", {})
 
         tag_name = klass.name.split(/::/).last
         tag_name[0, 1] = tag_name[0, 1].downcase
-        klass.instance_variable_set(:@tag_name, tag_name)
-        klass.instance_variable_set(:@have_content, false)
+        klass.instance_variable_set("@tag_name", tag_name)
+        klass.instance_variable_set("@have_content", false)
       end
 
       def install_must_call_validator(prefix, uri)
@@ -1133,8 +1093,9 @@ EOC
         tags = tags.sort_by {|x| element_names.index(x) || tags_size}
       end
 
+      _tags = tags.dup if tags
       models.each_with_index do |model, i|
-        name, _, occurs, = model
+        name, model_uri, occurs, getter = model
 
         if DEBUG
           p "before"

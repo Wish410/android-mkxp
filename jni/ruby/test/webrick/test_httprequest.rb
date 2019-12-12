@@ -3,15 +3,6 @@ require "stringio"
 require "test/unit"
 
 class TestWEBrickHTTPRequest < Test::Unit::TestCase
-  def test_simple_request
-    msg = <<-_end_of_message_
-GET /
-    _end_of_message_
-    req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
-    req.parse(StringIO.new(msg))
-    assert(req.meta_vars) # fails if @header was not initialized and iteration is attempted on the nil reference
-  end
-
   def test_parse_09
     msg = <<-_end_of_message_
       GET /
@@ -67,7 +58,7 @@ GET /
 
   def test_request_uri_too_large
     msg = <<-_end_of_message_
-      GET /#{"a"*2084} HTTP/1.1
+      GET /#{"a"*1024} HTTP/1.1
     _end_of_message_
     req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
     assert_raise(WEBrick::HTTPStatus::RequestURITooLarge){
@@ -334,37 +325,6 @@ GET /
     assert_equal(1234, req.port)
     assert_equal("234.234.234.234", req.remote_ip)
     assert(req.ssl?)
-  end
-
-  def test_continue_sent
-    msg = <<-_end_of_message_
-      POST /path HTTP/1.1
-      Expect: 100-continue
-
-    _end_of_message_
-    msg.gsub!(/^ {6}/, "")
-    req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
-    req.parse(StringIO.new(msg))
-    assert req['expect']
-    l = msg.size
-    req.continue
-    assert_not_equal l, msg.size
-    assert_match(/HTTP\/1.1 100 continue\r\n\r\n\z/, msg)
-    assert !req['expect']
-  end
-
-  def test_continue_not_sent
-    msg = <<-_end_of_message_
-      POST /path HTTP/1.1
-
-    _end_of_message_
-    msg.gsub!(/^ {6}/, "")
-    req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
-    req.parse(StringIO.new(msg))
-    assert !req['expect']
-    l = msg.size
-    req.continue
-    assert_equal l, msg.size
   end
 
   def test_bad_messages

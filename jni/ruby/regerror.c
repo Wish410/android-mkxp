@@ -1,9 +1,8 @@
 /**********************************************************************
-  regerror.c -  Onigmo (Oniguruma-mod) (regular expression library)
+  regerror.c -  Oniguruma (regular expression library)
 **********************************************************************/
 /*-
  * Copyright (c) 2002-2007  K.Kosako  <sndgk393 AT ybb DOT ne DOT jp>
- * Copyright (c) 2011-2014  K.Takata  <kentkt AT csc DOT jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +39,7 @@
 #endif
 
 extern UChar*
-onig_error_code_to_format(OnigPosition code)
+onig_error_code_to_format(int code)
 {
   const char *p;
 
@@ -53,6 +52,8 @@ onig_error_code_to_format(OnigPosition code)
     p = "no support in this configuration"; break;
   case ONIGERR_MEMORY:
     p = "failed to allocate memory"; break;
+  case ONIGERR_MATCH_STACK_LIMIT_OVER:
+    p = "match-stack limit over"; break;
   case ONIGERR_TYPE_BUG:
     p = "undefined type (bug)"; break;
   case ONIGERR_PARSER_BUG:
@@ -63,10 +64,8 @@ onig_error_code_to_format(OnigPosition code)
     p = "undefined bytecode (bug)"; break;
   case ONIGERR_UNEXPECTED_BYTECODE:
     p = "unexpected bytecode (bug)"; break;
-  case ONIGERR_MATCH_STACK_LIMIT_OVER:
-    p = "match-stack limit over"; break;
-  case ONIGERR_DEFAULT_ENCODING_IS_NOT_SET:
-    p = "default multibyte-encoding is not set"; break;
+  case ONIGERR_DEFAULT_ENCODING_IS_NOT_SETTED:
+    p = "default multibyte-encoding is not setted"; break;
   case ONIGERR_SPECIFIED_ENCODING_CANT_CONVERT_TO_WIDE_CHAR:
     p = "can't convert to wide-char on specified multibyte-encoding"; break;
   case ONIGERR_INVALID_ARGUMENT:
@@ -115,8 +114,6 @@ onig_error_code_to_format(OnigPosition code)
     p = "invalid pattern in look-behind"; break;
   case ONIGERR_INVALID_REPEAT_RANGE_PATTERN:
     p = "invalid repeat range {lower,upper}"; break;
-  case ONIGERR_INVALID_CONDITION_PATTERN:
-    p = "invalid conditional pattern"; break;
   case ONIGERR_TOO_BIG_NUMBER:
     p = "too big number"; break;
   case ONIGERR_TOO_BIG_NUMBER_FOR_REPEAT_RANGE:
@@ -141,10 +138,12 @@ onig_error_code_to_format(OnigPosition code)
 #endif
   case ONIGERR_NUMBERED_BACKREF_OR_CALL_NOT_ALLOWED:
     p = "numbered backref/call is not allowed. (use name)"; break;
-  case ONIGERR_TOO_SHORT_DIGITS:
-    p = "too short digits"; break;
+  case ONIGERR_TOO_BIG_WIDE_CHAR_VALUE:
+    p = "too big wide-char value"; break;
   case ONIGERR_TOO_LONG_WIDE_CHAR_VALUE:
     p = "too long wide-char value"; break;
+  case ONIGERR_INVALID_CODE_POINT_VALUE:
+    p = "invalid code point value"; break;
   case ONIGERR_EMPTY_GROUP_NAME:
     p = "group name is empty"; break;
   case ONIGERR_INVALID_GROUP_NAME:
@@ -169,12 +168,6 @@ onig_error_code_to_format(OnigPosition code)
     p = "group number is too big for capture history"; break;
   case ONIGERR_INVALID_CHAR_PROPERTY_NAME:
     p = "invalid character property name {%n}"; break;
-  case ONIGERR_TOO_MANY_CAPTURE_GROUPS:
-    p = "too many capture groups are specified"; break;
-  case ONIGERR_INVALID_CODE_POINT_VALUE:
-    p = "invalid code point value"; break;
-  case ONIGERR_TOO_BIG_WIDE_CHAR_VALUE:
-    p = "too big wide-char value"; break;
   case ONIGERR_NOT_SUPPORTED_ENCODING_COMBINATION:
     p = "not supported encoding combination"; break;
   case ONIGERR_INVALID_COMBINATION_OF_OPTIONS:
@@ -239,7 +232,7 @@ static int to_ascii(OnigEncoding enc, UChar *s, UChar *end,
     *is_over = ((p < end) ? 1 : 0);
   }
   else {
-    len = (int )MIN((end - s), buf_size);
+    len = (int)MIN((end - s), buf_size);
     xmemcpy(buf, s, (size_t )len);
     *is_over = ((buf_size < (end - s)) ? 1 : 0);
   }
@@ -253,11 +246,11 @@ static int to_ascii(OnigEncoding enc, UChar *s, UChar *end,
 
 extern int
 #ifdef HAVE_STDARG_PROTOTYPES
-onig_error_code_to_str(UChar* s, OnigPosition code, ...)
+onig_error_code_to_str(UChar* s, int code, ...)
 #else
 onig_error_code_to_str(s, code, va_alist)
   UChar* s;
-  OnigPosition code;
+  int code;
   va_dcl
 #endif
 {
@@ -309,18 +302,14 @@ onig_error_code_to_str(s, code, va_alist)
 
   default:
     q = onig_error_code_to_format(code);
-    if (q) {
-      len = onigenc_str_bytelen_null(ONIG_ENCODING_ASCII, q);
-      xmemcpy(s, q, len);
-    } else {
-      len = 0;
-    }
+    len = onigenc_str_bytelen_null(ONIG_ENCODING_ASCII, q);
+    xmemcpy(s, q, len);
     s[len] = '\0';
     break;
   }
 
   va_end(vargs);
-  return (int )len;
+  return (int)len;
 }
 
 void
@@ -336,7 +325,7 @@ onig_vsnprintf_with_pattern(UChar buf[], int bufsize, OnigEncoding enc,
 
   need = (pat_end - pat) * 4 + 4;
 
-  if (n + need < (size_t )bufsize) {
+  if (n + need < (size_t)bufsize) {
     strcat((char* )buf, ": /");
     s = buf + onigenc_str_bytelen_null(ONIG_ENCODING_ASCII, buf);
 

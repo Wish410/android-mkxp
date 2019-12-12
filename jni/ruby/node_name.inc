@@ -66,8 +66,6 @@
 	return "NODE_OP_ASGN_AND";
       case NODE_OP_ASGN_OR:
 	return "NODE_OP_ASGN_OR";
-      case NODE_OP_CDECL:
-	return "NODE_OP_CDECL";
       case NODE_CALL:
 	return "NODE_CALL";
       case NODE_FCALL:
@@ -134,8 +132,6 @@
 	return "NODE_ARGS_AUX";
       case NODE_OPT_ARG:
 	return "NODE_OPT_ARG";
-      case NODE_KW_ARG:
-	return "NODE_KW_ARG";
       case NODE_POSTARG:
 	return "NODE_POSTARG";
       case NODE_ARGSCAT:
@@ -170,8 +166,6 @@
 	return "NODE_COLON2";
       case NODE_COLON3:
 	return "NODE_COLON3";
-      case NODE_CREF:
-	return "NODE_CREF";
       case NODE_DOT2:
 	return "NODE_DOT2";
       case NODE_DOT3:
@@ -210,3 +204,5 @@
 	return "NODE_PRELUDE";
       case NODE_LAMBDA:
 	return "NODE_LAMBDA";
+      case NODE_OPTBLOCK:
+	return "NODE_OPTBLOCK";

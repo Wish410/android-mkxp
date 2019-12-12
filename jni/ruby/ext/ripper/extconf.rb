@@ -6,7 +6,8 @@ require 'rbconfig'
 def main
   unless find_executable('bison')
     unless File.exist?('ripper.c') or File.exist?("#{$srcdir}/ripper.c")
-      raise 'missing bison; abort'
+      Logging.message 'missing bison; abort'
+      return
     end
   end
   $objs = %w(ripper.o)

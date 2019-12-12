@@ -1,13 +1,15 @@
-require 'rubygems/test_case'
+require_relative 'gemutilities'
 require 'rubygems/commands/dependency_command'
 
-class TestGemCommandsDependencyCommand < Gem::TestCase
+class TestGemCommandsDependencyCommand < RubyGemTestCase
 
   def setup
     super
 
     @cmd = Gem::Commands::DependencyCommand.new
     @cmd.options[:domain] = :local
+
+    util_setup_fake_fetcher true
   end
 
   def test_execute
@@ -16,24 +18,21 @@ class TestGemCommandsDependencyCommand < Gem::TestCase
       gem.add_dependency 'baz', '> 1'
     end
 
+    Gem.source_index = nil
+
     @cmd.options[:args] = %w[foo]
 
     use_ui @ui do
       @cmd.execute
     end
 
-    assert_equal "Gem foo-2\n  bar (> 1)\n  baz (> 1)\n\n",
+    assert_equal "Gem foo-2\n  bar (> 1, runtime)\n  baz (> 1, runtime)\n\n",
                  @ui.output
     assert_equal '', @ui.error
   end
 
   def test_execute_no_args
-    spec_fetcher do |fetcher|
-      fetcher.spec 'a', 1
-      fetcher.spec 'a', '2.a'
-      fetcher.spec 'dep_x', 1, 'x' => '>= 1'
-      fetcher.legacy_platform
-    end
+    Gem.source_index = nil
 
     @cmd.options[:args] = []
 
@@ -46,8 +45,15 @@ Gem a-1
 
 Gem a-2.a
 
-Gem dep_x-1
-  x (>= 1)
+Gem a-2
+
+Gem a-3.a
+
+Gem a_evil-9
+
+Gem b-2
+
+Gem c-1.2
 
 Gem pl-1-x86-linux
 
@@ -60,7 +66,7 @@ Gem pl-1-x86-linux
   def test_execute_no_match
     @cmd.options[:args] = %w[foo]
 
-    assert_raises Gem::MockGemUi::TermError do
+    assert_raises MockGemUi::TermError do
       use_ui @ui do
         @cmd.execute
       end
@@ -71,7 +77,7 @@ Gem pl-1-x86-linux
   end
 
   def test_execute_pipe_format
-    util_spec 'foo' do |gem|
+    quick_gem 'foo' do |gem|
       gem.add_dependency 'bar', '> 1'
     end
 
@@ -87,12 +93,7 @@ Gem pl-1-x86-linux
   end
 
   def test_execute_regexp
-    spec_fetcher do |fetcher|
-      fetcher.spec 'a',      1
-      fetcher.spec 'a',      '2.a'
-      fetcher.spec 'a_evil', 9
-      fetcher.spec 'b',      2
-    end
+    Gem.source_index = nil
 
     @cmd.options[:args] = %w[/[ab]/]
 
@@ -105,6 +106,10 @@ Gem a-1
 
 Gem a-2.a
 
+Gem a-2
+
+Gem a-3.a
+
 Gem a_evil-9
 
 Gem b-2
@@ -116,7 +121,6 @@ Gem b-2
   end
 
   def test_execute_reverse
-    # FIX: this shouldn't need to write out, but fails if you switch it
     quick_gem 'foo' do |gem|
       gem.add_dependency 'bar', '> 1'
     end
@@ -124,6 +128,8 @@ Gem b-2
     quick_gem 'baz' do |gem|
       gem.add_dependency 'foo'
     end
+
+    Gem.source_index = nil
 
     @cmd.options[:args] = %w[foo]
     @cmd.options[:reverse_dependencies] = true
@@ -134,9 +140,9 @@ Gem b-2
 
     expected = <<-EOF
 Gem foo-2
-  bar (> 1)
+  bar (> 1, runtime)
   Used by
-    baz-2 (foo (>= 0))
+    baz-2 (foo (>= 0, runtime))
 
     EOF
 
@@ -149,7 +155,7 @@ Gem foo-2
     @cmd.options[:reverse_dependencies] = true
     @cmd.options[:domain] = :remote
 
-    assert_raises Gem::MockGemUi::TermError do
+    assert_raises MockGemUi::TermError do
       use_ui @ui do
         @cmd.execute
       end
@@ -164,9 +170,16 @@ ERROR:  Only reverse dependencies for local gems are supported.
   end
 
   def test_execute_remote
-    spec_fetcher do |fetcher|
-      fetcher.spec 'foo', 2, 'bar' => '> 1'
+    foo = quick_gem 'foo' do |gem|
+      gem.add_dependency 'bar', '> 1'
     end
+
+    @fetcher = Gem::FakeFetcher.new
+    Gem::RemoteFetcher.fetcher = @fetcher
+
+    util_setup_spec_fetcher foo
+
+    FileUtils.rm File.join(@gemhome, 'specifications', foo.spec_name)
 
     @cmd.options[:args] = %w[foo]
     @cmd.options[:domain] = :remote
@@ -175,35 +188,17 @@ ERROR:  Only reverse dependencies for local gems are supported.
       @cmd.execute
     end
 
-    assert_equal "Gem foo-2\n  bar (> 1)\n\n", @ui.output
-    assert_equal '', @ui.error
-  end
-
-  def test_execute_remote_version
-    @fetcher = Gem::FakeFetcher.new
-    Gem::RemoteFetcher.fetcher = @fetcher
-
-    spec_fetcher do |fetcher|
-      fetcher.spec 'a', 1
-      fetcher.spec 'a', 2
-    end
-
-    @cmd.options[:args] = %w[a]
-    @cmd.options[:domain] = :remote
-    @cmd.options[:version] = req '= 1'
-
-    use_ui @ui do
-      @cmd.execute
-    end
-
-    assert_equal "Gem a-1\n\n", @ui.output
+    assert_equal "Gem foo-2\n  bar (> 1, runtime)\n\n", @ui.output
     assert_equal '', @ui.error
   end
 
   def test_execute_prerelease
-    spec_fetcher do |fetcher|
-      fetcher.spec 'a', '2.a'
-    end
+    @fetcher = Gem::FakeFetcher.new
+    Gem::RemoteFetcher.fetcher = @fetcher
+
+    util_setup_spec_fetcher @a2_pre
+
+    FileUtils.rm File.join(@gemhome, 'specifications', @a2_pre.spec_name)
 
     @cmd.options[:args] = %w[a]
     @cmd.options[:domain] = :remote

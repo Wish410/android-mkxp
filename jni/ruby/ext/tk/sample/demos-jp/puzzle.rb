@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # widet demo 'puzzle' (called by 'widget')
 #
 
-# toplevel widget が存在すれば削除する
+# toplevel widget ��¸�ߤ���к������
 if defined?($puzzle_demo) && $puzzle_demo
   $puzzle_demo.destroy
   $puzzle_demo = nil
 end
 
-# demo 用の toplevel widget を生成
+# demo �Ѥ� toplevel widget ������
 $puzzle_demo = TkToplevel.new {|w|
   title("15-Puzzle Demonstration")
   iconname("15-Puzzle")
@@ -18,20 +18,20 @@ $puzzle_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($puzzle_demo).pack(:fill=>:both, :expand=>true)
 
-# label 生成
+# label ����
 msg = TkLabel.new(base_frame) {
   font $font
   wraplength '4i'
   justify 'left'
-  text "下の15-パズルはボタンを集めてできています。空いている所の隣のピースをクリックすると、そのピースがその空いている場所にスライドします。この操作を続け、ピースがその数の順に上から下、左から右に並ぶようにしてください。"
+  text "����15-�ѥ���ϥܥ���򽸤�ƤǤ��Ƥ��ޤ��������Ƥ������٤Υԡ����򥯥�å�����ȡ����Υԡ��������ζ����Ƥ�����˥��饤�ɤ��ޤ�����������³�����ԡ��������ο��ν�˾夫�鲼�������鱦���¤֤褦�ˤ��Ƥ���������"
 }
 msg.pack('side'=>'top')
 
-# frame 生成
+# frame ����
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text '了解'
-    text '閉じる'
+    #text 'λ��'
+    text '�Ĥ���'
     command proc{
       tmppath = $puzzle_demo
       $puzzle_demo = nil
@@ -40,16 +40,16 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'コード参照'
+    text '�����ɻ���'
     command proc{showCode 'puzzle'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame 生成
+# frame ����
 #
-# Special trick: scrollbar widget を生成してその trough color を用いることで
-#                空白部分のための暗色を選択し，設定する
+# Special trick: scrollbar widget ���������Ƥ��� trough color ���Ѥ��뤳�Ȥ�
+#                ������ʬ�Τ���ΰſ������򤷡����ꤹ��
 #
 begin
   if Tk.windowingsystem() == 'aqua'
@@ -81,9 +81,9 @@ base = TkFrame.new(base_frame) {
 s.destroy
 base.pack('side'=>'top', 'padx'=>'1c', 'pady'=>'1c')
 
-# proc のスコープを閉じるため，proc 生成メソッドを用意
-# こうしておかねば，ループ中で値が変化する num の影響を受けて
-# puzzleSwitch の第 2 引数が変化してしまい，期待通りにはならない．
+# proc �Υ������פ��Ĥ��뤿�ᡤproc �����᥽�åɤ��Ѱ�
+# �������Ƥ����ͤС��롼������ͤ��Ѳ����� num �αƶ��������
+# puzzleSwitch ���� 2 �������Ѳ����Ƥ��ޤ��������̤�ˤϤʤ�ʤ���
 def def_puzzleswitch_proc(w, num)
   proc{puzzleSwitch w, num}
 end

@@ -8,24 +8,16 @@
 #
 # If any part contains letters (currently only a-z are supported) then
 # that version is considered prerelease. Versions with a prerelease
-# part in the Nth part sort less than versions with N-1
-# parts. Prerelease parts are sorted alphabetically using the normal
-# Ruby string sorting rules. If a prerelease part contains both
-# letters and numbers, it will be broken into multiple parts to
-# provide expected sort behavior (1.0.a10 becomes 1.0.a.10, and is
-# greater than 1.0.a9).
+# part in the Nth part sort less than versions with N-1 parts. Prerelease
+# parts are sorted alphabetically using the normal Ruby string sorting
+# rules.
 #
 # Prereleases sort between real releases (newest to oldest):
 #
 # 1. 1.0
-# 2. 1.0.b1
-# 3. 1.0.a.2
+# 2. 1.0.b
+# 3. 1.0.a
 # 4. 0.9
-#
-# If you want to specify a version restriction that includes both prereleases
-# and regular releases of the 1.x series this is the best way:
-#
-#   s.add_dependency 'example', '>= 1.0.0.a', '< 2.0.0'
 #
 # == How Software Changes
 #
@@ -86,8 +78,8 @@
 #
 # * Any "public" release of a gem should have a different version.  Normally
 #   that means incrementing the build number.  This means a developer can
-#   generate builds all day long, but as soon as they make a public release,
-#   the version must be updated.
+#   generate builds all day long for himself, but as soon as he/she makes a
+#   public release, the version must be updated.
 #
 # === Examples
 #
@@ -104,25 +96,26 @@
 # Version 1.1.1:: Fixed a bug in the linked list implementation.
 # Version 1.1.2:: Fixed a bug introduced in the last fix.
 #
-# Client A needs a stack with basic push/pop capability.  They write to the
-# original interface (no <tt>top</tt>), so their version constraint looks like:
+# Client A needs a stack with basic push/pop capability.  He writes to the
+# original interface (no <tt>top</tt>), so his version constraint looks
+# like:
 #
 #   gem 'stack', '~> 0.0'
 #
 # Essentially, any version is OK with Client A.  An incompatible change to
-# the library will cause them grief, but they are willing to take the chance
-# (we call Client A optimistic).
+# the library will cause him grief, but he is willing to take the chance (we
+# call Client A optimistic).
 #
-# Client B is just like Client A except for two things: (1) They use the
-# <tt>depth</tt> method and (2) they are worried about future
-# incompatibilities, so they write their version constraint like this:
+# Client B is just like Client A except for two things: (1) He uses the
+# <tt>depth</tt> method and (2) he is worried about future
+# incompatibilities, so he writes his version constraint like this:
 #
 #   gem 'stack', '~> 0.1'
 #
 # The <tt>depth</tt> method was introduced in version 0.1.0, so that version
 # or anything later is fine, as long as the version stays below version 1.0
 # where incompatibilities are introduced.  We call Client B pessimistic
-# because they are worried about incompatible future changes (it is OK to be
+# because he is worried about incompatible future changes (it is OK to be
 # pessimistic!).
 #
 # == Preventing Version Catastrophe:
@@ -133,8 +126,8 @@
 # specify your dependency as ">= 2.0.0" then, you're good, right? What
 # happens if fnord 3.0 comes out and it isn't backwards compatible
 # with 2.y.z? Your stuff will break as a result of using ">=". The
-# better route is to specify your dependency with an "approximate" version
-# specifier ("~>"). They're a tad confusing, so here is how the dependency
+# better route is to specify your dependency with a "spermy" version
+# specifier. They're a tad confusing, so here is how the dependency
 # specifiers work:
 #
 #   Specification From  ... To (exclusive)
@@ -143,26 +136,17 @@
 #   "~> 3.0.0"    3.0.0 ... 3.1
 #   "~> 3.5"      3.5   ... 4.0
 #   "~> 3.5.0"    3.5.0 ... 3.6
-#   "~> 3"        3.0   ... 4.0
-#
-# For the last example, single-digit versions are automatically extended with
-# a zero to give a sensible result.
 
 class Gem::Version
-  autoload :Requirement, 'rubygems/requirement'
-
   include Comparable
 
-  VERSION_PATTERN = '[0-9]+(?>\.[0-9a-zA-Z]+)*(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?' # :nodoc:
-  ANCHORED_VERSION_PATTERN = /\A\s*(#{VERSION_PATTERN})?\s*\z/ # :nodoc:
+  VERSION_PATTERN = '[0-9]+(\.[0-9a-zA-Z]+)*' # :nodoc:
+  ANCHORED_VERSION_PATTERN = /\A\s*(#{VERSION_PATTERN})*\s*\z/ # :nodoc:
 
   ##
   # A string representation of this Version.
 
-  def version
-    @version.dup
-  end
-
+  attr_reader :version
   alias to_s version
 
   ##
@@ -181,21 +165,13 @@ class Gem::Version
   #   ver3 = Version.create(nil)        # -> nil
 
   def self.create input
-    if self === input then # check yourself before you wreck yourself
+    if input.respond_to? :version then
       input
     elsif input.nil? then
       nil
     else
       new input
     end
-  end
-
-  @@all = {}
-
-  def self.new version # :nodoc:
-    return super unless Gem::Version == self
-
-    @@all[version] ||= super
   end
 
   ##
@@ -206,15 +182,17 @@ class Gem::Version
     raise ArgumentError, "Malformed version number string #{version}" unless
       self.class.correct?(version)
 
-    @version = version.to_s.strip.gsub("-",".pre.")
-    @segments = nil
+    @version = version.to_s
+    @version.strip!
+
+    segments # prime @segments
   end
 
   ##
   # Return a new version object where the next to the last revision
   # number is one greater (e.g., 5.3.1 => 5.4).
   #
-  # Pre-release (alpha) parts, e.g, 5.3.1.b.2 => 5.4, are ignored.
+  # Pre-release (alpha) parts, e.g, 5.3.1.b2 => 5.4, are ignored.
 
   def bump
     segments = self.segments.dup
@@ -230,15 +208,11 @@ class Gem::Version
   # same precision. Version "1.0" is not the same as version "1".
 
   def eql? other
-    self.class === other and @version == other.version
+    self.class === other and segments == other.segments
   end
 
   def hash # :nodoc:
     @hash ||= segments.hash
-  end
-
-  def init_with coder # :nodoc:
-    yaml_initialize coder.tag, coder.map
   end
 
   def inspect # :nodoc:
@@ -261,25 +235,11 @@ class Gem::Version
     initialize array[0]
   end
 
-  def yaml_initialize(tag, map) # :nodoc:
-    @version = map['version']
-    @segments = nil
-    @hash = nil
-  end
-
-  def to_yaml_properties # :nodoc:
-    ["@version"]
-  end
-
-  def encode_with coder # :nodoc:
-    coder.add 'version', @version
-  end
-
   ##
   # A version is considered a prerelease if it contains a letter.
 
   def prerelease?
-    @prerelease ||= !!(@version =~ /[a-zA-Z]/)
+    @prerelease ||= segments.any? { |s| String === s }
   end
 
   def pretty_print q # :nodoc:
@@ -300,10 +260,12 @@ class Gem::Version
 
   def segments # :nodoc:
 
-    # segments is lazy so it can pick up version values that come from
-    # old marshaled versions, which don't go through marshal_load.
+    # @segments is lazy so it can pick up @version values that come
+    # from old marshaled versions, which don't go through
+    # marshal_load. +segments+ is called in +initialize+ to "prime
+    # the pump" in normal cases.
 
-    @segments ||= @version.scan(/[0-9]+|[a-z]+/i).map do |s|
+    @segments ||= @version.scan(/[0-9a-z]+/i).map do |s|
       /^\d+$/ =~ s ? s.to_i : s
     end
   end
@@ -311,7 +273,7 @@ class Gem::Version
   ##
   # A recommended version for use with a ~> Requirement.
 
-  def approximate_recommendation
+  def spermy_recommendation
     segments = self.segments.dup
 
     segments.pop    while segments.any? { |s| String === s }
@@ -322,33 +284,23 @@ class Gem::Version
   end
 
   ##
-  # Compares this version with +other+ returning -1, 0, or 1 if the
-  # other version is larger, the same, or smaller than this
-  # one. Attempts to compare to something that's not a
-  # <tt>Gem::Version</tt> return +nil+.
+  # Compares this version with +other+ returning -1, 0, or 1 if the other
+  # version is larger, the same, or smaller than this one.
 
   def <=> other
-    return unless Gem::Version === other
-    return 0 if @version == other.version
+    return   1 unless other # HACK: comparable with nil? why?
+    return nil unless self.class === other
 
-    lhsegments = segments
-    rhsegments = other.segments
-
-    lhsize = lhsegments.size
-    rhsize = rhsegments.size
+    lhsize = segments.size
+    rhsize = other.segments.size
     limit  = (lhsize > rhsize ? lhsize : rhsize) - 1
 
-    i = 0
+    0.upto(limit) do |i|
+      lhs, rhs = segments[i] || 0, other.segments[i] || 0
 
-    while i <= limit
-      lhs, rhs = lhsegments[i] || 0, rhsegments[i] || 0
-      i += 1
-
-      next      if lhs == rhs
-      return -1 if String  === lhs && Numeric === rhs
-      return  1 if Numeric === lhs && String  === rhs
-
-      return lhs <=> rhs
+      return  -1         if String  === lhs && Numeric === rhs
+      return   1         if Numeric === lhs && String  === rhs
+      return lhs <=> rhs if lhs != rhs
     end
 
     return 0

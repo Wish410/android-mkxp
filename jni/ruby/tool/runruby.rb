@@ -1,5 +1,6 @@
 #!./miniruby
 
+pure = true
 show = false
 precommand = []
 while arg = ARGV[0]
@@ -17,7 +18,7 @@ while arg = ARGV[0]
   when re =~ "extout"
     extout = value
   when re =~ "pure"
-    # obsolete switch do nothing
+    pure = (value != "no")
   when re =~ "debugger"
     require 'shellwords'
     precommand.concat(value ? (Shellwords.shellwords(value) unless value == "no") : %w"gdb --args")
@@ -32,15 +33,7 @@ while arg = ARGV[0]
   ARGV.shift
 end
 
-unless defined?(File.realpath)
-  def File.realpath(*args)
-    Dir.chdir(expand_path(*args)) do
-      Dir.pwd
-    end
-  end
-end
-
-srcdir ||= File.realpath('..', File.dirname(__FILE__))
+srcdir ||= File.expand_path('..', File.dirname(__FILE__))
 archdir ||= '.'
 
 abs_archdir = File.expand_path(archdir)
@@ -58,7 +51,7 @@ end
 libs = [abs_archdir]
 extout ||= config["EXTOUT"]
 if extout
-  abs_extout = File.expand_path(extout, abs_archdir)
+  abs_extout = File.expand_path(extout)
   libs << File.expand_path("common", abs_extout) << File.expand_path(config['arch'], abs_extout)
 end
 libs << File.expand_path("lib", srcdir)
@@ -69,7 +62,9 @@ env = {}
 env["RUBY"] = File.expand_path(ruby)
 env["PATH"] = [abs_archdir, ENV["PATH"]].compact.join(File::PATH_SEPARATOR)
 
-if e = ENV["RUBYLIB"]
+if pure
+  libs << File.expand_path("ext", srcdir) << "-"
+elsif e = ENV["RUBYLIB"]
   libs |= e.split(File::PATH_SEPARATOR)
 end
 env["RUBYLIB"] = $:.replace(libs).join(File::PATH_SEPARATOR)
@@ -87,6 +82,7 @@ end
 ENV.update env
 
 cmd = [ruby]
+cmd << "-rpurelib.rb" if pure
 cmd.concat(ARGV)
 cmd.unshift(*precommand) unless precommand.empty?
 

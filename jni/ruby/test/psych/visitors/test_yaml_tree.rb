@@ -1,29 +1,11 @@
-require 'psych/helper'
+require_relative '../helper'
 
 module Psych
   module Visitors
     class TestYAMLTree < TestCase
       def setup
         super
-        @v = Visitors::YAMLTree.create
-      end
-
-      def test_tree_can_be_called_twice
-        @v.start
-        @v << Object.new
-        t = @v.tree
-        assert_equal t, @v.tree
-      end
-
-      def test_yaml_tree_can_take_an_emitter
-        io = StringIO.new
-        e  = Psych::Emitter.new io
-        v = Visitors::YAMLTree.create({}, e)
-        v.start
-        v << "hello world"
-        v.finish
-
-        assert_match "hello world", io.string
+        @v = Visitors::YAMLTree.new
       end
 
       def test_binary_formatting
@@ -54,12 +36,6 @@ module Psych
         s = Struct.new(:foo).new('bar')
         obj =  Psych.load(Psych.dump(s))
         assert_equal s.foo, obj.foo
-      end
-
-      def test_override_method
-        s = Struct.new(:method).new('override')
-        obj =  Psych.load(Psych.dump(s))
-        assert_equal s.method, obj.method
       end
 
       def test_exception

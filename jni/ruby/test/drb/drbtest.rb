@@ -3,8 +3,7 @@ require 'drb/drb'
 require 'drb/extservm'
 require 'timeout'
 require 'shellwords'
-
-module DRbTests
+require_relative '../ruby/envutil'
 
 class DRbService
   @@manager = DRb::ExtServManager.new
@@ -12,7 +11,7 @@ class DRbService
   @@ruby += " -d" if $DEBUG
   def self.add_service_command(nm)
     dir = File.dirname(File.expand_path(__FILE__))
-    DRb::ExtServManager.command[nm] = [@@ruby, "#{dir}/#{nm}"]
+    DRb::ExtServManager.command[nm] = "#{@@ruby} \"#{dir}/#{nm}\""
   end
 
   %w(ut_drb.rb ut_array.rb ut_port.rb ut_large.rb ut_safe1.rb ut_eval.rb ut_eq.rb).each do |nm|
@@ -30,9 +29,6 @@ class DRbService
     timeout(100, RuntimeError) do
       manager.service(name)
     end
-  end
-  def self.finish
-    @server.instance_variable_get(:@grp).list.each {|th| th.join }
   end
 end
 
@@ -67,41 +63,15 @@ class XArray < Array
   end
 end
 
-module DRbBase
-  def setup_service(service_name)
-    @service_name = service_name
-    @ext = DRbService.ext_service(@service_name)
+module DRbCore
+  def setup
+    @ext = DRbService.ext_service('ut_drb.rb')
     @there = @ext.front
   end
 
   def teardown
-    @ext.stop_service if defined?(@ext) && @ext
-    DRbService.manager.unregist(@service_name)
-    while (@there&&@there.to_s rescue nil)
-      # nop
-    end
-    signal = /mswin|mingw/ =~ RUBY_PLATFORM ? :KILL : :TERM
-    Thread.list.each {|th|
-      if th.respond_to?(:pid) && th[:drb_service] == @service_name
-        10.times do
-          begin
-            Process.kill signal, th.pid
-            break
-          rescue Errno::ESRCH
-            break
-          rescue Errno::EPERM # on Windows
-            sleep 0.1
-            retry
-          end
-        end
-        th.join
-      end
-    }
+    @ext.stop_service if @ext
   end
-end
-
-module DRbCore
-  include DRbBase
 
   def test_00_DRbObject
     ro = DRbObject.new(nil, 'druby://localhost:12345')
@@ -142,11 +112,15 @@ module DRbCore
   def test_02_unknown
     obj = @there.unknown_class
     assert_kind_of(DRb::DRbUnknown, obj)
-    assert_equal('DRbTests::Unknown2', obj.name)
+    assert_equal('Unknown2', obj.name)
 
     obj = @there.unknown_module
     assert_kind_of(DRb::DRbUnknown, obj)
-    assert_equal('DRbTests::DRbEx::', obj.name)
+    if RUBY_VERSION >= '1.8'
+      assert_equal('DRbEx::', obj.name)
+    else
+      assert_equal('DRbEx', obj.name)
+    end
 
     assert_raise(DRb::DRbUnknownError) do
       @there.unknown_error
@@ -189,10 +163,10 @@ module DRbCore
 
   def test_06_timeout
     ten = Onecky.new(10)
-    assert_raise(Timeout::Error) do
+    assert_raise(TimeoutError) do
       @there.do_timeout(ten)
     end
-    assert_raise(Timeout::Error) do
+    assert_raise(TimeoutError) do
       @there.do_timeout(ten)
     end
   end
@@ -296,7 +270,14 @@ module DRbCore
 end
 
 module DRbAry
-  include DRbBase
+  def setup
+    @ext = DRbService.ext_service('ut_array.rb')
+    @there = @ext.front
+  end
+
+  def teardown
+    @ext.stop_service if @ext
+  end
 
   def test_01
     assert_kind_of(DRb::DRbObject, @there)
@@ -362,7 +343,5 @@ module DRbAry
     assert_equal(:done, result)
   end
 EOS
-
-end
 
 end

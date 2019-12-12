@@ -1,6 +1,6 @@
 #-----------------------------
 # olegen.rb
-# $Revision: 44134 $
+# $Revision: 25189 $
 #-----------------------------
 
 require 'win32ole'
@@ -8,7 +8,7 @@ require 'win32ole'
 class WIN32COMGen
   def initialize(typelib)
     @typelib = typelib
-    @receiver = ""
+    @reciever = ""
   end
   attr_reader :typelib
 
@@ -87,7 +87,7 @@ class WIN32COMGen
   end
 
   def generate_method_body(method, disptype, types=nil)
-    "    ret = #{@receiver}#{disptype}(#{method.dispid}, [" +
+    "    ret = #{@reciever}#{disptype}(#{method.dispid}, [" +
     generate_args(method).gsub("=nil", "") +
     "], [" +
     generate_argtypes(method, types) +
@@ -303,10 +303,10 @@ STR
     if klass.ole_type == "Class" &&
        klass.guid &&
        klass.progid
-      @receiver = "@dispatch."
+      @reciever = "@dispatch."
       define_class(klass, io)
     else
-      @receiver = ""
+      @reciever = ""
       define_module(klass, io)
     end
     generate_constants(klass, io)

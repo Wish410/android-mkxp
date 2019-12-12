@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # listbox widget demo 'colors' (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($colors_demo) && $colors_demo
   $colors_demo.destroy
   $colors_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $colors_demo = TkToplevel.new {|w|
   title("Listbox Demonstration (colors)")
   iconname("colors")
@@ -18,20 +18,20 @@ $colors_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($colors_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 msg = TkLabel.new(base_frame) {
   font $font
   wraplength '4i'
   justify 'left'
-  text "ä¸‹ã«ã¯è‰²ã®åå‰ãŒå…¥ã£ãŸã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ãƒãƒ¼ä»˜ã®ãƒªã‚¹ãƒˆãƒœãƒƒã‚¯ã‚¹ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚ãƒªã‚¹ãƒˆã‚’ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã•ã›ã‚‹ã®ã¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ãƒãƒ¼ã§ã‚‚ã§ãã¾ã™ã—ã€ãƒªã‚¹ãƒˆãƒœãƒƒã‚¯ã‚¹ã®ä¸­ã§ãƒžã‚¦ã‚¹ã®ãƒœã‚¿ãƒ³2(ä¸­ãƒœã‚¿ãƒ³)ã‚’æŠ¼ã—ãŸã¾ã¾ãƒ‰ãƒ©ãƒƒã‚°ã—ã¦ã‚‚ã§ãã¾ã™ã€‚ã‚ã‚‹è‰²ã‚’ãƒœã‚¿ãƒ³1(å·¦ãƒœã‚¿ãƒ³)ã§ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³å…¨ä½“ãŒãã®è‰²ã«ãªã‚Šã¾ã™ã€‚"
+  text "²¼¤Ë¤Ï¿§¤ÎÌ¾Á°¤¬Æþ¤Ã¤¿¥¹¥¯¥í¡¼¥ë¥Ð¡¼ÉÕ¤Î¥ê¥¹¥È¥Ü¥Ã¥¯¥¹¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£¥ê¥¹¥È¤ò¥¹¥¯¥í¡¼¥ë¤µ¤»¤ë¤Î¤Ï¥¹¥¯¥í¡¼¥ë¥Ð¡¼¤Ç¤â¤Ç¤­¤Þ¤¹¤·¡¢¥ê¥¹¥È¥Ü¥Ã¥¯¥¹¤ÎÃæ¤Ç¥Þ¥¦¥¹¤Î¥Ü¥¿¥ó2(Ãæ¥Ü¥¿¥ó)¤ò²¡¤·¤¿¤Þ¤Þ¥É¥é¥Ã¥°¤·¤Æ¤â¤Ç¤­¤Þ¤¹¡£¤¢¤ë¿§¤ò¥Ü¥¿¥ó1(º¸¥Ü¥¿¥ó)¤Ç¥À¥Ö¥ë¥¯¥ê¥Ã¥¯¤¹¤ë¤È¥¢¥×¥ê¥±¡¼¥·¥ç¥óÁ´ÂÎ¤¬¤½¤Î¿§¤Ë¤Ê¤ê¤Þ¤¹¡£"
 }
 msg.pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $colors_demo
       $colors_demo = nil
@@ -40,13 +40,13 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'colors'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 colors_lbox = nil
 TkFrame.new(base_frame, 'borderwidth'=>10) {|w|
   s = TkScrollbar.new(w)

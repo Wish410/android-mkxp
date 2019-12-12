@@ -39,6 +39,41 @@ class Readline::TestHistory < Test::Unit::TestCase
     HISTORY.clear
   end
 
+  def test_safe_level_4
+    method_args =
+      [
+       ["[]", [0]],
+       ["[]=", [0, "s"]],
+       ["\<\<", ["s"]],
+       ["push", ["s"]],
+       ["pop", []],
+       ["shift", []],
+       ["length", []],
+       ["delete_at", [0]],
+       ["clear", []],
+      ]
+    method_args.each do |method_name, args|
+      assert_raise(SecurityError, NotImplementedError,
+                    "method=<#{method_name}>") do
+        Thread.start {
+          $SAFE = 4
+          HISTORY.send(method_name.to_sym, *args)
+          assert(true)
+        }.join
+      end
+    end
+
+    assert_raise(SecurityError, NotImplementedError,
+                  "method=<each>") do
+      Thread.start {
+        $SAFE = 4
+        HISTORY.each { |s|
+          assert(true)
+        }
+      }.join
+    end
+  end
+
   def test_to_s
     expected = "HISTORY"
     assert_equal(expected, HISTORY.to_s)
@@ -59,7 +94,7 @@ class Readline::TestHistory < Test::Unit::TestCase
   end
 
   def test_get__out_of_range
-    push_history(5)
+    lines = push_history(5)
     invalid_indexes = [5, 6, 100, -6, -7, -100]
     invalid_indexes.each do |i|
       assert_raise(IndexError, "i=<#{i}>") do
@@ -78,7 +113,7 @@ class Readline::TestHistory < Test::Unit::TestCase
 
   def test_set
     begin
-      push_history(5)
+      lines = push_history(5)
       5.times do |i|
         expected = "set: #{i}"
         HISTORY[i] = expected
@@ -93,7 +128,7 @@ class Readline::TestHistory < Test::Unit::TestCase
       HISTORY[0] = "set: 0"
     end
 
-    push_history(5)
+    lines = push_history(5)
     invalid_indexes = [5, 6, 100, -6, -7, -100]
     invalid_indexes.each do |i|
       assert_raise(IndexError, NotImplementedError, "index=<#{i}>") do
@@ -242,7 +277,7 @@ class Readline::TestHistory < Test::Unit::TestCase
       HISTORY.delete_at(0)
     end
 
-    push_history(5)
+    lines = push_history(5)
     invalid_indexes = [5, 6, 100, -6, -7, -100]
     invalid_indexes.each do |i|
       assert_raise(IndexError, NotImplementedError, "index=<#{i}>") do

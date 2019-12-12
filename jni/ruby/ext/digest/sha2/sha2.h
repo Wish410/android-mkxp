@@ -31,7 +31,7 @@
  *
  * $OrigId: sha2.h,v 1.1 2001/11/08 00:02:01 adg Exp adg $
  * $RoughId: sha2.h,v 1.3 2002/02/24 08:14:32 knu Exp $
- * $Id: sha2.h 46827 2014-07-15 14:59:20Z nobu $
+ * $Id: sha2.h 27437 2010-04-22 08:04:13Z nobu $
  */
 
 #ifndef __SHA2_H__
@@ -165,52 +165,52 @@ typedef SHA512_CTX SHA384_CTX;
 
 #ifndef NOPROTO
 
-int SHA256_Init(SHA256_CTX *);
+void SHA256_Init(SHA256_CTX *);
 void SHA256_Update(SHA256_CTX*, const uint8_t*, size_t);
-int SHA256_Final(uint8_t[SHA256_DIGEST_LENGTH], SHA256_CTX*);
+void SHA256_Final(uint8_t[SHA256_DIGEST_LENGTH], SHA256_CTX*);
 char* SHA256_End(SHA256_CTX*, char[SHA256_DIGEST_STRING_LENGTH]);
 char* SHA256_Data(const uint8_t*, size_t, char[SHA256_DIGEST_STRING_LENGTH]);
 
-int SHA384_Init(SHA384_CTX*);
+void SHA384_Init(SHA384_CTX*);
 void SHA384_Update(SHA384_CTX*, const uint8_t*, size_t);
-int SHA384_Final(uint8_t[SHA384_DIGEST_LENGTH], SHA384_CTX*);
+void SHA384_Final(uint8_t[SHA384_DIGEST_LENGTH], SHA384_CTX*);
 char* SHA384_End(SHA384_CTX*, char[SHA384_DIGEST_STRING_LENGTH]);
 char* SHA384_Data(const uint8_t*, size_t, char[SHA384_DIGEST_STRING_LENGTH]);
 
-int SHA512_Init(SHA512_CTX*);
+void SHA512_Init(SHA512_CTX*);
 void SHA512_Update(SHA512_CTX*, const uint8_t*, size_t);
-int SHA512_Final(uint8_t[SHA512_DIGEST_LENGTH], SHA512_CTX*);
+void SHA512_Final(uint8_t[SHA512_DIGEST_LENGTH], SHA512_CTX*);
 char* SHA512_End(SHA512_CTX*, char[SHA512_DIGEST_STRING_LENGTH]);
 char* SHA512_Data(const uint8_t*, size_t, char[SHA512_DIGEST_STRING_LENGTH]);
 
 #else /* NOPROTO */
 
-int SHA256_Init();
+void SHA256_Init();
 void SHA256_Update();
 #ifdef RUBY
-int SHA256_Finish();
+void SHA256_Finish();
 #else
-int SHA256_Final();
+void SHA256_Final();
 #endif /* RUBY */
 char* SHA256_End();
 char* SHA256_Data();
 
-int SHA384_Init();
+void SHA384_Init();
 void SHA384_Update();
 #ifdef RUBY
-int SHA384_Finish();
+void SHA384_Finish();
 #else
-int SHA384_Final();
+void SHA384_Final();
 #endif /* RUBY */
 char* SHA384_End();
 char* SHA384_Data();
 
-int SHA512_Init();
+void SHA512_Init();
 void SHA512_Update();
 #ifdef RUBY
-int SHA512_Finish();
+void SHA512_Finish();
 #else
-int SHA512_Final();
+void SHA512_Final();
 #endif /* RUBY */
 char* SHA512_End();
 char* SHA512_Data();

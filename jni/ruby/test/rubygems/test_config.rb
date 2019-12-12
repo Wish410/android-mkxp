@@ -1,13 +1,11 @@
-require 'rubygems/test_case'
+require_relative 'gemutilities'
 require 'rubygems'
 
-class TestConfig < Gem::TestCase
+class TestConfig < RubyGemTestCase
 
   def test_datadir
-    util_make_gems
-    spec = Gem::Specification.find_by_name("a")
-    spec.activate
-    assert_equal "#{spec.full_gem_path}/data/a", Gem.datadir('a')
+    datadir = RbConfig::CONFIG['datadir']
+    assert_equal "#{datadir}/xyz", RbConfig.datadir('xyz')
   end
 
 end

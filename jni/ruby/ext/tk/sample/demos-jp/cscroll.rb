@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # simple scrollable canvas widget demo (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($cscroll_demo) && $cscroll_demo
   $cscroll_demo.destroy
   $cscroll_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $cscroll_demo = TkToplevel.new {|w|
   title("Scrollable Canvas Demonstration")
   iconname("cscroll")
@@ -18,17 +18,17 @@ $cscroll_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($cscroll_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 TkLabel.new(base_frame, 'font'=>$font, 'wraplength'=>'4i',
-            'justify'=>'left', 'text'=>"ã“ã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«ã¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ãƒãƒ¼ã‚„ãƒžã‚¦ã‚¹ã®ãƒœã‚¿ãƒ³2 ã§ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã§ãã‚‹ã‚­ãƒ£ãƒ³ãƒã‚¹ widget ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚å››è§’ã®ä¸Šã§ãƒœã‚¿ãƒ³1 ã‚’ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ã€ãã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãŒæ¨™æº–å‡ºåŠ›ã«å‡ºåŠ›ã•ã‚Œã¾ã™ã€‚"){
+            'justify'=>'left', 'text'=>"¤³¤Î¥¦¥£¥ó¥É¥¦¤Ë¤Ï¥¹¥¯¥í¡¼¥ë¥Ð¡¼¤ä¥Þ¥¦¥¹¤Î¥Ü¥¿¥ó2 ¤Ç¥¹¥¯¥í¡¼¥ë¤Ç¤­¤ë¥­¥ã¥ó¥Ð¥¹ widget ¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£»Í³Ñ¤Î¾å¤Ç¥Ü¥¿¥ó1 ¤ò¥¯¥ê¥Ã¥¯¤¹¤ë¤È¡¢¤½¤Î¥¤¥ó¥Ç¥Ã¥¯¥¹¤¬É¸½à½ÐÎÏ¤Ë½ÐÎÏ¤µ¤ì¤Þ¤¹¡£"){
   pack('side'=>'top')
 }
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 $cscroll_buttons = TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $cscroll_demo
       $cscroll_demo = nil
@@ -37,13 +37,13 @@ $cscroll_buttons = TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'cscroll'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }
 $cscroll_buttons.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame è¨­å®š
+# frame ÀßÄê
 unless $tk_version =~ /^4\.[01]/
   $cscroll_grid = TkFrame.new(base_frame) {
     pack('expand'=>'yes', 'fill'=>'both', 'padx'=>1, 'pady'=>1)
@@ -52,7 +52,7 @@ unless $tk_version =~ /^4\.[01]/
   TkGrid.columnconfigure($cscroll_grid, 0, 'weight'=>1, 'minsize'=>0)
 end
 
-# canvas è¨­å®š
+# canvas ÀßÄê
 $cscroll_canvas = TkCanvas.new(base_frame,
                                'relief'=>'sunken', 'borderwidth'=>2,
                                'scrollregion'=>['-11c', '-11c', '50c', '20c']

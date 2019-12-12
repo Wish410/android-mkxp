@@ -8,7 +8,7 @@ end
 p timeout(5) {
   45
 }
-p timeout(5, Timeout::Error) {
+p timeout(5, TimeoutError) {
   45
 }
 p timeout(nil) {

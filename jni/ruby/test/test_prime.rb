@@ -141,8 +141,8 @@ class TestPrime < Test::Unit::TestCase
 
       # negative
       assert !-1.prime?
-      assert !-2.prime?
-      assert !-3.prime?
+      assert(-2.prime?)
+      assert(-3.prime?)
       assert !-4.prime?
     end
   end
@@ -154,7 +154,7 @@ class TestPrime < Test::Unit::TestCase
       # simulates that Timeout.timeout interrupts Prime::EratosthenesSieve#extend_table
       def sieve.Integer(n)
         n = super(n)
-        sleep 10 if /compute_primes/ =~ caller.first
+        sleep 10 if /extend_table/ =~ caller.first
         return n
       end
 
@@ -169,6 +169,6 @@ class TestPrime < Test::Unit::TestCase
       end
     end
 
-    assert_not_include Prime.each(7*37).to_a, 7*37, "[ruby-dev:39465]"
+    refute_includes Prime.each(7*37).to_a, 7*37, "[ruby-dev:39465]"
   end
 end

@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'test/unit'
 require 'pathname'
 
@@ -5,34 +7,17 @@ require 'fileutils'
 require 'tmpdir'
 require 'enumerator'
 
-
 class TestPathname < Test::Unit::TestCase
-  def self.define_assertion(name, linenum, &block)
-    name = "test_#{name}_#{linenum}"
-    define_method(name, &block)
-  end
-
-  def self.get_linenum
-    if /:(\d+):/ =~ caller[1]
-      $1.to_i
-    else
-      nil
-    end
+  def self.define_assertion(name, &block)
+    @defassert_num ||= {}
+    @defassert_num[name] ||= 0
+    @defassert_num[name] += 1
+    define_method("test_#{name}_#{@defassert_num[name]}", &block)
   end
 
   def self.defassert(name, result, *args)
-    define_assertion(name, get_linenum) {
-      mesg = "#{name}(#{args.map {|a| a.inspect }.join(', ')})"
-      assert_nothing_raised(mesg) {
-        assert_equal(result, self.send(name, *args), mesg)
-      }
-    }
-  end
-
-  def self.defassert_raise(name, exc, *args)
-    define_assertion(name, get_linenum) {
-      message = "#{name}(#{args.map {|a| a.inspect }.join(', ')})"
-      assert_raise(exc, message) { self.send(name, *args) }
+    define_assertion(name) {
+      assert_equal(result, self.send(name, *args), "#{name}(#{args.map {|a| a.inspect }.join(', ')})")
     }
   end
 
@@ -87,10 +72,6 @@ class TestPathname < Test::Unit::TestCase
     defassert(:cleanpath_aggressive, '/',       '///a/../..')
   end
 
-  if DOSISH
-    defassert(:cleanpath_aggressive, 'c:/foo/bar', 'c:\\foo\\bar')
-  end
-
   def cleanpath_conservative(path)
     Pathname.new(path).cleanpath(true).to_s
   end
@@ -126,10 +107,6 @@ class TestPathname < Test::Unit::TestCase
   defassert(:cleanpath_conservative, 'a/..',   'a/../.')
   defassert(:cleanpath_conservative, '/a',     '/../.././../a')
   defassert(:cleanpath_conservative, 'a/b/../../../../c/../d', 'a/b/../../../../c/../d')
-
-  if DOSISH
-    defassert(:cleanpath_conservative, 'c:/foo/bar', 'c:\\foo\\bar')
-  end
 
   if DOSISH_UNC
     defassert(:cleanpath_conservative, '//',     '//')
@@ -190,12 +167,10 @@ class TestPathname < Test::Unit::TestCase
 
   if DOSISH
     defassert(:del_trailing_separator, "a", "a\\")
-    defassert(:del_trailing_separator, "\225\\".force_encoding("cp932"), "\225\\\\".force_encoding("cp932"))
-    defassert(:del_trailing_separator, "\225".force_encoding("cp437"), "\225\\\\".force_encoding("cp437"))
-  end
-
-  def test_plus
-    assert_kind_of(Pathname, Pathname("a") + Pathname("b"))
+    require 'Win32API'
+    if Win32API.new('kernel32', 'GetACP', nil, 'L').call == 932
+      defassert(:del_trailing_separator, "\225\\", "\225\\\\") # SJIS
+    end
   end
 
   def plus(path1, path2) # -> path
@@ -219,48 +194,6 @@ class TestPathname < Test::Unit::TestCase
   defassert(:plus, '../../c', '..', '../c')
 
   defassert(:plus, 'a//b/d//e', 'a//b/c', '../d//e')
-
-  def test_slash
-    assert_kind_of(Pathname, Pathname("a") / Pathname("b"))
-  end
-
-  def test_parent
-    assert_equal(Pathname("."), Pathname("a").parent)
-  end
-
-  def parent(path) # -> path
-    Pathname.new(path).parent.to_s
-  end
-
-  defassert(:parent, '/', '/')
-  defassert(:parent, '/', '/a')
-  defassert(:parent, '/a', '/a/b')
-  defassert(:parent, '/a/b', '/a/b/c')
-  defassert(:parent, '.', 'a')
-  defassert(:parent, 'a', 'a/b')
-  defassert(:parent, 'a/b', 'a/b/c')
-  defassert(:parent, '..', '.')
-  defassert(:parent, '../..', '..')
-
-  def test_join
-    r = Pathname("a").join(Pathname("b"), Pathname("c"))
-    assert_equal(Pathname("a/b/c"), r)
-    r = Pathname("/a").join(Pathname("b"), Pathname("c"))
-    assert_equal(Pathname("/a/b/c"), r)
-    r = Pathname("/a").join(Pathname("/b"), Pathname("c"))
-    assert_equal(Pathname("/b/c"), r)
-    r = Pathname("/a").join(Pathname("/b"), Pathname("/c"))
-    assert_equal(Pathname("/c"), r)
-    r = Pathname("/a").join("/b", "/c")
-    assert_equal(Pathname("/c"), r)
-    r = Pathname("/foo/var").join()
-    assert_equal(Pathname("/foo/var"), r)
-  end
-
-  def test_absolute
-    assert_equal(true, Pathname("/").absolute?)
-    assert_equal(false, Pathname("a").absolute?)
-  end
 
   def relative?(path)
     Pathname.new(path).relative?
@@ -323,6 +256,13 @@ class TestPathname < Test::Unit::TestCase
 
   defassert(:relative_path_from, "a", "a", "b/..")
   defassert(:relative_path_from, "b/c", "b/c", "b/..")
+
+  def self.defassert_raise(name, exc, *args)
+    define_assertion(name) {
+      message = "#{name}(#{args.map {|a| a.inspect }.join(', ')})"
+      assert_raise(exc, message) { self.send(name, *args) }
+    }
+  end
 
   defassert_raise(:relative_path_from, ArgumentError, "/", ".")
   defassert_raise(:relative_path_from, ArgumentError, ".", "/")
@@ -532,7 +472,6 @@ class TestPathname < Test::Unit::TestCase
   defassert(:pathsubext, 'lex.yy.o', 'lex.yy.c', '.o')
   defassert(:pathsubext, 'fooaa.o', 'fooaa', '.o')
   defassert(:pathsubext, 'd.e/aa.o', 'd.e/aa', '.o')
-  defassert(:pathsubext, 'long_enough.bug-3664', 'long_enough.not_to_be_embeded[ruby-core:31640]', '.bug-3664')
 
   def test_sub_matchdata
     result = Pathname("abc.gif").sub(/\..*/) {
@@ -552,16 +491,6 @@ class TestPathname < Test::Unit::TestCase
   defassert(:root?, true, "///")
   defassert(:root?, false, "")
   defassert(:root?, false, "a")
-
-  def test_mountpoint?
-    r = Pathname("/").mountpoint?
-    assert_include([true, false], r)
-  end
-
-  def test_mountpoint_enoent
-    r = Pathname("/nonexistent").mountpoint?
-    assert_equal false, r
-  end
 
   def test_destructive_update
     path = Pathname.new("a")
@@ -617,20 +546,6 @@ class TestPathname < Test::Unit::TestCase
     assert_equal(false, Pathname.new("a".freeze)       .to_s.frozen?)
     assert_equal(false, Pathname.new("a"       ).freeze.to_s.frozen?)
     assert_equal(false, Pathname.new("a".freeze).freeze.to_s.frozen?)
-  end
-
-  def test_freeze_and_taint
-    obj = Pathname.new("a")
-    obj.freeze
-    assert_equal(false, obj.tainted?)
-    assert_raise(RuntimeError) { obj.taint }
-
-    obj = Pathname.new("a")
-    obj.taint
-    assert_equal(true, obj.tainted?)
-    obj.freeze
-    assert_equal(true, obj.tainted?)
-    assert_nothing_raised { obj.taint }
   end
 
   def test_to_s
@@ -736,25 +651,7 @@ class TestPathname < Test::Unit::TestCase
   def test_binread
     with_tmpchdir('rubytest-pathname') {|dir|
       open("a", "w") {|f| f.write "abc" }
-      str = Pathname("a").binread
-      assert_equal("abc", str)
-      assert_equal(Encoding::ASCII_8BIT, str.encoding)
-    }
-  end
-
-  def test_write
-    with_tmpchdir('rubytest-pathname') {|dir|
-      path = Pathname("a")
-      path.write "abc"
-      assert_equal("abc", path.read)
-    }
-  end
-
-  def test_binwrite
-    with_tmpchdir('rubytest-pathname') {|dir|
-      path = Pathname("a")
-      path.binwrite "abc\x80"
-      assert_equal("abc\x80".b, path.binread)
+      assert_equal("abc", Pathname("a").read)
     }
   end
 
@@ -773,14 +670,6 @@ class TestPathname < Test::Unit::TestCase
 
   def test_atime
     assert_kind_of(Time, Pathname(__FILE__).atime)
-  end
-
-  def test_birthtime
-    assert_kind_of(Time, Pathname(__FILE__).birthtime)
-  rescue NotImplementedError
-    assert_raise(NotImplementedError) do
-      File.birthtime(__FILE__)
-    end
   end
 
   def test_ctime
@@ -1207,20 +1096,11 @@ class TestPathname < Test::Unit::TestCase
       open("f", "w") {|f| f.write "abc" }
       Dir.mkdir("d")
       assert_equal([Pathname("d"), Pathname("f")], Pathname.glob("*").sort)
-      a = []
-      Pathname.glob("*") {|path| a << path }
-      a.sort!
-      assert_equal([Pathname("d"), Pathname("f")], a)
     }
   end
 
   def test_s_getwd
     wd = Pathname.getwd
-    assert_kind_of(Pathname, wd)
-  end
-
-  def test_s_pwd
-    wd = Pathname.pwd
     assert_kind_of(Pathname, wd)
   end
 
@@ -1246,8 +1126,6 @@ class TestPathname < Test::Unit::TestCase
     with_tmpchdir('rubytest-pathname') {|dir|
       Pathname("d").mkdir
       assert(File.directory?("d"))
-      Pathname("e").mkdir(0770)
-      assert(File.directory?("e"))
     }
   end
 
@@ -1256,7 +1134,7 @@ class TestPathname < Test::Unit::TestCase
       Pathname("d").mkdir
       assert(File.directory?("d"))
       Pathname("d").rmdir
-      assert(!File.exist?("d"))
+      assert(!File.exists?("d"))
     }
   end
 
@@ -1283,35 +1161,6 @@ class TestPathname < Test::Unit::TestCase
       assert_equal([Pathname("."), Pathname("a"), Pathname("b"), Pathname("d"), Pathname("d/x"), Pathname("d/y")], a)
       a = []; Pathname("d").find {|v| a << v }; a.sort!
       assert_equal([Pathname("d"), Pathname("d/x"), Pathname("d/y")], a)
-      a = Pathname(".").find.sort
-      assert_equal([Pathname("."), Pathname("a"), Pathname("b"), Pathname("d"), Pathname("d/x"), Pathname("d/y")], a)
-      a = Pathname("d").find.sort
-      assert_equal([Pathname("d"), Pathname("d/x"), Pathname("d/y")], a)
-
-      begin
-        File.unlink("d/y")
-        File.chmod(0600, "d")
-        a = []; Pathname(".").find(ignore_error: true) {|v| a << v }; a.sort!
-        assert_equal([Pathname("."), Pathname("a"), Pathname("b"), Pathname("d"), Pathname("d/x")], a)
-        a = []; Pathname("d").find(ignore_error: true) {|v| a << v }; a.sort!
-        assert_equal([Pathname("d"), Pathname("d/x")], a)
-
-        skip "no meaning test on Windows" if /mswin|mingw/ =~ RUBY_PLATFORM
-        a = [];
-        assert_raise_with_message(Errno::EACCES, %r{d/x}) do
-          Pathname(".").find(ignore_error: false) {|v| a << v }
-        end
-        a.sort!
-        assert_equal([Pathname("."), Pathname("a"), Pathname("b"), Pathname("d"), Pathname("d/x")], a)
-        a = [];
-        assert_raise_with_message(Errno::EACCES, %r{d/x}) do
-          Pathname("d").find(ignore_error: false) {|v| a << v }
-        end
-        a.sort!
-        assert_equal([Pathname("d"), Pathname("d/x")], a)
-      ensure
-        File.chmod(0700, "d")
-      end
     }
   end
 
@@ -1372,18 +1221,5 @@ class TestPathname < Test::Unit::TestCase
       $SAFE = 1
       assert_equal("foo/bar", File.join(Pathname.new("foo"), Pathname.new("bar").taint))
     }.call
-  end
-
-  def test_relative_path_from_casefold
-    assert_separately([], <<-'end;') #    do
-      module File::Constants
-        remove_const :FNM_SYSCASE
-        FNM_SYSCASE = FNM_CASEFOLD
-      end
-      require 'pathname'
-      foo = Pathname.new("fo\u{f6}")
-      bar = Pathname.new("b\u{e4}r".encode("ISO-8859-1"))
-      assert_instance_of(Pathname, foo.relative_path_from(bar))
-    end;
   end
 end

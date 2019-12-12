@@ -48,7 +48,7 @@ class BenchmarkDriver
 
   def progress_message *args
     unless STDOUT.tty?
-      STDERR.print(*args)
+      STDERR.print(*args) 
       STDERR.flush
     end
   end
@@ -60,26 +60,22 @@ class BenchmarkDriver
 
       if /(.+)::(.+)/ =~ e
         # ex) ruby-a::/path/to/ruby-a
-        label = $1.strip
-        path = $2
-        version = `#{path} -v`.chomp
+        v = $1.strip
+        e = $2
       else
-        path = e
-        version = label = `#{path} -v`.chomp
+        v =  `#{e} -v`.chomp
+        v.sub!(/ patchlevel \d+/, '')
       end
-      [path, label, version]
+      [e, v]
     }.compact
 
     @dir = dir
     @repeat = opt[:repeat] || 1
     @repeat = 1 if @repeat < 1
     @pattern = opt[:pattern] || nil
-    @exclude = opt[:exclude] || nil
     @verbose = opt[:quiet] ? false : (opt[:verbose] || false)
     @output = opt[:output] ? open(opt[:output], 'w') : nil
-    @rawdata_output = opt[:rawdata_output] ? open(opt[:rawdata_output], 'w') : nil
     @loop_wl1 = @loop_wl2 = nil
-    @ruby_arg = opt[:ruby_arg] || nil
     @opt = opt
 
     # [[name, [[r-1-1, r-1-2, ...], [r-2-1, r-2-2, ...]]], ...]
@@ -88,33 +84,10 @@ class BenchmarkDriver
     if @verbose
       @start_time = Time.now
       message @start_time
-      @execs.each_with_index{|(path, label, version), i|
-        message "target #{i}: " + (label == version ? "#{label}" : "#{label} (#{version})") + " at \"#{path}\""
+      @execs.each_with_index{|(e, v), i|
+        message "target #{i}: #{v}"
       }
     end
-  end
-
-  def adjusted_results name, results
-    s = nil
-    results.each_with_index{|e, i|
-      r = e.min
-      case name
-      when /^vm1_/
-        if @loop_wl1
-          r -= @loop_wl1[i]
-          r = 0 if r < 0
-          s = '*'
-        end
-      when /^vm2_/
-        if @loop_wl2
-          r -= @loop_wl2[i]
-          r = 0 if r < 0
-          s = '*'
-        end
-      end
-      yield r
-    }
-    s
   end
 
   def show_results
@@ -126,15 +99,7 @@ class BenchmarkDriver
       message
       message PP.pp(@results, "", 79)
       message
-      message "Elapsed time: #{Time.now - @start_time} (sec)"
-    end
-
-    if @rawdata_output
-      h = {}
-      h[:cpuinfo] = File.read('/proc/cpuinfo') if File.exist?('/proc/cpuinfo')
-      h[:executables] = @execs
-      h[:results] = @results
-      @rawdata_output.puts h.inspect
+      message "Elapesed time: #{Time.now - @start_time} (sec)"
     end
 
     output '-----------------------------------------------------------'
@@ -144,49 +109,35 @@ class BenchmarkDriver
       output "minimum results in each #{@repeat} measurements."
     end
 
-    output "Execution time (sec)"
-    output "name\t#{@execs.map{|(_, v)| v}.join("\t")}"
+    output "name\t#{@execs.map{|(e, v)| v}.join("\t")}"
     @results.each{|v, result|
       rets = []
-      s = adjusted_results(v, result){|r|
+      s = nil
+      result.each_with_index{|e, i|
+        r = e.min
+        case v
+        when /^vm1_/
+          if @loop_wl1
+            r -= @loop_wl1[i]
+            s = '*'
+          end
+        when /^vm2_/
+          if @loop_wl2
+            r -= @loop_wl2[i]
+            s = '*'
+          end
+        end
         rets << sprintf("%.3f", r)
       }
       output "#{v}#{s}\t#{rets.join("\t")}"
     }
-
-    if @execs.size > 1
-      output
-      output "Speedup ratio: compare with the result of `#{@execs[0][1]}' (greater is better)"
-      output "name\t#{@execs[1..-1].map{|(_, v)| v}.join("\t")}"
-      @results.each{|v, result|
-        rets = []
-        first_value = nil
-        s = adjusted_results(v, result){|r|
-          if first_value
-            if r == 0
-              rets << "Error"
-            else
-              rets << sprintf("%.3f", first_value/r)
-            end
-          else
-            first_value = r
-          end
-        }
-        output "#{v}#{s}\t#{rets.join("\t")}"
-      }
-    end
-
-    if @opt[:output]
-      output
-      output "Log file: #{@opt[:output]}"
-    end
   end
 
   def files
     flag = {}
+    vm1 = vm2 = wl1 = wl2 = false
     @files = Dir.glob(File.join(@dir, 'bm*.rb')).map{|file|
       next if @pattern && /#{@pattern}/ !~ File.basename(file)
-      next if @exclude && /#{@exclude}/ =~ File.basename(file)
       case file
       when /bm_(vm[12])_/, /bm_loop_(whileloop2?).rb/
         flag[$1] = true
@@ -247,43 +198,32 @@ class BenchmarkDriver
     result
   end
 
-  unless defined?(File::NULL)
-    if File.exist?('/dev/null')
-      File::NULL = '/dev/null'
-    end
-  end
-
   def measure executable, file
-    cmd = "#{executable} #{@ruby_arg} #{file}"
-
+    cmd = "#{executable} #{file}"
     m = Benchmark.measure{
-      system(cmd, out: File::NULL)
+      `#{cmd}`
     }
 
     if $? != 0
-      output "\`#{cmd}\' exited with abnormal status (#{$?})"
-      0
-    else
-      m.real
+      raise "Benchmark process exited with abnormal status (#{$?})"
     end
+
+    m.real
   end
 end
 
 if __FILE__ == $0
   opt = {
-    :execs => [],
-    :dir => File.dirname(__FILE__),
+    :execs => ['ruby'],
+    :dir => './',
     :repeat => 1,
     :output => "bmlog-#{Time.now.strftime('%Y%m%d-%H%M%S')}.#{$$}",
-    :raw_output => nil
   }
 
   parser = OptionParser.new{|o|
     o.on('-e', '--executables [EXECS]',
-      "Specify benchmark one or more targets (e1::path1; e2::path2; e3::path3;...)"){|e|
-       e.split(/;/).each{|path|
-         opt[:execs] << path
-       }
+         "Specify benchmark one or more targets. (exec1; exec2; exec3, ...)"){|e|
+      opt[:execs] = e.split(/;/)
     }
     o.on('-d', '--directory [DIRECTORY]', "Benchmark suites directory"){|d|
       opt[:dir] = d
@@ -291,27 +231,17 @@ if __FILE__ == $0
     o.on('-p', '--pattern [PATTERN]', "Benchmark name pattern"){|p|
       opt[:pattern] = p
     }
-    o.on('-x', '--exclude [PATTERN]', "Benchmark exclude pattern"){|e|
-      opt[:exclude] = e
-    }
     o.on('-r', '--repeat-count [NUM]', "Repeat count"){|n|
       opt[:repeat] = n.to_i
     }
-    o.on('-o', '--output-file [FILE]', "Output file"){|f|
-      opt[:output] = f
-    }
-    o.on('--ruby-arg [ARG]', "Optional argument for ruby"){|a|
-      opt[:ruby_arg] = a
-    }
-    o.on('--rawdata-output [FILE]', 'output rawdata'){|r|
-      opt[:rawdata_output] = r
-    }
-    o.on('-v', '--verbose'){|v|
-      opt[:verbose] = v
+    o.on('-o', '--output-file [FILE]', "Output file"){|o|
+      opt[:output] = o
     }
     o.on('-q', '--quiet', "Run without notify information except result table."){|q|
       opt[:quiet] = q
-      opt[:verbose] = false
+    }
+    o.on('-v', '--verbose'){|v|
+      opt[:verbose] = v
     }
   }
 

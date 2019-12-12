@@ -2,36 +2,8 @@ require 'drb/drb'
 require 'monitor'
 
 module DRb
-
-  # Gateway id conversion forms a gateway between different DRb protocols or
-  # networks.
-  #
-  # The gateway needs to install this id conversion and create servers for
-  # each of the protocols or networks it will be a gateway between.  It then
-  # needs to create a server that attaches to each of these networks.  For
-  # example:
-  #
-  #   require 'drb/drb'
-  #   require 'drb/unix'
-  #   require 'drb/gw'
-  #
-  #   DRb.install_id_conv DRb::GWIdConv.new
-  #   gw = DRb::GW.new
-  #   s1 = DRb::DRbServer.new 'drbunix:/path/to/gateway', gw
-  #   s2 = DRb::DRbServer.new 'druby://example:10000', gw
-  #
-  #   s1.thread.join
-  #   s2.thread.join
-  #
-  # Each client must register services with the gateway, for example:
-  #
-  #   DRb.start_service 'drbunix:', nil # an anonymous server
-  #   gw = DRbObject.new nil, 'drbunix:/path/to/gateway'
-  #   gw[:unix] = some_service
-  #   DRb.thread.join
-
   class GWIdConv < DRbIdConv
-    def to_obj(ref) # :nodoc:
+    def to_obj(ref)
       if Array === ref && ref[0] == :DRbObject
         return DRbObject.new_with(ref[1], ref[2])
       end
@@ -39,28 +11,18 @@ module DRb
     end
   end
 
-  # The GW provides a synchronized store for participants in the gateway to
-  # communicate.
-
   class GW
     include MonitorMixin
-
-    # Creates a new GW
-
     def initialize
       super()
       @hash = {}
     end
-
-    # Retrieves +key+ from the GW
 
     def [](key)
       synchronize do
         @hash[key]
       end
     end
-
-    # Stores value +v+ at +key+ in the GW
 
     def []=(key, v)
       synchronize do
@@ -69,7 +31,7 @@ module DRb
     end
   end
 
-  class DRbObject # :nodoc:
+  class DRbObject
     def self._load(s)
       uri, ref = Marshal.load(s)
       if DRb.uri == uri

@@ -13,25 +13,8 @@ require 'tempfile'
 
 module WEBrick
   module HTTPAuth
-
-    ##
-    # Htdigest accesses apache-compatible digest password files.  Passwords are
-    # matched to a realm where they are valid.  For security, the path for a
-    # digest password database should be stored outside of the paths available
-    # to the HTTP server.
-    #
-    # Htdigest is intended for use with WEBrick::HTTPAuth::DigestAuth and
-    # stores passwords using cryptographic hashes.
-    #
-    #   htpasswd = WEBrick::HTTPAuth::Htdigest.new 'my_password_file'
-    #   htpasswd.set_passwd 'my realm', 'username', 'password'
-    #   htpasswd.flush
-
     class Htdigest
       include UserDB
-
-      ##
-      # Open a digest password database at +path+
 
       def initialize(path)
         @path = path
@@ -42,9 +25,6 @@ module WEBrick
         open(@path,"a").close unless File::exist?(@path)
         reload
       end
-
-      ##
-      # Reloads passwords from the database
 
       def reload
         mtime = File::mtime(@path)
@@ -64,28 +44,17 @@ module WEBrick
         end
       end
 
-      ##
-      # Flush the password database.  If +output+ is given the database will
-      # be written there instead of to the original path.
-
       def flush(output=nil)
         output ||= @path
-        tmp = Tempfile.create("htpasswd", File::dirname(output))
-        renamed = false
+        tmp = Tempfile.new("htpasswd", File::dirname(output))
         begin
           each{|item| tmp.puts(item.join(":")) }
           tmp.close
           File::rename(tmp.path, output)
-          renamed = true
-        ensure
-          tmp.close if !tmp.closed?
-          File.unlink(tmp.path) if !renamed
+        rescue
+          tmp.close(true)
         end
       end
-
-      ##
-      # Retrieves a password from the database for +user+ in +realm+.  If
-      # +reload_db+ is true the database will be reloaded first.
 
       def get_passwd(realm, user, reload_db)
         reload() if reload_db
@@ -93,9 +62,6 @@ module WEBrick
           hash[user]
         end
       end
-
-      ##
-      # Sets a password in the database for +user+ in +realm+ to +pass+.
 
       def set_passwd(realm, user, pass)
         @mutex.synchronize{
@@ -106,19 +72,13 @@ module WEBrick
         }
       end
 
-      ##
-      # Removes a password from the database for +user+ in +realm+.
-
       def delete_passwd(realm, user)
         if hash = @digest[realm]
           hash.delete(user)
         end
       end
 
-      ##
-      # Iterate passwords in the database.
-
-      def each # :yields: [user, realm, password_hash]
+      def each
         @digest.keys.sort.each{|realm|
           hash = @digest[realm]
           hash.keys.sort.each{|user|

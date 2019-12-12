@@ -12,37 +12,35 @@
 #
 # === Module Functions
 #
-#   require 'fileutils'
-#
-#   FileUtils.cd(dir, options)
-#   FileUtils.cd(dir, options) {|dir| .... }
-#   FileUtils.pwd()
-#   FileUtils.mkdir(dir, options)
-#   FileUtils.mkdir(list, options)
-#   FileUtils.mkdir_p(dir, options)
-#   FileUtils.mkdir_p(list, options)
-#   FileUtils.rmdir(dir, options)
-#   FileUtils.rmdir(list, options)
-#   FileUtils.ln(old, new, options)
-#   FileUtils.ln(list, destdir, options)
-#   FileUtils.ln_s(old, new, options)
-#   FileUtils.ln_s(list, destdir, options)
-#   FileUtils.ln_sf(src, dest, options)
-#   FileUtils.cp(src, dest, options)
-#   FileUtils.cp(list, dir, options)
-#   FileUtils.cp_r(src, dest, options)
-#   FileUtils.cp_r(list, dir, options)
-#   FileUtils.mv(src, dest, options)
-#   FileUtils.mv(list, dir, options)
-#   FileUtils.rm(list, options)
-#   FileUtils.rm_r(list, options)
-#   FileUtils.rm_rf(list, options)
-#   FileUtils.install(src, dest, mode = <src's>, options)
-#   FileUtils.chmod(mode, list, options)
-#   FileUtils.chmod_R(mode, list, options)
-#   FileUtils.chown(user, group, list, options)
-#   FileUtils.chown_R(user, group, list, options)
-#   FileUtils.touch(list, options)
+#   cd(dir, options)
+#   cd(dir, options) {|dir| .... }
+#   pwd()
+#   mkdir(dir, options)
+#   mkdir(list, options)
+#   mkdir_p(dir, options)
+#   mkdir_p(list, options)
+#   rmdir(dir, options)
+#   rmdir(list, options)
+#   ln(old, new, options)
+#   ln(list, destdir, options)
+#   ln_s(old, new, options)
+#   ln_s(list, destdir, options)
+#   ln_sf(src, dest, options)
+#   cp(src, dest, options)
+#   cp(list, dir, options)
+#   cp_r(src, dest, options)
+#   cp_r(list, dir, options)
+#   mv(src, dest, options)
+#   mv(list, dir, options)
+#   rm(list, options)
+#   rm_r(list, options)
+#   rm_rf(list, options)
+#   install(src, dest, mode = <src's>, options)
+#   chmod(mode, list, options)
+#   chmod_R(mode, list, options)
+#   chown(user, group, list, options)
+#   chown_R(user, group, list, options)
+#   touch(list, options)
 #
 # The <tt>options</tt> parameter is a hash of options, taken from the list
 # <tt>:force</tt>, <tt>:noop</tt>, <tt>:preserve</tt>, and <tt>:verbose</tt>.
@@ -55,15 +53,15 @@
 #
 # There are some `low level' methods, which do not accept any option:
 #
-#   FileUtils.copy_entry(src, dest, preserve = false, dereference = false)
-#   FileUtils.copy_file(src, dest, preserve = false, dereference = true)
-#   FileUtils.copy_stream(srcstream, deststream)
-#   FileUtils.remove_entry(path, force = false)
-#   FileUtils.remove_entry_secure(path, force = false)
-#   FileUtils.remove_file(path, force = false)
-#   FileUtils.compare_file(path_a, path_b)
-#   FileUtils.compare_stream(stream_a, stream_b)
-#   FileUtils.uptodate?(file, cmp_list)
+#   copy_entry(src, dest, preserve = false, dereference = false)
+#   copy_file(src, dest, preserve = false, dereference = true)
+#   copy_stream(srcstream, deststream)
+#   remove_entry(path, force = false)
+#   remove_entry_secure(path, force = false)
+#   remove_file(path, force = false)
+#   compare_file(path_a, path_b)
+#   compare_stream(stream_a, stream_b)
+#   uptodate?(file, cmp_list)
 #
 # == module FileUtils::Verbose
 #
@@ -117,10 +115,6 @@ module FileUtils
   #
   #   FileUtils.cd('/', :verbose => true)   # chdir and report it
   #
-  #   FileUtils.cd('/') do  # chdir
-  #     [...]               # do something
-  #   end                   # return to original directory
-  #
   def cd(dir, options = {}, &block) # :yield: dir
     fu_check_options options, OPT_TABLE['cd']
     fu_output_message "cd #{dir}" if options[:verbose]
@@ -138,13 +132,15 @@ module FileUtils
   #
   # Options: (none)
   #
-  # Returns true if +new+ is newer than all +old_list+.
+  # Returns true if +newer+ is newer than all +old_list+.
   # Non-existent files are older than any file.
   #
   #   FileUtils.uptodate?('hello.o', %w(hello.c hello.h)) or \
   #       system 'make hello.o'
   #
-  def uptodate?(new, old_list)
+  def uptodate?(new, old_list, options = nil)
+    raise ArgumentError, 'uptodate? does not accept any option' if options
+
     return false unless File.exist?(new)
     new_time = File.mtime(new)
     old_list.each do |old|
@@ -155,11 +151,6 @@ module FileUtils
     true
   end
   module_function :uptodate?
-
-  def remove_tailing_slash(dir)
-    dir == '/' ? dir : dir.chomp(?/)
-  end
-  private_module_function :remove_tailing_slash
 
   #
   # Options: mode noop verbose
@@ -207,7 +198,7 @@ module FileUtils
     fu_output_message "mkdir -p #{options[:mode] ? ('-m %03o ' % options[:mode]) : ''}#{list.join ' '}" if options[:verbose]
     return *list if options[:noop]
 
-    list.map {|path| remove_tailing_slash(path)}.each do |path|
+    list.map {|path| path.sub(%r</\z>, '') }.each do |path|
       # optimize for the most common case
       begin
         fu_mkdir path, options[:mode]
@@ -244,7 +235,7 @@ module FileUtils
   OPT_TABLE['makedirs'] = [:mode, :noop, :verbose]
 
   def fu_mkdir(path, mode)   #:nodoc:
-    path = remove_tailing_slash(path)
+    path = path.sub(%r</\z>, '')
     if mode
       Dir.mkdir path, mode
       File.chmod mode, path
@@ -255,7 +246,7 @@ module FileUtils
   private_module_function :fu_mkdir
 
   #
-  # Options: parents, noop, verbose
+  # Options: noop, verbose
   #
   # Removes one or more directories.
   #
@@ -272,14 +263,13 @@ module FileUtils
     return if options[:noop]
     list.each do |dir|
       begin
-        Dir.rmdir(dir = remove_tailing_slash(dir))
+        Dir.rmdir(dir = dir.sub(%r</\z>, ''))
         if parents
           until (parent = File.dirname(dir)) == '.' or parent == dir
-            dir = parent
             Dir.rmdir(dir)
           end
         end
-      rescue Errno::ENOTEMPTY, Errno::EEXIST, Errno::ENOENT
+      rescue Errno::ENOTEMPTY, Errno::ENOENT
       end
     end
   end
@@ -369,7 +359,7 @@ module FileUtils
   # Options: noop verbose
   #
   # Same as
-  #   #ln_s(src, dest, :force => true)
+  #   #ln_s(src, dest, :force)
   #
   def ln_sf(src, dest, options = {})
     fu_check_options options, OPT_TABLE['ln_sf']
@@ -419,7 +409,7 @@ module FileUtils
   #
   # +src+ can be a list of files.
   #
-  #   # Installing Ruby library "mylib" under the site_ruby
+  #   # Installing ruby library "mylib" under the site_ruby
   #   FileUtils.rm_r site_ruby + '/mylib', :force
   #   FileUtils.cp_r 'lib/', site_ruby + '/mylib'
   #
@@ -430,7 +420,7 @@ module FileUtils
   #   # If you want to copy all contents of a directory instead of the
   #   # directory itself, c.f. src/x -> dest/x, src/y -> dest/y,
   #   # use following code.
-  #   FileUtils.cp_r 'src/.', 'dest'     # cp_r('src', 'dest') makes dest/src,
+  #   FileUtils.cp_r 'src/.', 'dest'     # cp_r('src', 'dest') makes src/dest,
   #                                      # but this doesn't.
   #
   def cp_r(src, dest, options = {})
@@ -457,22 +447,20 @@ module FileUtils
   # Both of +src+ and +dest+ must be a path name.
   # +src+ must exist, +dest+ must not exist.
   #
-  # If +preserve+ is true, this method preserves owner, group, and
-  # modified time.  Permissions are copied regardless +preserve+.
+  # If +preserve+ is true, this method preserves owner, group, permissions
+  # and modified time.
   #
   # If +dereference_root+ is true, this method dereference tree root.
   #
   # If +remove_destination+ is true, this method removes each destination file before copy.
   #
   def copy_entry(src, dest, preserve = false, dereference_root = false, remove_destination = false)
-    Entry_.new(src, nil, dereference_root).wrap_traverse(proc do |ent|
+    Entry_.new(src, nil, dereference_root).traverse do |ent|
       destent = Entry_.new(dest, ent.rel, false)
       File.unlink destent.path if remove_destination && File.file?(destent.path)
       ent.copy destent.path
-    end, proc do |ent|
-      destent = Entry_.new(dest, ent.rel, false)
       ent.copy_metadata destent.path if preserve
-    end)
+    end
   end
   module_function :copy_entry
 
@@ -518,7 +506,7 @@ module FileUtils
       begin
         if destent.exist?
           if destent.directory?
-            raise Errno::EEXIST, d
+            raise Errno::EEXIST, dest
           else
             destent.remove_file if rename_cannot_overwrite_file?
           end
@@ -751,11 +739,11 @@ module FileUtils
   end
   module_function :remove_entry_secure
 
-  def fu_have_symlink?   #:nodoc:
+  def fu_have_symlink?   #:nodoc
     File.symlink nil, nil
   rescue NotImplementedError
     return false
-  rescue TypeError
+  rescue
     return true
   end
   private_module_function :fu_have_symlink?
@@ -831,13 +819,16 @@ module FileUtils
   #
   def compare_stream(a, b)
     bsize = fu_stream_blksize(a, b)
-    sa = ""
-    sb = ""
-    begin
-      a.read(bsize, sa)
-      b.read(bsize, sb)
-      return true if sa.empty? && sb.empty?
-    end while sa == sb
+    sa = sb = nil
+    while sa == sb
+      sa = a.read(bsize)
+      sb = b.read(bsize)
+      unless sa and sb
+        if sa.nil? and sb.nil?
+          return true
+        end
+      end
+    end
     false
   end
   module_function :compare_stream
@@ -856,8 +847,7 @@ module FileUtils
     fu_check_options options, OPT_TABLE['install']
     fu_output_message "install -c#{options[:preserve] && ' -p'}#{options[:mode] ? (' -m 0%o' % options[:mode]) : ''} #{[src,dest].flatten.join ' '}" if options[:verbose]
     return if options[:noop]
-    fu_each_src_dest(src, dest) do |s, d|
-      st = File.stat(s)
+    fu_each_src_dest(src, dest) do |s, d, st|
       unless File.exist?(d) and compare_file(s, d)
         remove_file d, true
         copy_file s, d
@@ -870,133 +860,23 @@ module FileUtils
 
   OPT_TABLE['install'] = [:mode, :preserve, :noop, :verbose]
 
-  def user_mask(target)  #:nodoc:
-    target.each_char.inject(0) do |mask, chr|
-      case chr
-      when "u"
-        mask | 04700
-      when "g"
-        mask | 02070
-      when "o"
-        mask | 01007
-      when "a"
-        mask | 07777
-      else
-        raise ArgumentError, "invalid `who' symbol in file mode: #{chr}"
-      end
-    end
-  end
-  private_module_function :user_mask
-
-  def apply_mask(mode, user_mask, op, mode_mask)
-    case op
-    when '='
-      (mode & ~user_mask) | (user_mask & mode_mask)
-    when '+'
-      mode | (user_mask & mode_mask)
-    when '-'
-      mode & ~(user_mask & mode_mask)
-    end
-  end
-  private_module_function :apply_mask
-
-  def symbolic_modes_to_i(mode_sym, path)  #:nodoc:
-    mode_sym.split(/,/).inject(File.stat(path).mode & 07777) do |current_mode, clause|
-      target, *actions = clause.split(/([=+-])/)
-      raise ArgumentError, "invalid file mode: #{mode_sym}" if actions.empty?
-      target = 'a' if target.empty?
-      user_mask = user_mask(target)
-      actions.each_slice(2) do |op, perm|
-        need_apply = op == '='
-        mode_mask = (perm || '').each_char.inject(0) do |mask, chr|
-          case chr
-          when "r"
-            mask | 0444
-          when "w"
-            mask | 0222
-          when "x"
-            mask | 0111
-          when "X"
-            if FileTest.directory? path
-              mask | 0111
-            else
-              mask
-            end
-          when "s"
-            mask | 06000
-          when "t"
-            mask | 01000
-          when "u", "g", "o"
-            if mask.nonzero?
-              current_mode = apply_mask(current_mode, user_mask, op, mask)
-            end
-            need_apply = false
-            copy_mask = user_mask(chr)
-            (current_mode & copy_mask) / (copy_mask & 0111) * (user_mask & 0111)
-          else
-            raise ArgumentError, "invalid `perm' symbol in file mode: #{chr}"
-          end
-        end
-
-        if mode_mask.nonzero? || need_apply
-          current_mode = apply_mask(current_mode, user_mask, op, mode_mask)
-        end
-      end
-      current_mode
-    end
-  end
-  private_module_function :symbolic_modes_to_i
-
-  def fu_mode(mode, path)  #:nodoc:
-    mode.is_a?(String) ? symbolic_modes_to_i(mode, path) : mode
-  end
-  private_module_function :fu_mode
-
-  def mode_to_s(mode)  #:nodoc:
-    mode.is_a?(String) ? mode : "%o" % mode
-  end
-  private_module_function :mode_to_s
-
   #
   # Options: noop verbose
   #
   # Changes permission bits on the named files (in +list+) to the bit pattern
   # represented by +mode+.
   #
-  # +mode+ is the symbolic and absolute mode can be used.
-  #
-  # Absolute mode is
   #   FileUtils.chmod 0755, 'somecommand'
   #   FileUtils.chmod 0644, %w(my.rb your.rb his.rb her.rb)
   #   FileUtils.chmod 0755, '/usr/bin/ruby', :verbose => true
   #
-  # Symbolic mode is
-  #   FileUtils.chmod "u=wrx,go=rx", 'somecommand'
-  #   FileUtils.chmod "u=wr,go=rr", %w(my.rb your.rb his.rb her.rb)
-  #   FileUtils.chmod "u=wrx,go=rx", '/usr/bin/ruby', :verbose => true
-  #
-  # "a" :: is user, group, other mask.
-  # "u" :: is user's mask.
-  # "g" :: is group's mask.
-  # "o" :: is other's mask.
-  # "w" :: is write permission.
-  # "r" :: is read permission.
-  # "x" :: is execute permission.
-  # "X" ::
-  #   is execute permission for directories only, must be used in conjunction with "+"
-  # "s" :: is uid, gid.
-  # "t" :: is sticky bit.
-  # "+" :: is added to a class given the specified mode.
-  # "-" :: Is removed from a given class given mode.
-  # "=" :: Is the exact nature of the class will be given a specified mode.
-
   def chmod(mode, list, options = {})
     fu_check_options options, OPT_TABLE['chmod']
     list = fu_list(list)
-    fu_output_message sprintf('chmod %s %s', mode_to_s(mode), list.join(' ')) if options[:verbose]
+    fu_output_message sprintf('chmod %o %s', mode, list.join(' ')) if options[:verbose]
     return if options[:noop]
     list.each do |path|
-      Entry_.new(path).chmod(fu_mode(mode, path))
+      Entry_.new(path).chmod mode
     end
   end
   module_function :chmod
@@ -1010,19 +890,18 @@ module FileUtils
   # to the bit pattern represented by +mode+.
   #
   #   FileUtils.chmod_R 0700, "/tmp/app.#{$$}"
-  #   FileUtils.chmod_R "u=wrx", "/tmp/app.#{$$}"
   #
   def chmod_R(mode, list, options = {})
     fu_check_options options, OPT_TABLE['chmod_R']
     list = fu_list(list)
-    fu_output_message sprintf('chmod -R%s %s %s',
+    fu_output_message sprintf('chmod -R%s %o %s',
                               (options[:force] ? 'f' : ''),
-                              mode_to_s(mode), list.join(' ')) if options[:verbose]
+                              mode, list.join(' ')) if options[:verbose]
     return if options[:noop]
     list.each do |root|
       Entry_.new(root).traverse do |ent|
         begin
-          ent.chmod(fu_mode(mode, ent.path))
+          ent.chmod mode
         rescue
           raise unless options[:force]
         end
@@ -1048,8 +927,8 @@ module FileUtils
   def chown(user, group, list, options = {})
     fu_check_options options, OPT_TABLE['chown']
     list = fu_list(list)
-    fu_output_message sprintf('chown %s %s',
-                              (group ? "#{user}:#{group}" : user || ':'),
+    fu_output_message sprintf('chown %s%s',
+                              [user,group].compact.join(':') + ' ',
                               list.join(' ')) if options[:verbose]
     return if options[:noop]
     uid = fu_get_uid(user)
@@ -1077,13 +956,14 @@ module FileUtils
   def chown_R(user, group, list, options = {})
     fu_check_options options, OPT_TABLE['chown_R']
     list = fu_list(list)
-    fu_output_message sprintf('chown -R%s %s %s',
+    fu_output_message sprintf('chown -R%s %s%s',
                               (options[:force] ? 'f' : ''),
-                              (group ? "#{user}:#{group}" : user || ':'),
+                              [user,group].compact.join(':') + ' ',
                               list.join(' ')) if options[:verbose]
     return if options[:noop]
     uid = fu_get_uid(user)
     gid = fu_get_gid(group)
+    return unless uid or gid
     list.each do |root|
       Entry_.new(root).traverse do |ent|
         begin
@@ -1100,37 +980,49 @@ module FileUtils
 
   begin
     require 'etc'
-  rescue LoadError # rescue LoadError for miniruby
-  end
 
-  def fu_get_uid(user)   #:nodoc:
-    return nil unless user
-    case user
-    when Integer
-      user
-    when /\A\d+\z/
-      user.to_i
-    else
-      Etc.getpwnam(user) ? Etc.getpwnam(user).uid : nil
+    def fu_get_uid(user)   #:nodoc:
+      return nil unless user
+      case user
+      when Integer
+        user
+      when /\A\d+\z/
+        user.to_i
+      else
+        Etc.getpwnam(user).uid
+      end
     end
-  end
-  private_module_function :fu_get_uid
+    private_module_function :fu_get_uid
 
-  def fu_get_gid(group)   #:nodoc:
-    return nil unless group
-    case group
-    when Integer
-      group
-    when /\A\d+\z/
-      group.to_i
-    else
-      Etc.getgrnam(group) ? Etc.getgrnam(group).gid : nil
+    def fu_get_gid(group)   #:nodoc:
+      return nil unless group
+      case group
+      when Integer
+        group
+      when /\A\d+\z/
+        group.to_i
+      else
+        Etc.getgrnam(group).gid
+      end
     end
+    private_module_function :fu_get_gid
+
+  rescue LoadError
+    # need Win32 support???
+
+    def fu_get_uid(user)   #:nodoc:
+      user    # FIXME
+    end
+    private_module_function :fu_get_uid
+
+    def fu_get_gid(group)   #:nodoc:
+      group   # FIXME
+    end
+    private_module_function :fu_get_gid
   end
-  private_module_function :fu_get_gid
 
   #
-  # Options: noop verbose mtime nocreate
+  # Options: noop verbose
   #
   # Updates modification time (mtime) and access time (atime) of file(s) in
   # +list+.  Files are created if they don't exist.
@@ -1141,10 +1033,10 @@ module FileUtils
   def touch(list, options = {})
     fu_check_options options, OPT_TABLE['touch']
     list = fu_list(list)
-    nocreate = options[:nocreate]
+    created = nocreate = options[:nocreate]
     t = options[:mtime]
     if options[:verbose]
-      fu_output_message "touch #{nocreate ? '-c ' : ''}#{t ? t.strftime('-t %Y%m%d%H%M.%S ') : ''}#{list.join ' '}"
+      fu_output_message "touch #{nocreate ? ' -c' : ''}#{t ? t.strftime(' -t %Y%m%d%H%M.%S') : ''}#{list.join ' '}"
     end
     return if options[:noop]
     list.each do |path|
@@ -1243,12 +1135,7 @@ module FileUtils
     end
 
     def exist?
-      begin
-        lstat
-        true
-      rescue Errno::ENOENT
-        false
-      end
+      lstat! ? true : false
     end
 
     def file?
@@ -1358,7 +1245,7 @@ module FileUtils
       when file?
         copy_file dest
       when directory?
-        if !File.exist?(dest) and descendant_directory?(dest, path)
+        if !File.exist?(dest) and descendant_diretory?(dest, path)
           raise ArgumentError, "cannot copy directory %s to itself %s" % [path, dest]
         end
         begin
@@ -1389,7 +1276,7 @@ module FileUtils
 
     def copy_file(dest)
       File.open(path()) do |s|
-        File.open(dest, 'wb', s.stat.mode) do |f|
+        File.open(dest, 'wb') do |f|
           IO.copy_stream(s, f)
         end
       end
@@ -1397,37 +1284,14 @@ module FileUtils
 
     def copy_metadata(path)
       st = lstat()
-      if !st.symlink?
-        File.utime st.atime, st.mtime, path
-      end
+      File.utime st.atime, st.mtime, path
       begin
-        if st.symlink?
-          begin
-            File.lchown st.uid, st.gid, path
-          rescue NotImplementedError
-          end
-        else
-          File.chown st.uid, st.gid, path
-        end
+        File.chown st.uid, st.gid, path
       rescue Errno::EPERM
         # clear setuid/setgid
-        if st.symlink?
-          begin
-            File.lchmod st.mode & 01777, path
-          rescue NotImplementedError
-          end
-        else
-          File.chmod st.mode & 01777, path
-        end
+        File.chmod st.mode & 01777, path
       else
-        if st.symlink?
-          begin
-            File.lchmod st.mode, path
-          rescue NotImplementedError
-          end
-        else
-          File.chmod st.mode, path
-        end
+        File.chmod st.mode, path
       end
     end
 
@@ -1441,7 +1305,7 @@ module FileUtils
 
     def remove_dir1
       platform_support {
-        Dir.rmdir path().chomp(?/)
+        Dir.rmdir path().sub(%r</\z>, '')
       }
     end
 
@@ -1489,18 +1353,7 @@ module FileUtils
           end
         end
       end
-    ensure
       yield self
-    end
-
-    def wrap_traverse(pre, post)
-      pre.call self
-      if directory?
-        entries.each do |ent|
-          ent.wrap_traverse pre, post
-        end
-      end
-      post.call self
     end
 
     private
@@ -1554,7 +1407,7 @@ module FileUtils
     end
     SYSCASE = File::FNM_SYSCASE.nonzero? ? "-i" : ""
 
-    def descendant_directory?(descendant, ascendant)
+    def descendant_diretory?(descendant, ascendant)
       /\A(?#{SYSCASE}:#{Regexp.quote(ascendant)})#{DIRECTORY_TERM}/ =~ File.dirname(descendant)
     end
   end   # class Entry_
@@ -1567,7 +1420,7 @@ module FileUtils
   def fu_each_src_dest(src, dest)   #:nodoc:
     fu_each_src_dest0(src, dest) do |s, d|
       raise ArgumentError, "same file: #{s} and #{d}" if fu_same?(s, d)
-      yield s, d
+      yield s, d, File.stat(s)
     end
   end
   private_module_function :fu_each_src_dest
@@ -1646,7 +1499,7 @@ module FileUtils
   #
   #   p FileUtils.have_option?(:cp, :noop)     #=> true
   #   p FileUtils.have_option?(:rm, :force)    #=> true
-  #   p FileUtils.have_option?(:rm, :preserve) #=> false
+  #   p FileUtils.have_option?(:rm, :perserve) #=> false
   #
   def FileUtils.have_option?(mid, opt)
     li = OPT_TABLE[mid.to_s] or raise ArgumentError, "no such method: #{mid}"
@@ -1656,7 +1509,7 @@ module FileUtils
   #
   # Returns an Array of option names of the method +mid+.
   #
-  #   p FileUtils.options_of(:rm)  #=> ["noop", "verbose", "force"]
+  #   p FileUtils.options(:rm)  #=> ["noop", "verbose", "force"]
   #
   def FileUtils.options_of(mid)
     OPT_TABLE[mid.to_s].map {|sym| sym.to_s }

@@ -5,8 +5,6 @@ begin
 rescue LoadError
 end
 
-module DRbTests
-
 if Object.const_defined?("UNIXServer")
 
 
@@ -22,13 +20,8 @@ end
 class TestDRbUNIXCore < Test::Unit::TestCase
   include DRbCore
   def setup
-    setup_service 'ut_drb_drbunix.rb'
-    super
-  end
-
-  def teardown
-    super
-    DRbService.finish
+    @ext = DRbUNIXService.ext_service('ut_drb_drbunix.rb')
+    @there = @ext.front
   end
 
   def test_02_unknown
@@ -44,16 +37,10 @@ end
 class TestDRbUNIXAry < Test::Unit::TestCase
   include DRbAry
   def setup
-    setup_service 'ut_array_drbunix.rb'
-    super
-  end
-  def teardown
-    super
-    DRbService.finish
+    @ext = DRbUNIXService.ext_service('ut_array_drbunix.rb')
+    @there = @ext.front
   end
 end
 
-
-end
 
 end

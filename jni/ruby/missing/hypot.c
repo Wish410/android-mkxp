@@ -1,6 +1,5 @@
 /* public domain rewrite of hypot */
 
-#include "ruby/missing.h"
 #include <math.h>
 
 double hypot(double x, double y)

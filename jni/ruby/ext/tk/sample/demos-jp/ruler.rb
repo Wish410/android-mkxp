@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # ruler widget demo (called by 'widget')
 #
@@ -16,13 +16,13 @@ def rulerMkTab(c,x,y)
   TkcPolygon.new(c, x, y, x+v.size, y+v.size, x-v.size, y+v.size)
 end
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($ruler_demo) && $ruler_demo
   $ruler_demo.destroy
   $ruler_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $ruler_demo = TkToplevel.new {|w|
   title("Ruler Demonstration")
   iconname("ruler")
@@ -31,17 +31,17 @@ $ruler_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($ruler_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 TkLabel.new(base_frame, 'font'=>$font, 'wraplength'=>'5i', 'justify'=>'left',
-            'text'=>"ã“ã®ã‚­ãƒ£ãƒ³ãƒã‚¹widgetã¯ãƒ«ãƒ¼ãƒ©ãƒ¼ã®æ¨¡åž‹ã§ã™ã€‚ãƒ«ãƒ¼ãƒ©ãƒ¼ã®å³ã«ã‚ã‚‹ã®ã¯ã‚¿ãƒ–ã‚¹ãƒˆãƒƒãƒ—ã®äº•æˆ¸ã§ã€ã“ã“ã‹ã‚‰å¼•ã£å¼µã£ã¦ãã‚‹ã“ã¨ã«ã‚ˆã£ã¦ã‚¿ãƒ–ã‚¹ãƒˆãƒƒãƒ—ã‚’ä½œã‚‹ã“ã¨ãŒã§ãã¾ã™ã€‚ã¾ãŸã€ã™ã§ã«ã‚ã‚‹ã‚¿ãƒ–ã‚¹ãƒˆãƒƒãƒ—ã‚’å‹•ã‹ã™ã“ã¨ã‚‚ã§ãã¾ã™ã€‚ã‚¿ãƒ–ã‚¹ãƒˆãƒƒãƒ—ã‚’ä¸Šæ–¹ã¾ãŸã¯ä¸‹æ–¹ã«ã‹ã™ã‚Œã¦è¡¨ç¤ºã•ã‚Œã‚‹ã¾ã§ãƒ‰ãƒ©ãƒƒã‚°ã™ã‚‹ã¨ã€ãƒžã‚¦ã‚¹ãƒœã‚¿ãƒ³ã‚’é›¢ã—ãŸæ™‚ã«ãã®ã‚¿ãƒ–ã‚¹ãƒˆãƒƒãƒ—ã¯æ¶ˆãˆã¾ã™ã€‚"){
+            'text'=>"¤³¤Î¥­¥ã¥ó¥Ð¥¹widget¤Ï¥ë¡¼¥é¡¼¤ÎÌÏ·¿¤Ç¤¹¡£¥ë¡¼¥é¡¼¤Î±¦¤Ë¤¢¤ë¤Î¤Ï¥¿¥Ö¥¹¥È¥Ã¥×¤Î°æ¸Í¤Ç¡¢¤³¤³¤«¤é°ú¤ÃÄ¥¤Ã¤Æ¤¯¤ë¤³¤È¤Ë¤è¤Ã¤Æ¥¿¥Ö¥¹¥È¥Ã¥×¤òºî¤ë¤³¤È¤¬¤Ç¤­¤Þ¤¹¡£¤Þ¤¿¡¢¤¹¤Ç¤Ë¤¢¤ë¥¿¥Ö¥¹¥È¥Ã¥×¤òÆ°¤«¤¹¤³¤È¤â¤Ç¤­¤Þ¤¹¡£¥¿¥Ö¥¹¥È¥Ã¥×¤ò¾åÊý¤Þ¤¿¤Ï²¼Êý¤Ë¤«¤¹¤ì¤ÆÉ½¼¨¤µ¤ì¤ë¤Þ¤Ç¥É¥é¥Ã¥°¤¹¤ë¤È¡¢¥Þ¥¦¥¹¥Ü¥¿¥ó¤òÎ¥¤·¤¿»þ¤Ë¤½¤Î¥¿¥Ö¥¹¥È¥Ã¥×¤Ï¾Ã¤¨¤Þ¤¹¡£"){
   pack('side'=>'top')
 }
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 $ruler_buttons = TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $ruler_demo
       $ruler_demo = nil
@@ -50,17 +50,17 @@ $ruler_buttons = TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'ruler'}
   }.pack('side'=>'left', 'expand'=>'yes')
 }
 $ruler_buttons.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# canvas è¨­å®š
+# canvas ÀßÄê
 $ruler_canvas = TkCanvas.new(base_frame, 'width'=>'14.8c', 'height'=>'2.5c')
 $ruler_canvas.pack('side'=>'top', 'fill'=>'x')
 
-# å€¤è¨­å®š
+# ÃÍÀßÄê
 unless Struct.const_defined?("RulerInfo")
   $demo_rulerInfo = Struct.new("RulerInfo", :grid, :left, :right, :x, :y,
                                :top, :bottom, :size, :normalStyle,

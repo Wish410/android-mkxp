@@ -1,10 +1,7 @@
-require 'rubygems/test_case'
-require "rubygems/version"
+require_relative 'gemutilities'
+require 'rubygems/version'
 
-class TestGemVersion < Gem::TestCase
-
-  class V < ::Gem::Version
-  end
+class TestGemVersion < RubyGemTestCase
 
   def test_bump
     assert_bumped_version_equal "5.3", "5.2.4"
@@ -12,10 +9,6 @@ class TestGemVersion < Gem::TestCase
 
   def test_bump_alpha
     assert_bumped_version_equal "5.3", "5.2.4.a"
-  end
-
-  def test_bump_alphanumeric
-    assert_bumped_version_equal "5.3", "5.2.4.a10"
   end
 
   def test_bump_trailing_zeros
@@ -26,38 +19,27 @@ class TestGemVersion < Gem::TestCase
     assert_bumped_version_equal "6", "5"
   end
 
-  # A Gem::Version is already a Gem::Version and therefore not transformed by
-  # Gem::Version.create
+  # FIX: For "legacy reasons," any object that responds to +version+
+  # is returned unchanged. I'm not certain why.
 
   def test_class_create
-    real = Gem::Version.new(1.0)
+    fake = Object.new
+    def fake.version; "1.0" end
 
-    assert_same  real, Gem::Version.create(real)
+    assert_same  fake, Gem::Version.create(fake)
     assert_nil   Gem::Version.create(nil)
     assert_equal v("5.1"), Gem::Version.create("5.1")
-
-    ver = '1.1'.freeze
-    assert_equal v('1.1'), Gem::Version.create(ver)
-  end
-
-  def test_class_new_subclass
-    v1 = Gem::Version.new '1'
-    v2 = V.new '1'
-
-    refute_same v1, v2
   end
 
   def test_eql_eh
-    assert_version_eql "1.2",    "1.2"
-    refute_version_eql "1.2",    "1.2.0"
-    refute_version_eql "1.2",    "1.3"
-    refute_version_eql "1.2.b1", "1.2.b.1"
+    assert_version_eql "1.2", "1.2"
+    refute_version_eql "1.2", "1.2.0"
+    refute_version_eql "1.2", "1.3"
   end
 
-  def test_equals2
-    assert_version_equal "1.2",    "1.2"
-    refute_version_equal "1.2",    "1.3"
-    assert_version_equal "1.2.b1", "1.2.b.1"
+  def test_equals
+    assert_version_equal "1.2", "1.2"
+    refute_version_equal "1.2", "1.3"
   end
 
   # REVISIT: consider removing as too impl-bound
@@ -68,7 +50,7 @@ class TestGemVersion < Gem::TestCase
   end
 
   def test_initialize
-    ["1.0", "1.0 ", " 1.0 ", "1.0\n", "\n1.0\n", "1.0".freeze].each do |good|
+    ["1.0", "1.0 ", " 1.0 ", "1.0\n", "\n1.0\n"].each do |good|
       assert_version_equal "1.0", good
     end
 
@@ -76,17 +58,12 @@ class TestGemVersion < Gem::TestCase
   end
 
   def test_initialize_bad
-    %W[
-      junk
-      1.0\n2.0
-      1..2
-      1.2\ 3.4
-    ].each do |bad|
-      e = assert_raises ArgumentError, bad do
+    ["junk", "1.0\n2.0"].each do |bad|
+      e = assert_raises ArgumentError do
         Gem::Version.new bad
       end
 
-      assert_equal "Malformed version number string #{bad}", e.message, bad
+      assert_equal "Malformed version number string #{bad}", e.message
     end
   end
 
@@ -111,38 +88,26 @@ class TestGemVersion < Gem::TestCase
   end
 
   def test_spaceship
-    assert_equal( 0, v("1.0")       <=> v("1.0.0"))
-    assert_equal( 1, v("1.0")       <=> v("1.0.a"))
-    assert_equal( 1, v("1.8.2")     <=> v("0.0.0"))
-    assert_equal( 1, v("1.8.2")     <=> v("1.8.2.a"))
-    assert_equal( 1, v("1.8.2.b")   <=> v("1.8.2.a"))
-    assert_equal(-1, v("1.8.2.a")   <=> v("1.8.2"))
-    assert_equal( 1, v("1.8.2.a10") <=> v("1.8.2.a9"))
-    assert_equal( 0, v("")          <=> v("0"))
-
-    assert_nil v("1.0") <=> "whatever"
+    assert_equal( 0, v("1.0")     <=> v("1.0.0"))
+    assert_equal( 1, v("1.0")     <=> v("1.0.a"))
+    assert_equal( 1, v("1.8.2")   <=> v("0.0.0"))
+    assert_equal( 1, v("1.8.2")   <=> v("1.8.2.a"))
+    assert_equal( 1, v("1.8.2.b") <=> v("1.8.2.a"))
+    assert_equal(-1, v("1.8.2.a") <=> v("1.8.2"))
+    assert_equal( 0, v("")        <=> v("0"))
   end
 
-  def test_approximate_recommendation
-    assert_approximate_equal "~> 1.0", "1"
-    assert_approximate_equal "~> 1.0", "1.0"
-    assert_approximate_equal "~> 1.2", "1.2"
-    assert_approximate_equal "~> 1.2", "1.2.0"
-    assert_approximate_equal "~> 1.2", "1.2.3"
-    assert_approximate_equal "~> 1.2", "1.2.3.a.4"
+  def test_spermy_recommendation
+    assert_spermy_equal "~> 1.0", "1"
+    assert_spermy_equal "~> 1.0", "1.0"
+    assert_spermy_equal "~> 1.2", "1.2"
+    assert_spermy_equal "~> 1.2", "1.2.0"
+    assert_spermy_equal "~> 1.2", "1.2.3"
+    assert_spermy_equal "~> 1.2", "1.2.3.a.4"
   end
 
   def test_to_s
     assert_equal "5.2.4", v("5.2.4").to_s
-  end
-
-  def test_semver
-    assert_less_than "1.0.0-alpha", "1.0.0-alpha.1"
-    assert_less_than "1.0.0-alpha.1", "1.0.0-beta.2"
-    assert_less_than "1.0.0-beta.2", "1.0.0-beta.11"
-    assert_less_than "1.0.0-beta.11", "1.0.0-rc.1"
-    assert_less_than "1.0.0-rc1", "1.0.0"
-    assert_less_than "1.0.0-1", "1"
   end
 
   # Asserts that +version+ is a prerelease.
@@ -151,10 +116,10 @@ class TestGemVersion < Gem::TestCase
     assert v(version).prerelease?, "#{version} is a prerelease"
   end
 
-  # Assert that +expected+ is the "approximate" recommendation for +version".
+  # Assert that +expected+ is the "spermy" recommendation for +version".
 
-  def assert_approximate_equal expected, version
-    assert_equal expected, v(version).approximate_recommendation
+  def assert_spermy_equal expected, version
+    assert_equal expected, v(version).spermy_recommendation
   end
 
   # Assert that bumping the +unbumped+ version yields the +expected+.
@@ -182,12 +147,6 @@ class TestGemVersion < Gem::TestCase
     first, second = v(first), v(second)
     assert first.eql?(second), "#{first} is eql? #{second}"
     assert second.eql?(first), "#{second} is eql? #{first}"
-  end
-
-  def assert_less_than left, right
-    l = v(left)
-    r = v(right)
-    assert l < r, "#{left} not less than #{right}"
   end
 
   # Refute the assumption that +version+ is a prerelease.

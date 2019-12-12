@@ -2,7 +2,7 @@
 
   vm.h -
 
-  $Author: ko1 $
+  $Author: yugui $
   created at: 04/01/01 16:56:59 JST
 
   Copyright (C) 2004-2007 Koichi Sasada
@@ -14,8 +14,19 @@
 
 typedef long OFFSET;
 typedef unsigned long lindex_t;
-typedef VALUE GENTRY;
+typedef unsigned long dindex_t;
+typedef rb_num_t GENTRY;
 typedef rb_iseq_t *ISEQ;
+
+#ifdef  COLLECT_USAGE_ANALYSIS
+#define USAGE_ANALYSIS_INSN(insn)           vm_analysis_insn(insn)
+#define USAGE_ANALYSIS_OPERAND(insn, n, op) vm_analysis_operand(insn, n, (VALUE)op)
+#define USAGE_ANALYSIS_REGISTER(reg, s)     vm_analysis_register(reg, s)
+#else
+#define USAGE_ANALYSIS_INSN(insn)		/* none */
+#define USAGE_ANALYSIS_OPERAND(insn, n, op)	/* none */
+#define USAGE_ANALYSIS_REGISTER(reg, s)		/* none */
+#endif
 
 #ifdef __GCC__
 /* TODO: machine dependent prefetch instruction */
@@ -27,7 +38,7 @@ typedef rb_iseq_t *ISEQ;
 #if VMDEBUG > 0
 #define debugs printf
 #define DEBUG_ENTER_INSN(insn) \
-    rb_vmdebug_debug_print_pre(th, GET_CFP(),GET_PC());
+  debug_print_pre(th, GET_CFP());
 
 #if OPT_STACK_CACHING
 #define SC_REGS() , reg_a, reg_b
@@ -36,7 +47,7 @@ typedef rb_iseq_t *ISEQ;
 #endif
 
 #define DEBUG_END_INSN() \
-  rb_vmdebug_debug_print_post(th, GET_CFP() SC_REGS());
+  debug_print_post(th, GET_CFP() SC_REGS());
 
 #else
 
@@ -49,7 +60,7 @@ typedef rb_iseq_t *ISEQ;
 /* #define throwdebug printf */
 
 /************************************************/
-#if defined(DISPATCH_XXX)
+#if   DISPATCH_XXX
 error !
 /************************************************/
 #elif OPT_CALL_THREADED_CODE
@@ -83,10 +94,10 @@ error !
   LABEL(insn): \
   INSN_ENTRY_SIG(insn); \
 
-/* dispatcher */
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__)) && __GNUC__ == 3
+/* dispather */
+#if __GNUC__ && (__i386__ || __x86_64__) && __GNUC__ == 3
 #define DISPATCH_ARCH_DEPEND_WAY(addr) \
-  __asm__ __volatile__("jmp *%0;\t# -- inserted by vm.h\t[length = 2]" : : "r" (addr))
+  asm volatile("jmp *%0;\t# -- inseted by vm.h\t[length = 2]" : : "r" (addr))
 
 #else
 #define DISPATCH_ARCH_DEPEND_WAY(addr) \
@@ -101,11 +112,11 @@ error !
 /* for GCC 3.4.x */
 #define TC_DISPATCH(insn) \
   INSN_DISPATCH_SIG(insn); \
-  goto *(void const *)GET_CURRENT_INSN(); \
+  goto *GET_CURRENT_INSN(); \
   ;
 
 #else
-/* token threaded code */
+/* token threade code */
 
 #define TC_DISPATCH(insn)  \
   DISPATCH_ARCH_DEPEND_WAY(insns_address_table[GET_CURRENT_INSN()]); \
@@ -118,14 +129,14 @@ error !
 
 #define END_INSN(insn)      \
   DEBUG_END_INSN();         \
-  TC_DISPATCH(insn);
+  TC_DISPATCH(insn);        \
 
 #define INSN_DISPATCH()     \
   TC_DISPATCH(__START__)    \
   {
 
 #define END_INSNS_DISPATCH()    \
-      rb_bug("unknown insn: %"PRIdVALUE, GET_CURRENT_INSN());   \
+      rb_bug("unknown insn: %ld", GET_CURRENT_INSN());   \
   }   /* end of while loop */   \
 
 #define NEXT_INSN() TC_DISPATCH(__NEXT_INSN__)
@@ -143,8 +154,8 @@ case BIN(insn):
 
 
 #define INSN_DISPATCH()         \
-  while (1) {			\
-    switch (GET_CURRENT_INSN()) {
+  while(1){                     \
+    switch(GET_CURRENT_INSN()){
 
 #define END_INSNS_DISPATCH()    \
 default:                        \
@@ -169,14 +180,5 @@ default:                        \
 #endif
 
 #define SCREG(r) (reg_##r)
-
-#define VM_DEBUG_STACKOVERFLOW 0
-
-#if VM_DEBUG_STACKOVERFLOW
-#define CHECK_VM_STACK_OVERFLOW_FOR_INSN(cfp, margin) \
-    WHEN_VM_STACK_OVERFLOWED(cfp, (cfp)->sp, margin) vm_stack_overflow_for_insn()
-#else
-#define CHECK_VM_STACK_OVERFLOW_FOR_INSN(cfp, margin)
-#endif
 
 #endif /* RUBY_VM_EXEC_H */

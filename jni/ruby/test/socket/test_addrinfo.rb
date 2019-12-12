@@ -35,7 +35,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
     assert_equal(Socket::AF_INET, ai.afamily)
     assert_equal(Socket::PF_INET, ai.pfamily)
     assert_equal(Socket::SOCK_STREAM, ai.socktype)
-    assert_include([0, Socket::IPPROTO_TCP], ai.protocol)
+    assert_includes([0, Socket::IPPROTO_TCP], ai.protocol)
   end
 
   def test_addrinfo_udp
@@ -44,7 +44,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
     assert_equal(Socket::AF_INET, ai.afamily)
     assert_equal(Socket::PF_INET, ai.pfamily)
     assert_equal(Socket::SOCK_DGRAM, ai.socktype)
-    assert_include([0, Socket::IPPROTO_UDP], ai.protocol)
+    assert_includes([0, Socket::IPPROTO_UDP], ai.protocol)
   end
 
   def test_addrinfo_ip_unpack
@@ -140,7 +140,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
     ai = Addrinfo.new(s1.getsockname)
     s2 = Socket.new(:INET, :STREAM, 0)
     s2.connect(ai)
-    s3, _ = s1.accept
+    s3, sender_addr = s1.accept
     s2.send("test-socket-connect", 0)
     assert_equal("test-socket-connect", s3.recv(100))
   ensure
@@ -159,14 +159,12 @@ class TestSocketAddrinfo < Test::Unit::TestCase
       s2.connect_nonblock(ai)
     rescue IO::WaitWritable
       IO.select(nil, [s2])
-      r = s2.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR)
-      assert_equal(0, r.int, "NOERROR is expected but #{r.inspect}")
       begin
         s2.connect_nonblock(ai)
       rescue Errno::EISCONN
       end
     end
-    s3, _ = s1.accept
+    s3, sender_addr = s1.accept
     s2.send("test-socket-connect-nonblock", 0)
     assert_equal("test-socket-connect-nonblock", s3.recv(100))
   ensure
@@ -332,10 +330,6 @@ class TestSocketAddrinfo < Test::Unit::TestCase
     49152 + rand(65535-49152+1)
   end
 
-  def errors_addrinuse
-    [Errno::EADDRINUSE]
-  end
-
   def test_connect_from
     TCPServer.open("0.0.0.0", 0) {|serv|
       serv_ai = Addrinfo.new(serv.getsockname, :INET, :STREAM)
@@ -350,25 +344,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
             s2.close
           end
         }
-      rescue *errors_addrinuse
-        # not test failure
-      end
-    }
-
-    TCPServer.open("0.0.0.0", 0) {|serv|
-      serv_ai = Addrinfo.new(serv.getsockname, :INET, :STREAM)
-      serv_ai = tcp_unspecified_to_loopback(serv_ai)
-      port = random_port
-      begin
-        serv_ai.connect_from(Addrinfo.tcp("0.0.0.0", port)) {|s1|
-          s2 = serv.accept
-          begin
-            assert_equal(port, s2.remote_address.ip_port)
-          ensure
-            s2.close
-          end
-        }
-      rescue *errors_addrinuse
+      rescue Errno::EADDRINUSE
         # not test failure
       end
     }
@@ -389,7 +365,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
             s2.close
           end
         }
-      rescue *errors_addrinuse
+      rescue Errno::EADDRINUSE
         # not test failure
       end
     }
@@ -409,7 +385,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
             s2.close
           end
         }
-      rescue *errors_addrinuse
+      rescue Errno::EADDRINUSE
         # not test failure
       end
     }
@@ -422,7 +398,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
       client_ai.bind {|s|
         assert_equal(port, s.local_address.ip_port)
       }
-    rescue *errors_addrinuse
+    rescue Errno::EADDRINUSE
       # not test failure
     end
   end
@@ -446,7 +422,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
           end
         }
       }
-    rescue *errors_addrinuse
+    rescue Errno::EADDRINUSE
       # not test failure
     end
   end
@@ -466,17 +442,6 @@ class TestSocketAddrinfo < Test::Unit::TestCase
     assert_equal(ai1.socktype, ai2.socktype)
     assert_equal(ai1.protocol, ai2.protocol)
     assert_equal(ai1.canonname, ai2.canonname)
-  end
-
-  def test_marshal_memory_leak
-    bug11051 = '[ruby-dev:48923] [Bug #11051]'
-    assert_no_memory_leak(%w[-rsocket], <<-PREP, <<-CODE, bug11051, rss: true, limit: 2.0)
-    d = Marshal.dump(Addrinfo.tcp("127.0.0.1", 80))
-    1000.times {Marshal.load(d)}
-    PREP
-    GC.start
-    20_000.times {Marshal.load(d)}
-    CODE
   end
 
   if Socket.const_defined?("AF_INET6") && Socket::AF_INET6.is_a?(Integer)
@@ -525,8 +490,7 @@ class TestSocketAddrinfo < Test::Unit::TestCase
         [:ipv6_v4mapped?, "::ffff:0.0.0.0", "::ffff:255.255.255.255"],
         [:ipv6_linklocal?, "fe80::", "febf::"],
         [:ipv6_sitelocal?, "fec0::", "feef::"],
-        [:ipv6_multicast?, "ff00::", "ffff::"],
-        [:ipv6_unique_local?, "fc00::", "fd00::"],
+        [:ipv6_multicast?, "ff00::", "ffff::"]
       ]
       mlist = [
         [:ipv6_mc_nodelocal?, "ff01::", "ff11::"],

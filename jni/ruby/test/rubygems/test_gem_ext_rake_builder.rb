@@ -1,7 +1,7 @@
-require 'rubygems/test_case'
+require_relative 'gemutilities'
 require 'rubygems/ext'
 
-class TestGemExtRakeBuilder < Gem::TestCase
+class TestGemExtRakeBuilder < RubyGemTestCase
   def setup
     super
 
@@ -24,18 +24,25 @@ class TestGemExtRakeBuilder < Gem::TestCase
     output = []
     realdir = nil # HACK /tmp vs. /private/tmp
 
-    build_rake_in do |rake|
+    build_rake_in do
       Dir.chdir @ext do
         realdir = Dir.pwd
         Gem::Ext::RakeBuilder.build 'mkrf_conf.rb', nil, @dest_path, output
       end
-
-      output = output.join "\n"
-
-      refute_match %r%^rake failed:%, output
-      assert_match %r%^#{Regexp.escape @@ruby} mkrf_conf\.rb%, output
-      assert_match %r%^#{Regexp.escape rake} RUBYARCHDIR=#{Regexp.escape @dest_path} RUBYLIBDIR=#{Regexp.escape @dest_path}%, output
     end
+
+    output = output.join "\n"
+
+    expected = [
+      "#{@@ruby} mkrf_conf.rb",
+      "",
+      "#{@@rake} RUBYARCHDIR=#{@dest_path} RUBYLIBDIR=#{@dest_path}",
+      "(in #{realdir})\n"
+    ]
+
+    refute_match %r%^rake failed:%, output
+    assert_match %r%^#{Regexp.escape @@ruby} mkrf_conf\.rb%, output
+    assert_match %r%^#{Regexp.escape @@rake} RUBYARCHDIR=#{Regexp.escape @dest_path} RUBYLIBDIR=#{Regexp.escape @dest_path}%, output
   end
 
   def test_class_build_fail
@@ -44,20 +51,30 @@ class TestGemExtRakeBuilder < Gem::TestCase
         File.open("Rakefile","w") do |f|
           f.puts "task :default do abort 'fail' end"
         end
-      EO_MKRF
+        EO_MKRF
     end
 
     output = []
 
-    build_rake_in(false) do |rake|
-      error = assert_raises Gem::InstallError do
+    error = assert_raises Gem::InstallError do
+      build_rake_in do
         Dir.chdir @ext do
           Gem::Ext::RakeBuilder.build "mkrf_conf.rb", nil, @dest_path, output
         end
       end
-
-      assert_match %r%^rake failed%, error.message
     end
+
+    expected = <<-EOF.strip
+rake failed:
+
+#{@@ruby} mkrf_conf.rb
+
+#{@@rake} RUBYARCHDIR=#{@dest_path} RUBYLIBDIR=#{@dest_path}
+    EOF
+
+    assert_match %r%^rake failed:%, error.message
+    assert_match %r%^#{Regexp.escape @@ruby} mkrf_conf\.rb%, error.message
+    assert_match %r%^#{Regexp.escape @@rake} RUBYARCHDIR=#{Regexp.escape @dest_path} RUBYLIBDIR=#{Regexp.escape @dest_path}%, error.message
   end
 
 end

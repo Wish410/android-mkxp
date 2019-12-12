@@ -325,7 +325,12 @@ class TkNamespace < TkObject
   def code(script = Proc.new)
     if script.kind_of?(String)
       cmd = proc{|*args|
-        ret = ScopeArgs.new(@fullname,*args).instance_eval(script)
+        if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
+          obj = ScopeArgs.new(@fullname,*args)
+          ret = obj.instance_exec(obj, script)
+        else
+          ret = ScopeArgs.new(@fullname,*args).instance_eval(script)
+        end
         id = ret.object_id
         TkNamespace::Tk_NsCode_RetObjID_TBL[id] = ret
         id

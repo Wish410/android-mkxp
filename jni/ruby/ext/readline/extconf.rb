@@ -1,26 +1,26 @@
 require "mkmf"
 
-readline = Struct.new(:headers, :extra_check).new(["stdio.h"])
+$readline_headers = ["stdio.h"]
 
-def readline.have_header(header)
-  if super(header, &extra_check)
-    headers.push(header)
+def have_readline_header(header)
+  if have_header(header)
+    $readline_headers.push(header)
     return true
   else
     return false
   end
 end
 
-def readline.have_var(var)
-  return super(var, headers)
+def have_readline_var(var)
+  return have_var(var, $readline_headers)
 end
 
-def readline.have_func(func)
-  return super(func, headers)
+def have_readline_func(func)
+  return have_func(func, $readline_headers)
 end
 
-def readline.have_type(type)
-  return super(type, headers)
+def have_readline_macro(macro)
+  return have_macro(macro, $readline_headers)
 end
 
 dir_config('curses')
@@ -28,82 +28,58 @@ dir_config('ncurses')
 dir_config('termcap')
 dir_config("readline")
 enable_libedit = enable_config("libedit")
-
 have_library("user32", nil) if /cygwin/ === RUBY_PLATFORM
 have_library("ncurses", "tgetnum") ||
   have_library("termcap", "tgetnum") ||
   have_library("curses", "tgetnum")
 
-case enable_libedit
-when true
-  # --enable-libedit
-  unless (readline.have_header("editline/readline.h") ||
-          readline.have_header("readline/readline.h")) &&
+if enable_libedit
+  unless (have_readline_header("editline/readline.h") ||
+          have_readline_header("readline/readline.h")) &&
           have_library("edit", "readline")
-    raise "libedit not found"
-  end
-when false
-  # --disable-libedit
-  unless ((readline.have_header("readline/readline.h") &&
-           readline.have_header("readline/history.h")) &&
-           have_library("readline", "readline"))
-    raise "readline not found"
+    exit
   end
 else
-  # does not specify
-  unless ((readline.have_header("readline/readline.h") &&
-           readline.have_header("readline/history.h")) &&
+  unless ((have_readline_header("readline/readline.h") &&
+           have_readline_header("readline/history.h")) &&
            (have_library("readline", "readline") ||
             have_library("edit", "readline"))) ||
-            (readline.have_header("editline/readline.h") &&
+            (have_readline_header("editline/readline.h") &&
              have_library("edit", "readline"))
-    raise "readline nor libedit not found"
+    exit
   end
 end
 
-readline.have_func("rl_getc")
-readline.have_func("rl_getc_function")
-readline.have_func("rl_filename_completion_function")
-readline.have_func("rl_username_completion_function")
-readline.have_func("rl_completion_matches")
-readline.have_func("rl_refresh_line")
-readline.have_var("rl_deprep_term_function")
-readline.have_var("rl_completion_append_character")
-readline.have_var("rl_basic_word_break_characters")
-readline.have_var("rl_completer_word_break_characters")
-readline.have_var("rl_basic_quote_characters")
-readline.have_var("rl_completer_quote_characters")
-readline.have_var("rl_filename_quote_characters")
-readline.have_var("rl_attempted_completion_over")
-readline.have_var("rl_library_version")
-readline.have_var("rl_editing_mode")
-readline.have_var("rl_line_buffer")
-readline.have_var("rl_point")
+have_readline_func("rl_getc_function")
+have_readline_func("rl_filename_completion_function")
+have_readline_func("rl_username_completion_function")
+have_readline_func("rl_completion_matches")
+have_readline_func("rl_refresh_line")
+have_readline_var("rl_deprep_term_function")
+have_readline_var("rl_completion_append_character")
+have_readline_var("rl_basic_word_break_characters")
+have_readline_var("rl_completer_word_break_characters")
+have_readline_var("rl_basic_quote_characters")
+have_readline_var("rl_completer_quote_characters")
+have_readline_var("rl_filename_quote_characters")
+have_readline_var("rl_attempted_completion_over")
+have_readline_var("rl_library_version")
+have_readline_var("rl_editing_mode")
+have_readline_var("rl_line_buffer")
+have_readline_var("rl_point")
 # workaround for native windows.
-/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && readline.have_var("rl_event_hook")
-/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && readline.have_var("rl_catch_sigwinch")
-/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && readline.have_var("rl_catch_signals")
-readline.have_var("rl_pre_input_hook")
-readline.have_var("rl_special_prefixes")
-readline.have_func("rl_cleanup_after_signal")
-readline.have_func("rl_free_line_state")
-readline.have_func("rl_clear_signals")
-readline.have_func("rl_set_screen_size")
-readline.have_func("rl_get_screen_size")
-readline.have_func("rl_vi_editing_mode")
-readline.have_func("rl_emacs_editing_mode")
-readline.have_func("replace_history_entry")
-readline.have_func("remove_history")
-readline.have_func("clear_history")
-readline.have_func("rl_redisplay")
-readline.have_func("rl_insert_text")
-readline.have_func("rl_delete_text")
-unless readline.have_type("rl_hook_func_t*")
-  # rl_hook_func_t is available since readline-4.2 (2001).
-  # Function is removed at readline-6.3 (2014).
-  # However, editline (NetBSD 6.1.3, 2014) doesn't have rl_hook_func_t.
-  $defs << "-Drl_hook_func_t=Function"
-end
-
-$INCFLAGS << " -I$(top_srcdir)"
+/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && have_readline_var("rl_event_hook")
+/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && have_readline_var("rl_catch_sigwinch")
+/mswin|bccwin|mingw/ !~ RUBY_PLATFORM && have_readline_var("rl_catch_signals")
+have_readline_func("rl_cleanup_after_signal")
+have_readline_func("rl_clear_signals")
+have_readline_func("rl_set_screen_size")
+have_readline_func("rl_get_screen_size")
+have_readline_func("rl_vi_editing_mode")
+have_readline_func("rl_emacs_editing_mode")
+have_readline_func("replace_history_entry")
+have_readline_func("remove_history")
+have_readline_func("clear_history")
+have_readline_macro("RL_PROMPT_START_IGNORE")
+have_readline_macro("RL_PROMPT_END_IGNORE")
 create_makefile("readline")

@@ -46,7 +46,11 @@ module REXML
     def write(writer, indent=-1, transitive=false, ie_hack=false)
       return nil unless @writethis or writer.kind_of? Output
       writer << START.sub(/\\/u, '')
-      writer << " #{content encoding}"
+      if writer.kind_of? Output
+        writer << " #{content writer.encoding}"
+      else
+        writer << " #{content encoding}"
+      end
       writer << STOP.sub(/\\/u, '')
     end
 
@@ -107,7 +111,7 @@ module REXML
     private
     def content(enc)
       rv = "version='#@version'"
-      rv << " encoding='#{enc}'" if @writeencoding || enc !~ /\Autf-8\z/i
+      rv << " encoding='#{enc}'" if @writeencoding || enc !~ /utf-8/i
       rv << " standalone='#@standalone'" if @standalone
       rv
     end

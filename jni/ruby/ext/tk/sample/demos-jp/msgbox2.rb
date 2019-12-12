@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # message boxes widget demo (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($msgbox2_demo) && $msgbox2_demo
   $msgbox2_demo.destroy
   $msgbox2_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $msgbox2_demo = TkToplevel.new {|w|
   title("Message Box Demonstration")
   iconname("messagebox")
@@ -18,15 +18,15 @@ $msgbox2_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($msgbox2_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 TkLabel.new(base_frame, 'font'=>$font, 'wraplength'=>'4i', 'justify'=>'left',
-            'text'=>"ã¾ãšè¡¨ç¤ºã™ã‚‹ã‚¢ã‚¤ã‚³ãƒ³ã¨ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹ã®ç¨®é¡žã‚’é¸ã‚“ã§ä¸‹ã•ã„ã€‚ãã®å¾Œã«\"ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹\"ãƒœã‚¿ãƒ³ã‚’æŠ¼ã™ã¨ã€æŒ‡å®šã•ã‚ŒãŸå½¢å¼ã§ã€ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã¨è©³ç´°ãƒ†ã‚­ã‚¹ãƒˆã¨ã‚’æŒã£ãŸãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹ãŒè¡¨ç¤ºã•ã‚Œã¾ã™ã€‚").pack('side'=>'top')
+            'text'=>"¤Þ¤ºÉ½¼¨¤¹¤ë¥¢¥¤¥³¥ó¤È¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹¤Î¼ïÎà¤òÁª¤ó¤Ç²¼¤µ¤¤¡£¤½¤Î¸å¤Ë\"¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹\"¥Ü¥¿¥ó¤ò²¡¤¹¤È¡¢»ØÄê¤µ¤ì¤¿·Á¼°¤Ç¡¢¥á¥Ã¥»¡¼¥¸¤È¾ÜºÙ¥Æ¥­¥¹¥È¤È¤ò»ý¤Ã¤¿¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹¤¬É½¼¨¤µ¤ì¤Þ¤¹¡£").pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $msgbox2_demo
       $msgbox2_demo = nil
@@ -35,17 +35,17 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'msgbox2'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹'
+    text '¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹'
     command proc{showMessageBox2 $msgbox2_demo}
   }.pack('side'=>'left', 'expand'=>'yes')
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 $msgbox_leftframe  = TkFrame.new(base_frame)
 $msgbox_rightframe = TkFrame.new(base_frame)
 $msgbox_leftframe .pack('side'=>'left', 'expand'=>'yes', 'fill'=>'y',
@@ -53,7 +53,7 @@ $msgbox_leftframe .pack('side'=>'left', 'expand'=>'yes', 'fill'=>'y',
 $msgbox_rightframe.pack('side'=>'left', 'expand'=>'yes', 'fill'=>'y',
                         'pady'=>'.5c', 'padx'=>'.5c')
 
-TkLabel.new($msgbox_leftframe, 'text'=>'ã‚¢ã‚¤ã‚³ãƒ³').pack('side'=>'top')
+TkLabel.new($msgbox_leftframe, 'text'=>'¥¢¥¤¥³¥ó').pack('side'=>'top')
 TkFrame.new($msgbox_leftframe, 'relief'=>'ridge', 'bd'=>1, 'height'=>2)\
 .pack('side'=>'top', 'fill'=>'x', 'expand'=>'no')
 
@@ -65,7 +65,7 @@ $msgboxIcon = TkVariable.new('info')
                                         'anchor'=>'w', 'fill'=>'x')
 }
 
-TkLabel.new($msgbox_rightframe, 'text'=>'ç¨®é¡ž').pack('side'=>'top')
+TkLabel.new($msgbox_rightframe, 'text'=>'¼ïÎà').pack('side'=>'top')
 TkFrame.new($msgbox_rightframe, 'relief'=>'ridge', 'bd'=>1, 'height'=>2)\
 .pack('side'=>'top', 'fill'=>'x', 'expand'=>'no')
 
@@ -81,10 +81,10 @@ $msgboxType = TkVariable.new('ok')
 def showMessageBox2(w)
   button = Tk.messageBox('icon'=>$msgboxIcon.value, 'type'=>$msgboxType.value,
                          'title'=>'Message', 'parent'=>w,
-                         'message'=>"\"#{$msgboxType.value}\"ã‚¿ã‚¤ãƒ—ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹",
-                         'detail'=>"ã“ã‚Œã¯\"#{$msgboxType.value}\"ã¨ã„ã†ç¨®é¡žã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹ã§ã€\"#{$msgboxIcon.value}\"ã®ã‚¢ã‚¤ã‚³ãƒ³ãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã¾ã™ã€‚ä¸‹ã®ãƒœã‚¿ãƒ³ã®ã„ãšã‚Œã‹ã‚’é¸æŠžã—ã¦ã‚¯ãƒªãƒƒã‚¯ã—ã¦ãã ã•ã„ã€‚")
+                         'message'=>"\"#{$msgboxType.value}\"¥¿¥¤¥×¤Î¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹",
+                         'detail'=>"¤³¤ì¤Ï\"#{$msgboxType.value}\"¤È¤¤¤¦¼ïÎà¤Î¥á¥Ã¥»¡¼¥¸¥Ü¥Ã¥¯¥¹¤Ç¡¢\"#{$msgboxIcon.value}\"¤Î¥¢¥¤¥³¥ó¤¬É½¼¨¤µ¤ì¤Æ¤¤¤Þ¤¹¡£²¼¤Î¥Ü¥¿¥ó¤Î¤¤¤º¤ì¤«¤òÁªÂò¤·¤Æ¥¯¥ê¥Ã¥¯¤·¤Æ¤¯¤À¤µ¤¤¡£")
 
   Tk.messageBox('icon'=>'info', 'type'=>'ok', 'parent'=>w,
-                'message'=>"ã‚ãªãŸã¯ \"#{button}\" ã‚’æŠ¼ã—ã¾ã—ãŸã­ã€‚")
+                'message'=>"¤¢¤Ê¤¿¤Ï \"#{button}\" ¤ò²¡¤·¤Þ¤·¤¿¤Í¡£")
 end
 

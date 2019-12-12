@@ -1,5 +1,5 @@
 /*
- * $Id: ossl_bio.c 47042 2014-08-03 01:56:01Z nobu $
+ * $Id: ossl_bio.c 27437 2010-04-22 08:04:13Z nobu $
  * 'OpenSSL for Ruby' team members
  * Copyright (C) 2003
  * All rights reserved.
@@ -18,17 +18,16 @@ ossl_obj2bio(VALUE obj)
 {
     BIO *bio;
 
-    if (RB_TYPE_P(obj, T_FILE)) {
+    if (TYPE(obj) == T_FILE) {
 	rb_io_t *fptr;
 	FILE *fp;
 	int fd;
 
 	GetOpenFile(obj, fptr);
 	rb_io_check_readable(fptr);
-	if ((fd = rb_cloexec_dup(FPTR_TO_FD(fptr))) < 0){
+	if ((fd = dup(FPTR_TO_FD(fptr))) < 0){
 	    rb_sys_fail(0);
 	}
-        rb_update_max_fd(fd);
 	if (!(fp = fdopen(fd, "r"))){
 	    close(fd);
 	    rb_sys_fail(0);
@@ -40,7 +39,7 @@ ossl_obj2bio(VALUE obj)
     }
     else {
 	StringValue(obj);
-	bio = BIO_new_mem_buf(RSTRING_PTR(obj), RSTRING_LENINT(obj));
+	bio = BIO_new_mem_buf(RSTRING_PTR(obj), RSTRING_LEN(obj));
 	if (!bio) ossl_raise(eOSSLError, NULL);
     }
 

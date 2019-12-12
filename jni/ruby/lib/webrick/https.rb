@@ -15,28 +15,8 @@ module WEBrick
     HTTP.update(SSL)
   end
 
-  ##
-  #--
-  # Adds SSL functionality to WEBrick::HTTPRequest
-
   class HTTPRequest
-
-    ##
-    # HTTP request SSL cipher
-
-    attr_reader :cipher
-
-    ##
-    # HTTP request server certificate
-
-    attr_reader :server_cert
-
-    ##
-    # HTTP request client certificate
-
-    attr_reader :client_cert
-
-    # :stopdoc:
+    attr_reader :cipher, :server_cert, :client_cert
 
     alias orig_parse parse
 
@@ -58,7 +38,6 @@ module WEBrick
       end
       return orig_parse_uri(str)
     end
-    private :parse_uri
 
     alias orig_meta_vars meta_vars
 
@@ -80,7 +59,5 @@ module WEBrick
       end
       meta
     end
-
-    # :startdoc:
   end
 end

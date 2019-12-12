@@ -4,7 +4,7 @@
 
 require 'tempfile'
 
-max = 200_000
+max = 20_000
 str = "Hello world!  " * 1000
 f = Tempfile.new('yarv-benchmark')
 

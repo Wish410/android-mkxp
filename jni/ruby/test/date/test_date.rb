@@ -20,6 +20,7 @@ class TestDate < Test::Unit::TestCase
     assert_equal(7, Date::ABBR_DAYNAMES.size)
 
     assert(Date::MONTHNAMES.frozen?)
+    assert(!Date::MONTHNAMES[0].frozen?)
     assert(Date::MONTHNAMES[1].frozen?)
     assert(Date::DAYNAMES.frozen?)
     assert(Date::DAYNAMES[0].frozen?)
@@ -40,7 +41,9 @@ class TestDate < Test::Unit::TestCase
     assert_instance_of(DateSub, DateSub.today)
     assert_instance_of(DateTimeSub, DateTimeSub.now)
 
+    assert_equal('#<DateSub: -4712-01-01 (-1/2,0,2299161)>', d.inspect)
     assert_equal('-4712-01-01', d.to_s)
+    assert_equal('#<DateTimeSub: -4712-01-01T00:00:00+00:00 (-1/2,0,2299161)>', dt.inspect)
     assert_equal('-4712-01-01T00:00:00+00:00', dt.to_s)
 
     d2 = d + 1
@@ -110,6 +113,27 @@ class TestDate < Test::Unit::TestCase
     assert_equal(d2, dt2)
   end
 
+  def test_coerce
+    bug4375 = '[ruby-core:35127]'
+    d = Date.jd(0)
+    d2 = Date.jd(1)
+    others = [1, d2, Date::Infinity.new, nil, Object.new]
+    assert_nothing_raised(bug4375) {
+      others.each do |o|
+        case o
+        when d
+          flunk("expected not to match")
+        end
+      end
+    }
+    assert_nothing_raised(bug4375) {
+      case d
+      when *others
+        flunk("expected not to match")
+      end
+    }
+  end
+
   def test_hash
     h = {}
     h[Date.new(1999,5,23)] = 0
@@ -136,15 +160,6 @@ class TestDate < Test::Unit::TestCase
     assert_equal(true, d.frozen?)
     assert_instance_of(Fixnum, d.yday)
     assert_instance_of(String, d.to_s)
-  end
-
-  def test_submillisecond_comparison
-    d1 = DateTime.new(2013, 12, 6, 0, 0, Rational(1, 10000))
-    d2 = DateTime.new(2013, 12, 6, 0, 0, Rational(2, 10000))
-    # d1 is 0.0001s earlier than d2
-    assert_equal(-1, d1 <=> d2)
-    assert_equal(0, d1 <=> d1)
-    assert_equal(1, d2 <=> d1)
   end
 
 end

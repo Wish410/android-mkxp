@@ -1,5 +1,5 @@
 /*
- * $Id: openssl_missing.c 40625 2013-05-09 12:12:17Z akr $
+ * $Id: openssl_missing.c 29662 2010-11-01 15:03:37Z yugui $
  * 'OpenSSL for Ruby' project
  * Copyright (C) 2001-2002  Michal Rokos <m.rokos@sh.cvut.cz>
  * All rights reserved.
@@ -10,7 +10,7 @@
  */
 #include RUBY_EXTCONF_H
 
-#if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_EVP_CIPHER_CTX_ENGINE)
+#if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_ST_ENGINE)
 # include <openssl/engine.h>
 #endif
 #include <openssl/x509_vfy.h>
@@ -122,7 +122,7 @@ EVP_CIPHER_CTX_copy(EVP_CIPHER_CTX *out, EVP_CIPHER_CTX *in)
 {
     memcpy(out, in, sizeof(EVP_CIPHER_CTX));
 
-#if defined(HAVE_ENGINE_ADD) && defined(HAVE_EVP_CIPHER_CTX_ENGINE)
+#if defined(HAVE_ENGINE_ADD) && defined(HAVE_ST_ENGINE)
     if (in->engine) ENGINE_add(out->engine);
     if (in->cipher_data) {
 	out->cipher_data = OPENSSL_malloc(in->cipher->ctx_size);
@@ -339,18 +339,6 @@ PEM_def_callback(char *buf, int num, int w, void *key)
 	else break;
     }
     return j;
-}
-#endif
-
-#if !defined(HAVE_ASN1_PUT_EOC)
-int
-ASN1_put_eoc(unsigned char **pp)
-{
-    unsigned char *p = *pp;
-    *p++ = 0;
-    *p++ = 0;
-    *pp = p;
-    return 2;
 }
 #endif
 

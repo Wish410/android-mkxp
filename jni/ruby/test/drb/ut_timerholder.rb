@@ -2,8 +2,6 @@ require 'runit/testcase'
 require 'runit/cui/testrunner'
 require 'timerholder'
 
-module DRbTests
-
 class TimerHolderTest < RUNIT::TestCase
   def do_test(timeout, keeper_sleep = nil)
     holder = TimerHolder.new(timeout)
@@ -46,8 +44,6 @@ class TimerHolderTest < RUNIT::TestCase
   end
 end
 
-end
-
 if __FILE__ == $0
-  RUNIT::CUI::TestRunner.run(DRbTests::TimerHolderTest.suite)
+  RUNIT::CUI::TestRunner.run(TimerHolderTest.suite)
 end

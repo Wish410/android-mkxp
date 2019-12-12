@@ -1,7 +1,7 @@
 require "cgi"
 require "rexml/document"
 
-require_relative "rss-testcase"
+require "rss-testcase"
 
 require "rss/content"
 

@@ -1,17 +1,7 @@
-# -*- coding: us-ascii -*-
-begin
-  require 'openssl'
-rescue LoadError
-end
-
-# == Secure random number generator interface.
+# = Secure random number generator interface.
 #
 # This library is an interface for secure random number generator which is
 # suitable for generating session key in HTTP cookies, etc.
-#
-# You can use this library in your application by requiring it:
-#
-#   require 'securerandom'
 #
 # It supports following secure random number generators.
 #
@@ -19,83 +9,41 @@ end
 # * /dev/urandom
 # * Win32
 #
-# === Examples
+# == Example
 #
-# Hexadecimal string.
+# # random hexadecimal string.
+# p SecureRandom.hex(10) #=> "52750b30ffbc7de3b362"
+# p SecureRandom.hex(10) #=> "92b15d6c8dc4beb5f559"
+# p SecureRandom.hex(11) #=> "6aca1b5c58e4863e6b81b8"
+# p SecureRandom.hex(12) #=> "94b2fff3e7fd9b9c391a2306"
+# p SecureRandom.hex(13) #=> "39b290146bea6ce975c37cfc23"
+# ...
 #
-#   require 'securerandom'
+# # random base64 string.
+# p SecureRandom.base64(10) #=> "EcmTPZwWRAozdA=="
+# p SecureRandom.base64(10) #=> "9b0nsevdwNuM/w=="
+# p SecureRandom.base64(10) #=> "KO1nIU+p9DKxGg=="
+# p SecureRandom.base64(11) #=> "l7XEiFja+8EKEtY="
+# p SecureRandom.base64(12) #=> "7kJSM/MzBJI+75j8"
+# p SecureRandom.base64(13) #=> "vKLJ0tXBHqQOuIcSIg=="
+# ...
 #
-#   p SecureRandom.hex(10) #=> "52750b30ffbc7de3b362"
-#   p SecureRandom.hex(10) #=> "92b15d6c8dc4beb5f559"
-#   p SecureRandom.hex(13) #=> "39b290146bea6ce975c37cfc23"
-#
-# Base64 string.
-#
-#   p SecureRandom.base64(10) #=> "EcmTPZwWRAozdA=="
-#   p SecureRandom.base64(10) #=> "KO1nIU+p9DKxGg=="
-#   p SecureRandom.base64(12) #=> "7kJSM/MzBJI+75j8"
-#
-# Binary string.
-#
-#   p SecureRandom.random_bytes(10) #=> "\016\t{\370g\310pbr\301"
-#   p SecureRandom.random_bytes(10) #=> "\323U\030TO\234\357\020\a\337"
+# # random binary string.
+# p SecureRandom.random_bytes(10) #=> "\016\t{\370g\310pbr\301"
+# p SecureRandom.random_bytes(10) #=> "\323U\030TO\234\357\020\a\337"
+# ...
+
+begin
+  require 'openssl'
+rescue LoadError
+end
+
 module SecureRandom
-  if !defined?(OpenSSL::Random) && /mswin|mingw/ =~ RUBY_PLATFORM
-    require "fiddle/import"
-
-    module AdvApi32 # :nodoc:
-      extend Fiddle::Importer
-      dlload "advapi32"
-      extern "int CryptAcquireContext(void*, void*, void*, unsigned long, unsigned long)"
-      extern "int CryptGenRandom(void*, unsigned long, void*)"
-
-      def self.get_provider
-        hProvStr = " " * Fiddle::SIZEOF_VOIDP
-        prov_rsa_full = 1
-        crypt_verifycontext = 0xF0000000
-
-        if CryptAcquireContext(hProvStr, nil, nil, prov_rsa_full, crypt_verifycontext) == 0
-          raise SystemCallError, "CryptAcquireContext failed: #{lastWin32ErrorMessage}"
-        end
-        type = Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG_LONG ? 'q' : 'l'
-        hProv, = hProvStr.unpack(type)
-        hProv
-      end
-
-      def self.gen_random(n)
-        @hProv ||= get_provider
-        bytes = " ".force_encoding("ASCII-8BIT") * n
-        if CryptGenRandom(@hProv, bytes.size, bytes) == 0
-          raise SystemCallError, "CryptGenRandom failed: #{Kernel32.last_error_message}"
-        end
-        bytes
-      end
-    end
-
-    module Kernel32 # :nodoc:
-      extend Fiddle::Importer
-      dlload "kernel32"
-      extern "unsigned long GetLastError()"
-      extern "unsigned long FormatMessageA(unsigned long, void*, unsigned long, unsigned long, void*, unsigned long, void*)"
-
-      # Following code is based on David Garamond's GUID library for Ruby.
-      def self.last_error_message
-        format_message_ignore_inserts = 0x00000200
-        format_message_from_system    = 0x00001000
-
-        code = GetLastError()
-        msg = "\0" * 1024
-        len = FormatMessageA(format_message_ignore_inserts + format_message_from_system, 0, code, 0, msg, 1024, nil)
-        msg[0, len].force_encoding("filesystem").tr("\r", '').chomp
-      end
-    end
-  end
-
   # SecureRandom.random_bytes generates a random binary string.
   #
-  # The argument _n_ specifies the length of the result string.
+  # The argument n specifies the length of the result string.
   #
-  # If _n_ is not specified or is nil, 16 is assumed.
+  # If n is not specified, 16 is assumed.
   # It may be larger in future.
   #
   # The result may contain any byte: "\x00" - "\xff".
@@ -106,60 +54,79 @@ module SecureRandom
   # If secure random number generator is not available,
   # NotImplementedError is raised.
   def self.random_bytes(n=nil)
-    n = n ? n.to_int : 16
-    gen_random(n)
-  end
+    n ||= 16
 
-  if defined? OpenSSL::Random
-    def self.gen_random(n)
-      @pid = 0 unless defined?(@pid)
+    if defined? OpenSSL::Random
+      @pid = $$ if !defined?(@pid)
       pid = $$
-      unless @pid == pid
-        now = Process.clock_gettime(Process::CLOCK_REALTIME, :nanosecond)
-        ary = [now, @pid, pid]
-        OpenSSL::Random.random_add(ary.join("").to_s, 0.0)
+      if @pid != pid
+        now = Time.now
+        ary = [now.to_i, now.nsec, @pid, pid]
+        OpenSSL::Random.seed(ary.to_s)
         @pid = pid
       end
       return OpenSSL::Random.random_bytes(n)
     end
-  elsif defined?(AdvApi32)
-    def self.gen_random(n)
-      return AdvApi32.gen_random(n)
-    end
 
-    def self.lastWin32ErrorMessage # :nodoc:
-      # for compatibility
-      return Kernel32.last_error_message
-    end
-  else
-    def self.gen_random(n)
+    if !defined?(@has_urandom) || @has_urandom
       flags = File::RDONLY
       flags |= File::NONBLOCK if defined? File::NONBLOCK
       flags |= File::NOCTTY if defined? File::NOCTTY
       begin
         File.open("/dev/urandom", flags) {|f|
           unless f.stat.chardev?
-            break
+            raise Errno::ENOENT
           end
-          ret = f.read(n)
-          unless ret.length == n
-            raise NotImplementedError, "Unexpected partial read from random device: only #{ret.length} for #{n} bytes"
+          @has_urandom = true
+          ret = f.readpartial(n)
+          if ret.length != n
+            raise NotImplementedError, "Unexpected partial read from random device"
           end
           return ret
         }
       rescue Errno::ENOENT
+        @has_urandom = false
       end
-
-      raise NotImplementedError, "No random device"
     end
+
+    if !defined?(@has_win32)
+      begin
+        require 'Win32API'
+
+        crypt_acquire_context = Win32API.new("advapi32", "CryptAcquireContext", 'PPPII', 'L')
+        @crypt_gen_random = Win32API.new("advapi32", "CryptGenRandom", 'LIP', 'L')
+
+        hProvStr = " " * 4
+        prov_rsa_full = 1
+        crypt_verifycontext = 0xF0000000
+
+        if crypt_acquire_context.call(hProvStr, nil, nil, prov_rsa_full, crypt_verifycontext) == 0
+          raise SystemCallError, "CryptAcquireContext failed: #{lastWin32ErrorMessage}"
+        end
+        @hProv, = hProvStr.unpack('L')
+
+        @has_win32 = true
+      rescue LoadError
+        @has_win32 = false
+      end
+    end
+    if @has_win32
+      bytes = " ".force_encoding("ASCII-8BIT") * n
+      if @crypt_gen_random.call(@hProv, bytes.size, bytes) == 0
+        raise SystemCallError, "CryptGenRandom failed: #{lastWin32ErrorMessage}"
+      end
+      return bytes
+    end
+
+    raise NotImplementedError, "No random device"
   end
 
-  # SecureRandom.hex generates a random hexadecimal string.
+  # SecureRandom.hex generates a random hex string.
   #
-  # The argument _n_ specifies the length, in bytes, of the random number to be generated.
-  # The length of the resulting hexadecimal string is twice _n_.
+  # The argument n specifies the length of the random length.
+  # The length of the result string is twice of n.
   #
-  # If _n_ is not specified or is nil, 16 is assumed.
+  # If n is not specified, 16 is assumed.
   # It may be larger in future.
   #
   # The result may contain 0-9 and a-f.
@@ -175,10 +142,10 @@ module SecureRandom
 
   # SecureRandom.base64 generates a random base64 string.
   #
-  # The argument _n_ specifies the length, in bytes, of the random number
-  # to be generated. The length of the result string is about 4/3 of _n_.
+  # The argument n specifies the length of the random length.
+  # The length of the result string is about 4/3 of n.
   #
-  # If _n_ is not specified or is nil, 16 is assumed.
+  # If n is not specified, 16 is assumed.
   # It may be larger in future.
   #
   # The result may contain A-Z, a-z, 0-9, "+", "/" and "=".
@@ -189,17 +156,17 @@ module SecureRandom
   # If secure random number generator is not available,
   # NotImplementedError is raised.
   #
-  # See RFC 3548 for the definition of base64.
+  # See RFC 3548 for base64.
   def self.base64(n=nil)
     [random_bytes(n)].pack("m*").delete("\n")
   end
 
   # SecureRandom.urlsafe_base64 generates a random URL-safe base64 string.
   #
-  # The argument _n_ specifies the length, in bytes, of the random number
-  # to be generated. The length of the result string is about 4/3 of _n_.
+  # The argument _n_ specifies the length of the random length.
+  # The length of the result string is about 4/3 of _n_.
   #
-  # If _n_ is not specified or is nil, 16 is assumed.
+  # If _n_ is not specified, 16 is assumed.
   # It may be larger in future.
   #
   # The boolean argument _padding_ specifies the padding.
@@ -219,18 +186,18 @@ module SecureRandom
   # If secure random number generator is not available,
   # NotImplementedError is raised.
   #
-  # See RFC 3548 for the definition of URL-safe base64.
+  # See RFC 3548 for URL-safe base64.
   def self.urlsafe_base64(n=nil, padding=false)
     s = [random_bytes(n)].pack("m*")
     s.delete!("\n")
     s.tr!("+/", "-_")
-    s.delete!("=") unless padding
+    s.delete!("=") if !padding
     s
   end
 
   # SecureRandom.random_number generates a random number.
   #
-  # If a positive integer is given as _n_,
+  # If an positive integer is given as n,
   # SecureRandom.random_number returns an integer:
   # 0 <= SecureRandom.random_number(n) < n.
   #
@@ -238,7 +205,7 @@ module SecureRandom
   #   p SecureRandom.random_number(100) #=> 88
   #
   # If 0 is given or an argument is not given,
-  # SecureRandom.random_number returns a float:
+  # SecureRandom.random_number returns an float:
   # 0.0 <= SecureRandom.random_number() < 1.0.
   #
   #   p SecureRandom.random_number #=> 0.596506046187744
@@ -246,29 +213,21 @@ module SecureRandom
   #
   def self.random_number(n=0)
     if 0 < n
-      if defined? OpenSSL::BN
-        OpenSSL::BN.rand_range(n).to_i
-      else
-        hex = n.to_s(16)
-        hex = '0' + hex if (hex.length & 1) == 1
-        bin = [hex].pack("H*")
-        mask = bin[0].ord
-        mask |= mask >> 1
-        mask |= mask >> 2
-        mask |= mask >> 4
-        begin
-          rnd = SecureRandom.random_bytes(bin.length)
-          rnd[0] = (rnd[0].ord & mask).chr
-        end until rnd < bin
-        rnd.unpack("H*")[0].hex
-      end
+      hex = n.to_s(16)
+      hex = '0' + hex if (hex.length & 1) == 1
+      bin = [hex].pack("H*")
+      mask = bin[0].ord
+      mask |= mask >> 1
+      mask |= mask >> 2
+      mask |= mask >> 4
+      begin
+        rnd = SecureRandom.random_bytes(bin.length)
+        rnd[0] = (rnd[0].ord & mask).chr
+      end until rnd < bin
+      rnd.unpack("H*")[0].hex
     else
       # assumption: Float::MANT_DIG <= 64
-      if defined? OpenSSL::BN
-        i64 = OpenSSL::BN.rand(64, -1).to_i
-      else
-        i64 = SecureRandom.random_bytes(8).unpack("Q")[0]
-      end
+      i64 = SecureRandom.random_bytes(8).unpack("Q")[0]
       Math.ldexp(i64 >> (64-Float::MANT_DIG), -Float::MANT_DIG)
     end
   end
@@ -289,5 +248,18 @@ module SecureRandom
     ary[2] = (ary[2] & 0x0fff) | 0x4000
     ary[3] = (ary[3] & 0x3fff) | 0x8000
     "%08x-%04x-%04x-%04x-%04x%08x" % ary
+  end
+
+  # Following code is based on David Garamond's GUID library for Ruby.
+  def self.lastWin32ErrorMessage # :nodoc:
+    get_last_error = Win32API.new("kernel32", "GetLastError", '', 'L')
+    format_message = Win32API.new("kernel32", "FormatMessageA", 'LPLLPLPPPPPPPP', 'L')
+    format_message_ignore_inserts = 0x00000200
+    format_message_from_system    = 0x00001000
+
+    code = get_last_error.call
+    msg = "\0" * 1024
+    len = format_message.call(format_message_ignore_inserts + format_message_from_system, 0, code, 0, msg, 1024, nil, nil, nil, nil, nil, nil, nil, nil)
+    msg[0, len].tr("\r", '').chomp
   end
 end

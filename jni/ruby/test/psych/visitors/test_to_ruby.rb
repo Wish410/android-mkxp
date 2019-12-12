@@ -1,12 +1,11 @@
-# coding: US-ASCII
-require 'psych/helper'
+require_relative '../helper'
 
 module Psych
   module Visitors
     class TestToRuby < TestCase
       def setup
         super
-        @visitor = ToRuby.create
+        @visitor = ToRuby.new
       end
 
       def test_object
@@ -18,8 +17,8 @@ module Psych
         assert_equal 'bar', o.instance_variable_get(:@foo)
       end
 
-      def test_tz_00_00_loads_without_error
-        assert Psych.load('1900-01-01T00:00:00+00:00')
+      def test_awesome
+        Psych.load('1900-01-01T00:00:00+00:00')
       end
 
       def test_legacy_struct
@@ -88,7 +87,7 @@ description:
       end
 
       def test_exception
-        exc = ::Exception.new 'hello'
+        exc = Exception.new 'hello'
 
         mapping = Nodes::Mapping.new nil, '!ruby/exception'
         mapping.children << Nodes::Scalar.new('message')

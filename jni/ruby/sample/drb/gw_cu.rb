@@ -13,7 +13,7 @@ class Foo
   end
 end
 
-DRb.start_service('drbunix:', nil)
+DRb.start_service('drubyunix:', nil)
 puts DRb.uri
 
 ro = DRbObject.new(nil, ARGV.shift)

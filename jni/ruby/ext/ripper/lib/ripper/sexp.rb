@@ -1,5 +1,5 @@
 #
-# $Id: sexp.rb 48144 2014-10-26 03:24:18Z nobu $
+# $Id: sexp.rb 25189 2009-10-02 12:04:37Z akr $
 #
 # Copyright (c) 2004,2005 Minero Aoki
 #
@@ -14,33 +14,12 @@ class Ripper
 
   # [EXPERIMENTAL]
   # Parses +src+ and create S-exp tree.
-  # Returns more readable tree rather than Ripper.sexp_raw.
-  # This method is mainly for developer use.
+  # This method is for mainly developper use.
   #
   #   require 'ripper'
-  #   require 'pp'
+  #   require 'pp
   #
   #   pp Ripper.sexp("def m(a) nil end")
-  #     #=> [:program,
-  #          [[:def,
-  #           [:@ident, "m", [1, 4]],
-  #           [:paren, [:params, [[:@ident, "a", [1, 6]]], nil, nil, nil, nil]],
-  #           [:bodystmt, [[:var_ref, [:@kw, "nil", [1, 9]]]], nil, nil, nil]]]]
-  #
-  def Ripper.sexp(src, filename = '-', lineno = 1)
-    builder = SexpBuilderPP.new(src, filename, lineno)
-    sexp = builder.parse
-    sexp unless builder.error?
-  end
-
-  # [EXPERIMENTAL]
-  # Parses +src+ and create S-exp tree.
-  # This method is mainly for developer use.
-  #
-  #   require 'ripper'
-  #   require 'pp'
-  #
-  #   pp Ripper.sexp_raw("def m(a) nil end")
   #     #=> [:program,
   #          [:stmts_add,
   #           [:stmts_new],
@@ -53,10 +32,12 @@ class Ripper
   #             nil,
   #             nil]]]]
   #
+  def Ripper.sexp(src, filename = '-', lineno = 1)
+    SexpBuilderPP.new(src, filename, lineno).parse
+  end
+
   def Ripper.sexp_raw(src, filename = '-', lineno = 1)
-    builder = SexpBuilder.new(src, filename, lineno)
-    sexp = builder.parse
-    sexp unless builder.error?
+    SexpBuilder.new(src, filename, lineno).parse
   end
 
   class SexpBuilderPP < ::Ripper   #:nodoc:

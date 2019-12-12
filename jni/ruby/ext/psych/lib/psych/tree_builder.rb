@@ -57,7 +57,7 @@ module Psych
     # and +implicit+ styling.
     #
     # See Psych::Handler#start_document
-    def end_document implicit_end = !streaming?
+    def end_document implicit_end
       @last.implicit_end = implicit_end
       pop
     end
@@ -72,9 +72,7 @@ module Psych
     end
 
     def scalar value, anchor, tag, plain, quoted, style
-      s = Nodes::Scalar.new(value,anchor,tag,plain,quoted,style)
-      @last.children << s
-      s
+      @last.children << Nodes::Scalar.new(value,anchor,tag,plain,quoted,style)
     end
 
     def alias anchor

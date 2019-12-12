@@ -1,7 +1,8 @@
 require_relative 'utils'
 require 'stringio'
+require 'minitest/unit'
 
-class OpenSSL::TestBuffering < Test::Unit::TestCase
+class OpenSSL::TestBuffering < MiniTest::Unit::TestCase
 
   class IO
     include OpenSSL::Buffering
@@ -9,10 +10,7 @@ class OpenSSL::TestBuffering < Test::Unit::TestCase
     attr_accessor :sync
 
     def initialize
-      @io = ""
-      def @io.sync
-        true
-      end
+      @io = StringIO.new
 
       super
 
@@ -20,18 +18,15 @@ class OpenSSL::TestBuffering < Test::Unit::TestCase
     end
 
     def string
-      @io
+      @io.string
     end
 
-    def sysread(size)
-      str = @io.slice!(0, size)
-      raise EOFError if str.empty?
-      str
+    def sysread *a
+      @io.sysread *a
     end
 
-    def syswrite(str)
-      @io << str
-      str.size
+    def syswrite *a
+      @io.syswrite *a
     end
   end
 
@@ -68,20 +63,4 @@ class OpenSSL::TestBuffering < Test::Unit::TestCase
     refute @io.sync, 'sync must not change'
   end
 
-  def test_getc
-    @io.syswrite('abc')
-    assert_equal(?a, @io.getc)
-    assert_equal(?b, @io.getc)
-    assert_equal(?c, @io.getc)
-  end
-
-  def test_each_byte
-    @io.syswrite('abc')
-    res = []
-    @io.each_byte do |c|
-      res << c
-    end
-    assert_equal([97, 98, 99], res)
-  end
-
-end if defined?(OpenSSL::TestUtils)
+end if defined?(OpenSSL)

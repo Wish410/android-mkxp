@@ -1,8 +1,6 @@
 require 'drb/drb'
 require 'drb/extserv'
 
-module DRbTests
-
 class Foo
   include DRbUndumped
 end
@@ -13,12 +11,10 @@ class Bar
     @foo = Foo.new
   end
   attr_reader :foo
-
+  
   def foo?(foo)
     @foo == foo
   end
-end
-
 end
 
 if __FILE__ == $0
@@ -28,9 +24,7 @@ if __FILE__ == $0
     it
   end
 
-  DRb.start_service('druby://localhost:0', DRbTests::Bar.new)
+  DRb.start_service('druby://:0', Bar.new)
   es = DRb::ExtServ.new(ARGV.shift, ARGV.shift)
   DRb.thread.join
-  es.stop_service if es.alive?
 end
-

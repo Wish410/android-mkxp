@@ -1,5 +1,5 @@
 #
-# $Id: filter.rb 36954 2012-09-12 23:04:41Z zzak $
+# $Id: filter.rb 25189 2009-10-02 12:04:37Z akr $
 #
 # Copyright (c) 2004,2005 Minero Aoki
 #
@@ -13,13 +13,9 @@ require 'ripper/lexer'
 class Ripper
 
   # This class handles only scanner events,
-  # which are dispatched in the 'right' order (same with input).
+  # and they are dispatched in the `right' order (same with input).
   class Filter
 
-    # Creates a new Ripper::Filter instance, passes parameters +src+,
-    # +filename+, and +lineno+ to Ripper::Lexer.new
-    #
-    # The lexer is for internal use only.
     def initialize(src, filename = '-', lineno = 1)
       @__lexer = Lexer.new(src, filename, lineno)
       @__line = nil
@@ -45,9 +41,8 @@ class Ripper
       @__col
     end
 
-    # Starts the parser.
-    # +init+ is a data accumulator and is passed to the next event handler (as
-    # of Enumerable#inject).
+    # Starts parsing.  _init_ is a data accumulator.
+    # It is passed to the next event handler (as of Enumerable#inject).
     def parse(init = nil)
       data = init
       @__lexer.lex.each do |pos, event, tok|
@@ -62,12 +57,10 @@ class Ripper
 
     private
 
-    # This method is called when some event handler is undefined.
-    # +event+ is :on_XXX, +token+ is the scanned token, and +data+ is a data
-    # accumulator.
-    #
-    # The return value of this method is passed to the next event handler (as
-    # of Enumerable#inject).
+    # This method is called when some event handler have not defined.
+    # _event_ is :on_XXX, _token_ is scanned token, _data_ is a data
+    # accumulator.  The return value of this method is passed to the
+    # next event handler (as of Enumerable#inject).
     def on_default(event, token, data)
       data
     end

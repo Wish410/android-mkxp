@@ -7,13 +7,12 @@
 #  Copyright 2005 James Edward Gray II. You can redistribute or modify this code
 #  under the terms of Ruby's license.
 
-require_relative "base"
+require "test/unit"
 
-class TestCSV::DataConverters < TestCSV
-  extend DifferentOFS
+require "csv"
 
+class TestDataConverters < Test::Unit::TestCase
   def setup
-    super
     @data   = "Numbers,:integer,1,:float,3.015"
     @parser = CSV.new(@data)
 
@@ -66,25 +65,24 @@ class TestCSV::DataConverters < TestCSV
     assert_instance_of(String, CSV::Converters[:date_time]["junk"])
   end
 
-  def test_convert_with_builtin_integer
+  def test_convert_with_builtin
     # setup parser...
-    assert_respond_to(@parser, :convert)
+    assert(@parser.respond_to?(:convert))
     assert_nothing_raised(Exception) { @parser.convert(:integer) }
 
     # and use
     assert_equal(["Numbers", ":integer", 1, ":float", "3.015"], @parser.shift)
-  end
 
-  def test_convert_with_builtin_float
+    setup  # reset
+
     # setup parser...
-    assert_respond_to(@parser, :convert)
     assert_nothing_raised(Exception) { @parser.convert(:float) }
 
     # and use
     assert_equal(["Numbers", ":integer", 1.0, ":float", 3.015], @parser.shift)
   end
 
-  def test_convert_order_float_integer
+  def test_convert_order
     # floats first, then integers...
     assert_nothing_raised(Exception) do
       @parser.convert(:float)
@@ -94,9 +92,9 @@ class TestCSV::DataConverters < TestCSV
     # gets us nothing but floats
     assert_equal( [String, String, Float, String, Float],
                   @parser.shift.map { |field| field.class } )
-  end
 
-  def test_convert_order_integer_float
+    setup  # reset
+
     # integers have precendance...
     assert_nothing_raised(Exception) do
       @parser.convert(:integer)
@@ -136,9 +134,9 @@ class TestCSV::DataConverters < TestCSV
 
     # and use
     assert_equal(["Numbers", :integer, "1", :float, "3.015"], @parser.shift)
-  end
 
-  def test_convert_with_custom_code_mix
+    setup  # reset
+
     # mix built-in and custom...
     assert_nothing_raised(Exception) { @parser.convert(:numeric) }
     assert_nothing_raised(Exception) { @parser.convert(&@custom) }

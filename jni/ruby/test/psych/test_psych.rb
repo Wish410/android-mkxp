@@ -8,41 +8,6 @@ class TestPsych < Psych::TestCase
     Psych.domain_types.clear
   end
 
-  def test_line_width
-    yml = Psych.dump('123456 7', { :line_width => 5 })
-    assert_match(/^\s*7/, yml)
-  end
-
-  def test_indent
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:indentation => 5})
-    assert_match(/^[ ]{5}b/, yml)
-  end
-
-  def test_canonical
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:canonical => true})
-    assert_match(/\? "b/, yml)
-  end
-
-  def test_header
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:header => true})
-    assert_match(/YAML/, yml)
-  end
-
-  def test_version_array
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:version => [1,1]})
-    assert_match(/1.1/, yml)
-  end
-
-  def test_version_string
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:version => '1.1'})
-    assert_match(/1.1/, yml)
-  end
-
-  def test_version_bool
-    yml = Psych.dump({:a => {'b' => 'c'}}, {:version => true})
-    assert_match(/1.1/, yml)
-  end
-
   def test_load_argument_error
     assert_raises(TypeError) do
       Psych.load nil
@@ -64,7 +29,7 @@ class TestPsych < Psych::TestCase
 
   def test_dump_file
     hash = {'hello' => 'TGIF!'}
-    Tempfile.create('fun.yml') do |io|
+    Tempfile.open('fun.yml') do |io|
       assert_equal io, Psych.dump(hash, io)
       io.rewind
       assert_equal Psych.dump(hash), io.read
@@ -99,7 +64,7 @@ class TestPsych < Psych::TestCase
 
   def test_add_builtin_type
     got = nil
-    Psych.add_builtin_type 'omap' do |type, val|
+    Psych.add_builtin_type 'omap', do |type, val|
       got = val
     end
     Psych.load('--- !!omap hello')
@@ -125,21 +90,21 @@ class TestPsych < Psych::TestCase
   end
 
   def test_load_file
-    Tempfile.create(['yikes', 'yml']) {|t|
-      t.binmode
-      t.write('--- hello world')
-      t.close
-      assert_equal 'hello world', Psych.load_file(t.path)
-    }
+    t = Tempfile.new(['yikes', 'yml'])
+    t.binmode
+    t.write('--- hello world')
+    t.close
+    assert_equal 'hello world', Psych.load_file(t.path)
+    t.close(true)
   end
 
   def test_parse_file
-    Tempfile.create(['yikes', 'yml']) {|t|
-      t.binmode
-      t.write('--- hello world')
-      t.close
-      assert_equal 'hello world', Psych.parse_file(t.path).transform
-    }
+    t = Tempfile.new(['yikes', 'yml'])
+    t.binmode
+    t.write('--- hello world')
+    t.close
+    assert_equal 'hello world', Psych.parse_file(t.path).transform
+    t.close(true)
   end
 
   def test_degenerate_strings

@@ -2,7 +2,7 @@
 
   compar.c -
 
-  $Author: naruse $
+  $Author: marcandre $
   created at: Thu Aug 26 14:39:48 JST 1993
 
   Copyright (C) 1993-2007 Yukihiro Matsumoto
@@ -18,49 +18,23 @@ static ID cmp;
 void
 rb_cmperr(VALUE x, VALUE y)
 {
-    VALUE classname;
+    const char *classname;
 
-    if (SPECIAL_CONST_P(y) || BUILTIN_TYPE(y) == T_FLOAT) {
-	classname = rb_inspect(y);
+    if (SPECIAL_CONST_P(y)) {
+	y = rb_inspect(y);
+	classname = StringValuePtr(y);
     }
     else {
-	classname = rb_obj_class(y);
+	classname = rb_obj_classname(y);
     }
-    rb_raise(rb_eArgError, "comparison of %"PRIsVALUE" with %"PRIsVALUE" failed",
-	     rb_obj_class(x), classname);
-}
-
-static VALUE
-invcmp_recursive(VALUE x, VALUE y, int recursive)
-{
-    if (recursive) return Qnil;
-    return rb_check_funcall(y, cmp, 1, &x);
-}
-
-VALUE
-rb_invcmp(VALUE x, VALUE y)
-{
-    VALUE invcmp = rb_exec_recursive(invcmp_recursive, x, y);
-    if (invcmp == Qundef || NIL_P(invcmp)) {
-	return Qnil;
-    }
-    else {
-	int result = -rb_cmpint(invcmp, x, y);
-	return INT2FIX(result);
-    }
-}
-
-static VALUE
-cmp_eq_recursive(VALUE arg1, VALUE arg2, int recursive)
-{
-    if (recursive) return Qnil;
-    return rb_funcallv(arg1, cmp, 1, &arg2);
+    rb_raise(rb_eArgError, "comparison of %s with %s failed",
+	     rb_obj_classname(x), classname);
 }
 
 static VALUE
 cmp_eq(VALUE *a)
 {
-    VALUE c = rb_exec_recursive_paired_outer(cmp_eq_recursive, a[0], a[1], a[1]);
+    VALUE c = rb_funcall(a[0], cmp, 1, a[1]);
 
     if (NIL_P(c)) return Qfalse;
     if (rb_cmpint(c, a[0], a[1]) == 0) return Qtrue;
@@ -70,8 +44,6 @@ cmp_eq(VALUE *a)
 static VALUE
 cmp_failed(void)
 {
-    rb_warn("Comparable#== will no more rescue exceptions of #<=> in the next release.");
-    rb_warn("Return nil in #<=> if the comparison is inappropriate or avoid such comparison.");
     return Qfalse;
 }
 
@@ -82,9 +54,6 @@ cmp_failed(void)
  *  Compares two objects based on the receiver's <code><=></code>
  *  method, returning true if it returns 0. Also returns true if
  *  _obj_ and _other_ are the same object.
- *
- *  Even if _obj_ <=> _other_ raised an exception, the exception
- *  is ignored and returns false.
  */
 
 static VALUE

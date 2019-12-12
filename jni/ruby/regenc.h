@@ -1,11 +1,10 @@
 #ifndef ONIGURUMA_REGENC_H
 #define ONIGURUMA_REGENC_H
 /**********************************************************************
-  regenc.h -  Onigmo (Oniguruma-mod) (regular expression library)
+  regenc.h -  Oniguruma (regular expression library)
 **********************************************************************/
 /*-
  * Copyright (c) 2002-2008  K.Kosako  <sndgk393 AT ybb DOT ne DOT jp>
- * Copyright (c) 2011       K.Takata  <kentkt AT csc DOT jp>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,21 +28,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
 #ifndef REGINT_H
 #ifndef RUBY_EXTERN
 #include "ruby/config.h"
 #include "ruby/defines.h"
 #endif
-#endif
-
 #ifdef ONIG_ESCAPE_UCHAR_COLLISION
 #undef ONIG_ESCAPE_UCHAR_COLLISION
 #endif
-
+#endif
 #include "ruby/oniguruma.h"
-
-RUBY_SYMBOL_EXPORT_BEGIN
 
 typedef struct {
   OnigCodePoint from;
@@ -102,24 +96,17 @@ typedef struct {
 
 
 typedef struct {
-  short int len;
-  const UChar name[6];
+  const UChar *name;
   int       ctype;
+  short int len;
 } PosixBracketEntryType;
 
-#define POSIX_BRACKET_ENTRY_INIT(name, ctype) \
-  {(short int )(sizeof(name) - 1), (name), (ctype)}
+#define PosixBracketEntryInit(name, ctype) {(const UChar *)name, ctype, (short int)(sizeof(name) - 1)}
 
-#ifndef numberof
-#define numberof(array) (int )(sizeof(array) / sizeof((array)[0]))
-#endif
-
-
-#define USE_CRNL_AS_LINE_TERMINATOR
+/* #define USE_CRNL_AS_LINE_TERMINATOR */
 #define USE_UNICODE_PROPERTIES
-#define USE_UNICODE_AGE_PROPERTIES
 /* #define USE_UNICODE_CASE_FOLD_TURKISH_AZERI */
-/* #define USE_UNICODE_ALL_LINE_TERMINATORS */  /* see Unicode.org UTS #18 */
+/* #define USE_UNICODE_ALL_LINE_TERMINATORS */  /* see Unicode.org UTF#18 */
 
 
 #define ONIG_ENCODING_INIT_DEFAULT           ONIG_ENCODING_ASCII
@@ -168,7 +155,6 @@ ONIG_EXTERN int onigenc_unicode_apply_all_case_fold P_((OnigCaseFoldType flag, O
 
 #define UTF16_IS_SURROGATE_FIRST(c)    (((c) & 0xfc) == 0xd8)
 #define UTF16_IS_SURROGATE_SECOND(c)   (((c) & 0xfc) == 0xdc)
-#define UTF16_IS_SURROGATE(c)          (((c) & 0xf8) == 0xd8)
 
 #define ONIGENC_ISO_8859_1_TO_LOWER_CASE(c) \
   OnigEncISO_8859_1_ToLowerCaseTable[c]
@@ -180,8 +166,6 @@ ONIG_EXTERN const UChar OnigEncISO_8859_1_ToUpperCaseTable[];
 
 ONIG_EXTERN int
 onigenc_with_ascii_strncmp P_((OnigEncoding enc, const UChar* p, const UChar* end, const UChar* sascii /* ascii */, int n));
-ONIG_EXTERN int
-onigenc_with_ascii_strnicmp P_((OnigEncoding enc, const UChar* p, const UChar* end, const UChar* sascii /* ascii */, int n));
 ONIG_EXTERN UChar*
 onigenc_step P_((OnigEncoding enc, const UChar* p, const UChar* end, int n));
 
@@ -202,15 +186,10 @@ ONIG_EXTERN const unsigned short OnigEncAsciiCtypeTable[];
  (ONIGENC_IS_ASCII_CODE_CTYPE(code, ONIGENC_CTYPE_UPPER) ||\
   ONIGENC_IS_ASCII_CODE_CTYPE(code, ONIGENC_CTYPE_LOWER))
 
-/* Check if the code is in the range. (from <= code && code <= to) */
-#define ONIGENC_IS_IN_RANGE(code, from, to) \
-  ((OnigCodePoint )((code) - (from)) <= (OnigCodePoint )((to) - (from)))
-
-
 #ifdef ONIG_ENC_REGISTER
-extern int ONIG_ENC_REGISTER(const char *, OnigEncoding);
+extern int ONIG_ENC_REGISTER(const char *, OnigEncodingType*);
 #define OnigEncodingName(n) encoding_##n
-#define OnigEncodingDeclare(n) static const OnigEncodingType OnigEncodingName(n)
+#define OnigEncodingDeclare(n) static OnigEncodingType OnigEncodingName(n)
 #define OnigEncodingDefine(f,n)			     \
     OnigEncodingDeclare(n);			     \
     void Init_##f(void) {			     \
@@ -220,7 +199,7 @@ extern int ONIG_ENC_REGISTER(const char *, OnigEncoding);
     OnigEncodingDeclare(n)
 #else
 #define OnigEncodingName(n) OnigEncoding##n
-#define OnigEncodingDeclare(n) const OnigEncodingType OnigEncodingName(n)
+#define OnigEncodingDeclare(n) OnigEncodingType OnigEncodingName(n)
 #define OnigEncodingDefine(f,n) OnigEncodingDeclare(n)
 #endif
 
@@ -228,7 +207,5 @@ extern int ONIG_ENC_REGISTER(const char *, OnigEncoding);
 #define ENC_REPLICATE(name, orig)
 #define ENC_ALIAS(name, orig)
 #define ENC_DUMMY(name)
-
-RUBY_SYMBOL_EXPORT_END
 
 #endif /* ONIGURUMA_REGENC_H */

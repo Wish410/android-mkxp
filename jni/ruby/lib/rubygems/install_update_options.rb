@@ -5,13 +5,7 @@
 #++
 
 require 'rubygems'
-
-# forward-declare
-
-module Gem::Security # :nodoc:
-  class Policy # :nodoc:
-  end
-end
+require 'rubygems/security'
 
 ##
 # Mixin methods for install and update options for Gem::Commands
@@ -22,17 +16,9 @@ module Gem::InstallUpdateOptions
   # Add the install/update options to the option parser.
 
   def add_install_update_options
-    # TODO: use @parser.accept
     OptionParser.accept Gem::Security::Policy do |value|
-      require 'rubygems/security'
-
-      raise OptionParser::InvalidArgument, 'OpenSSL not installed' unless
-        defined?(Gem::Security::HighSecurity)
-
       value = Gem::Security::Policies[value]
-      valid = Gem::Security::Policies.keys.sort
-      message = "#{value} (#{valid.join ', '} are valid)"
-      raise OptionParser::InvalidArgument, message if value.nil?
+      raise OptionParser::InvalidArgument, value if value.nil?
       value
     end
 
@@ -43,66 +29,21 @@ module Gem::InstallUpdateOptions
     end
 
     add_option(:"Install/Update", '-n', '--bindir DIR',
-               'Directory where binary files are',
-               'located') do |value, options|
+	       'Directory where binary files are',
+	       'located') do |value, options|
       options[:bin_dir] = File.expand_path(value)
     end
 
-    add_option(:"Install/Update",       '--[no-]document [TYPES]', Array,
-               'Generate documentation for installed gems',
-               'List the documentation types you wish to',
-               'generate.  For example: rdoc,ri') do |value, options|
-      options[:document] = case value
-                           when nil   then %w[ri]
-                           when false then []
-                           else            value
-                           end
+    add_option(:"Install/Update", '-d', '--[no-]rdoc',
+               'Generate RDoc documentation for the gem on',
+               'install') do |value, options|
+      options[:generate_rdoc] = value
     end
 
-    add_option(:"Install/Update", '--build-root DIR',
-               'Temporary installation root. Useful for building',
-               'packages. Do not use this when installing remote gems.') do |value, options|
-      options[:build_root] = File.expand_path(value)
-    end
-
-    add_option(:"Install/Update", '--vendor',
-               'Install gem into the vendor directory.',
-               'Only for use by gem repackagers.') do |value, options|
-      unless Gem.vendor_dir then
-        raise OptionParser::InvalidOption.new 'your platform is not supported'
-      end
-
-      options[:vendor] = true
-      options[:install_dir] = Gem.vendor_dir
-    end
-
-    add_option(:"Install/Update", '-N', '--no-document',
-               'Disable documentation generation') do |value, options|
-      options[:document] = []
-    end
-
-    add_option(:Deprecated, '--[no-]rdoc',
-               'Generate RDoc for installed gems',
-               'Use --document instead') do |value, options|
-      if value then
-        options[:document] << 'rdoc'
-      else
-        options[:document].delete 'rdoc'
-      end
-
-      options[:document].uniq!
-    end
-
-    add_option(:Deprecated, '--[no-]ri',
-               'Generate ri data for installed gems.',
-               'Use --document instead') do |value, options|
-      if value then
-        options[:document] << 'ri'
-      else
-        options[:document].delete 'ri'
-      end
-
-      options[:document].uniq!
+    add_option(:"Install/Update", '--[no-]ri',
+               'Generate RI documentation for the gem on',
+               'install') do |value, options|
+      options[:generate_ri] = value
     end
 
     add_option(:"Install/Update", '-E', '--[no-]env-shebang',
@@ -115,6 +56,10 @@ module Gem::InstallUpdateOptions
                'Force gem to install, bypassing dependency',
                'checks') do |value, options|
       options[:force] = value
+    end
+
+    add_option(:"Install/Update", '-t', '--[no-]test',
+               'Ignored; just for compatiblity') do |value, options|
     end
 
     add_option(:"Install/Update", '-w', '--[no-]wrappers',
@@ -134,6 +79,12 @@ module Gem::InstallUpdateOptions
       options[:ignore_dependencies] = value
     end
 
+    add_option(:"Install/Update", '-y', '--include-dependencies',
+               'Unconditionally install the required',
+               'dependent gems') do |value, options|
+      options[:include_dependencies] = value
+    end
+
     add_option(:"Install/Update",       '--[no-]format-executable',
                'Make installed executable names match ruby.',
                'If ruby is ruby18, foo_exec will be',
@@ -148,30 +99,9 @@ module Gem::InstallUpdateOptions
     end
 
     add_option(:"Install/Update", "--development",
-                "Install additional development",
+                "Install any additional development",
                 "dependencies") do |value, options|
       options[:development] = true
-      options[:dev_shallow] = true
-    end
-
-    add_option(:"Install/Update", "--development-all",
-                "Install development dependencies for all",
-                "gems (including dev deps themselves)") do |value, options|
-      options[:development] = true
-      options[:dev_shallow] = false
-    end
-
-    add_option(:"Install/Update", "--conservative",
-                "Don't attempt to upgrade gems already",
-                "meeting version requirement") do |value, options|
-      options[:conservative] = true
-      options[:minimal_deps] = true
-    end
-
-    add_option(:"Install/Update", "--minimal-deps",
-                "Don't upgrade any dependencies that already",
-                "meet version requirements") do |value, options|
-      options[:minimal_deps] = true
     end
   end
 
@@ -179,7 +109,7 @@ module Gem::InstallUpdateOptions
   # Default options for the gem install command.
 
   def install_update_defaults_str
-    '--document=rdoc,ri --wrappers'
+    '--rdoc --no-force --wrappers'
   end
 
 end

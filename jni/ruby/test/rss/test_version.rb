@@ -1,4 +1,4 @@
-require_relative "rss-testcase"
+require "rss-testcase"
 
 module RSS
   class TestVersion < TestCase

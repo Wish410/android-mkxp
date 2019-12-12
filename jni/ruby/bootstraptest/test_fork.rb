@@ -22,32 +22,26 @@ assert_finish 10, %q{
 }, '[ruby-core:22158]'
 
 assert_normal_exit(<<'End', '[ruby-dev:37934]')
-  main = Thread.current
-  Thread.new { sleep 0.01 until main.stop?; Thread.kill main }
+  Thread.new { sleep 1; Thread.kill Thread.main }
   Process.setrlimit(:NPROC, 1)
   fork {}
 End
 
 assert_equal 'ok', %q{
   begin
-    r, w = IO.pipe
     if pid1 = fork
-      w.close
-      r.read(1)
+      sleep 1
       Process.kill("USR1", pid1)
       _, s = Process.wait2(pid1)
       s.success? ? :ok : :ng
     else
-      r.close
       if pid2 = fork
-        trap("USR1") { Time.now.to_s; Process.kill("USR2", pid2) }
-        w.close
+        trap("USR1") { Time.now.to_s }
         Process.wait2(pid2)
       else
-        w.close
-        sleep 0.2
+        sleep 2
       end
-      exit true
+      exit 0
     end
   rescue NotImplementedError
     :ok
@@ -56,17 +50,17 @@ assert_equal 'ok', %q{
 
 assert_equal '[1, 2]', %q{
   a = []
-  main = Thread.current
-  trap(:INT) { a.push(1).size == 2 and main.wakeup }
-  trap(:TERM) { a.push(2).size == 2 and main.wakeup }
+  trap(:INT) { a.push(1) }
+  trap(:TERM) { a.push(2) }
   pid = $$
   begin
-    pid = fork do
+    fork do
+      sleep 0.5
       Process.kill(:INT, pid)
       Process.kill(:TERM, pid)
     end
-    Process.wait(pid)
-    100.times {break if a.size > 1; sleep 0.001}
+
+    sleep 1
     a.sort
   rescue NotImplementedError
     [1, 2]

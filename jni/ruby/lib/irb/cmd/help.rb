@@ -1,7 +1,7 @@
 #
 #   help.rb - helper using ri
 #   	$Release Version: 0.9.6$
-#   	$Revision: 38358 $
+#   	$Revision: 27254 $
 #
 # --
 #
@@ -12,7 +12,6 @@ require 'rdoc/ri/driver'
 
 require "irb/cmd/nop.rb"
 
-# :stopdoc:
 module IRB
   module ExtendCommand
     class Help<Nop
@@ -27,7 +26,7 @@ module IRB
           end
           names.each do |name|
             begin
-              Ri.display_name(name.to_s)
+              Ri.get_info_for(name.to_s)
             rescue RDoc::RI::Error
               puts $!.message
             end
@@ -38,4 +37,3 @@ module IRB
     end
   end
 end
-# :startdoc:

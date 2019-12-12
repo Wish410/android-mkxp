@@ -1,5 +1,5 @@
 #
-# $Id: lexer.rb 44878 2014-02-07 12:57:44Z zzak $
+# $Id: lexer.rb 25189 2009-10-02 12:04:37Z akr $
 #
 # Copyright (c) 2004,2005 Minero Aoki
 #
@@ -12,22 +12,18 @@ require 'ripper/core'
 
 class Ripper
 
-  # Tokenizes the Ruby program and returns an array of strings.
-  #
-  #   p Ripper.tokenize("def m(a) nil end")
-  #      # => ["def", " ", "m", "(", "a", ")", " ", "nil", " ", "end"]
-  #
+  # Tokenizes Ruby program and returns an Array of String.
   def Ripper.tokenize(src, filename = '-', lineno = 1)
     Lexer.new(src, filename, lineno).tokenize
   end
 
-  # Tokenizes the Ruby program and returns an array of an array,
-  # which is formatted like <code>[[lineno, column], type, token]</code>.
+  # Tokenizes Ruby program and returns an Array of Array,
+  # which is formatted like [[lineno, column], type, token].
   #
   #   require 'ripper'
   #   require 'pp'
   #
-  #   pp Ripper.lex("def m(a) nil end")
+  #   p Ripper.lex("def m(a) nil end")
   #     #=> [[[1,  0], :on_kw,     "def"],
   #          [[1,  3], :on_sp,     " "  ],
   #          [[1,  4], :on_ident,  "m"  ],
@@ -94,12 +90,9 @@ class Ripper
 
   class TokenPattern   #:nodoc:
 
-    class Error < ::StandardError # :nodoc:
-    end
-    class CompileError < Error # :nodoc:
-    end
-    class MatchError < Error # :nodoc:
-    end
+    class Error < ::StandardError; end
+    class CompileError < Error; end
+    class MatchError < Error; end
 
     class << self
       alias compile new
@@ -162,7 +155,7 @@ class Ripper
       MAP[tok]  or raise CompileError, "unknown token: #{tok}"
     end
 
-    class MatchData # :nodoc:
+    class MatchData
       def initialize(tokens, match)
         @tokens = tokens
         @match = match

@@ -7,13 +7,12 @@
 #  Copyright 2008 James Edward Gray II. You can redistribute or modify this code
 #  under the terms of Ruby's license.
 
-require_relative "base"
+require "test/unit"
 
-class TestCSV::Encodings < TestCSV
-  extend DifferentOFS
+require "csv"
 
+class TestEncodings < Test::Unit::TestCase
   def setup
-    super
     require 'tempfile'
     @temp_csv_file = Tempfile.new(%w"test_csv. .csv")
     @temp_csv_path = @temp_csv_file.path
@@ -22,7 +21,6 @@ class TestCSV::Encodings < TestCSV
 
   def teardown
     @temp_csv_file.close!
-    super
   end
 
   ########################################
@@ -79,25 +77,6 @@ class TestCSV::Encodings < TestCSV
     end
   end
 
-  def test_read_with_default_encoding
-    data             = "abc"
-    default_external = Encoding.default_external
-    each_encoding do |encoding|
-      File.open(@temp_csv_path, "wb", encoding: encoding) {|f| f << data}
-      begin
-        no_warnings do
-          Encoding.default_external = encoding
-        end
-        result = CSV.read(@temp_csv_path)[0][0]
-      ensure
-        no_warnings do
-          Encoding.default_external = default_external
-        end
-      end
-      assert_equal(encoding, result.encoding)
-    end
-  end
-
   #######################################################################
   ### Stress Test ASCII Compatible and Non-ASCII Compatible Encodings ###
   #######################################################################
@@ -121,9 +100,11 @@ class TestCSV::Encodings < TestCSV
   def test_parser_works_with_encoded_headers
     encode_for_tests([%w[one two three], %w[1 2 3]]) do |data|
       parsed = CSV.parse(data, headers: true)
-      assert_all?(parsed.headers, "Wrong data encoding.") {|h| h.encoding == data.encoding}
+      assert( parsed.headers.all? { |h| h.encoding == data.encoding },
+              "Wrong data encoding." )
       parsed.each do |row|
-        assert_all?(row.fields, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+        assert( row.fields.all? { |f| f.encoding == data.encoding },
+                "Wrong data encoding." )
       end
     end
   end
@@ -131,7 +112,8 @@ class TestCSV::Encodings < TestCSV
   def test_built_in_converters_transcode_to_utf_8_then_convert
     encode_for_tests([%w[one two three], %w[1 2 3]]) do |data|
       parsed = CSV.parse(data, converters: :integer)
-      assert_all?(parsed[0], "Wrong data encoding.") {|f| f.encoding == data.encoding}
+      assert( parsed[0].all? { |f| f.encoding == data.encoding },
+              "Wrong data encoding." )
       assert_equal([1, 2, 3], parsed[1])
     end
   end
@@ -140,8 +122,10 @@ class TestCSV::Encodings < TestCSV
     encode_for_tests([%w[one two three], %w[1 2 3]]) do |data|
       parsed = CSV.parse( data, headers:           true,
                                 header_converters: :downcase )
-      assert_all?(parsed.headers, "Wrong data encoding.") {|h| h.encoding.name == "UTF-8"}
-      assert_all?(parsed[0].fields, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+      assert( parsed.headers.all? { |h| h.encoding.name == "UTF-8" },
+              "Wrong data encoding." )
+      assert( parsed[0].fields.all? { |f| f.encoding == data.encoding },
+              "Wrong data encoding." )
     end
   end
 
@@ -151,7 +135,8 @@ class TestCSV::Encodings < TestCSV
       File.open(@temp_csv_path, "wb:#{data.encoding.name}") { |f| f << data }
       CSV.open(@temp_csv_path, "rb:#{data.encoding.name}") do |csv|
         csv.each do |row|
-          assert_all?(row, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+          assert( row.all? { |f| f.encoding == data.encoding },
+                  "Wrong data encoding." )
         end
       end
 
@@ -161,7 +146,8 @@ class TestCSV::Encodings < TestCSV
       end
       CSV.open(@temp_csv_path, "rb:UTF-32BE:#{data.encoding.name}") do |csv|
         csv.each do |row|
-          assert_all?(row, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+          assert( row.all? { |f| f.encoding == data.encoding },
+                  "Wrong data encoding." )
         end
       end
     end
@@ -170,9 +156,10 @@ class TestCSV::Encodings < TestCSV
   def test_foreach_allows_you_to_set_encodings
     encode_for_tests([%w[abc def]]) do |data|
       # read and write in encoding
-      File.open(@temp_csv_path, "wb", encoding: data.encoding) { |f| f << data }
-      CSV.foreach(@temp_csv_path, encoding: data.encoding) do |row|
-        row.each {|f| assert_equal(f.encoding, data.encoding)}
+      File.open(@temp_csv_path, "wb:#{data.encoding.name}") { |f| f << data }
+      CSV.foreach(@temp_csv_path, encoding: data.encoding.name) do |row|
+        assert( row.all? { |f| f.encoding == data.encoding },
+                "Wrong data encoding." )
       end
 
       # read and write with transcoding
@@ -181,7 +168,8 @@ class TestCSV::Encodings < TestCSV
       end
       CSV.foreach( @temp_csv_path,
                    encoding: "UTF-32BE:#{data.encoding.name}" ) do |row|
-        assert_all?(row, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+        assert( row.all? { |f| f.encoding == data.encoding },
+                "Wrong data encoding." )
       end
     end
   end
@@ -191,7 +179,8 @@ class TestCSV::Encodings < TestCSV
       # read and write in encoding
       File.open(@temp_csv_path, "wb:#{data.encoding.name}") { |f| f << data }
       rows = CSV.read(@temp_csv_path, encoding: data.encoding.name)
-      assert_all?(rows.flatten, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+      assert( rows.flatten.all? { |f| f.encoding == data.encoding },
+              "Wrong data encoding." )
 
       # read and write with transcoding
       File.open(@temp_csv_path, "wb:UTF-32BE:#{data.encoding.name}") do |f|
@@ -199,7 +188,8 @@ class TestCSV::Encodings < TestCSV
       end
       rows = CSV.read( @temp_csv_path,
                        encoding: "UTF-32BE:#{data.encoding.name}" )
-      assert_all?(rows.flatten, "Wrong data encoding.") {|f| f.encoding == data.encoding}
+      assert( rows.flatten.all? { |f| f.encoding == data.encoding },
+              "Wrong data encoding." )
     end
   end
 
@@ -230,73 +220,32 @@ class TestCSV::Encodings < TestCSV
       assert_equal(data, CSV.read(@temp_csv_path, encoding: encoding.name))
     end
   end
-
+  
   def test_encoding_is_upgraded_during_writing_as_needed
     data = ["foo".force_encoding("US-ASCII"), "\u3042"]
     assert_equal("US-ASCII", data.first.encoding.name)
     assert_equal("UTF-8",    data.last.encoding.name)
-    assert_equal("UTF-8",    data.join('').encoding.name)
+    assert_equal("UTF-8",    data.join.encoding.name)
     assert_equal("UTF-8",    data.to_csv.encoding.name)
   end
-
+  
   def test_encoding_is_upgraded_for_ascii_content_during_writing_as_needed
     data = ["foo".force_encoding("ISO-8859-1"), "\u3042"]
     assert_equal("ISO-8859-1", data.first.encoding.name)
     assert_equal("UTF-8",      data.last.encoding.name)
-    assert_equal("UTF-8",      data.join('').encoding.name)
+    assert_equal("UTF-8",      data.join.encoding.name)
     assert_equal("UTF-8",      data.to_csv.encoding.name)
-  end
-
-  def test_explicit_encoding
-    bug9766 = '[ruby-core:62113] [Bug #9766]'
-    s = CSV.generate(encoding: "Windows-31J") do |csv|
-      csv << ["foo".force_encoding("ISO-8859-1"), "\u3042"]
-    end
-    assert_equal(["foo,\u3042\n".encode(Encoding::Windows_31J), Encoding::Windows_31J], [s, s.encoding], bug9766)
   end
 
   private
 
   def assert_parses(fields, encoding, options = { })
     encoding = Encoding.find(encoding) unless encoding.is_a? Encoding
-    orig_fields = fields
     fields   = encode_ary(fields, encoding)
-    data = ary_to_data(fields, options)
-    parsed   = CSV.parse(data, options)
+    parsed   = CSV.parse(ary_to_data(fields, options), options)
     assert_equal(fields, parsed)
     parsed.flatten.each_with_index do |field, i|
       assert_equal(encoding, field.encoding, "Field[#{i + 1}] was transcoded.")
-    end
-    File.open(@temp_csv_path, "wb") {|f| f.print(data)}
-    CSV.open(@temp_csv_path, "rb:#{encoding}", options) do |csv|
-      csv.each_with_index do |row, i|
-        assert_equal(fields[i], row)
-      end
-    end
-    begin
-      CSV.open(@temp_csv_path, "rb:#{encoding}:#{__ENCODING__}", options) do |csv|
-        csv.each_with_index do |row, i|
-          assert_equal(orig_fields[i], row)
-        end
-      end unless encoding == __ENCODING__
-    rescue Encoding::ConverterNotFoundError
-    end
-    options[:encoding] = encoding.name
-    CSV.open(@temp_csv_path, options) do |csv|
-      csv.each_with_index do |row, i|
-        assert_equal(fields[i], row)
-      end
-    end
-    options.delete(:encoding)
-    options[:external_encoding] = encoding.name
-    options[:internal_encoding] = __ENCODING__.name
-    begin
-      CSV.open(@temp_csv_path, options) do |csv|
-        csv.each_with_index do |row, i|
-          assert_equal(orig_fields[i], row)
-        end
-      end unless encoding == __ENCODING__
-    rescue Encoding::ConverterNotFoundError
     end
   end
 
@@ -311,9 +260,9 @@ class TestCSV::Encodings < TestCSV
     row_sep    = (options[:row_sep]    || "\n").encode(encoding)
     ary.map { |row|
       row.map { |field|
-        [quote_char, field.encode(encoding), quote_char].join('')
+        [quote_char, field.encode(encoding), quote_char].join
       }.join(col_sep) + row_sep
-    }.join('').encode(encoding)
+    }.join.encode(encoding)
   end
 
   def encode_for_tests(data, options = { })
@@ -326,12 +275,5 @@ class TestCSV::Encodings < TestCSV
       next if encoding.dummy?  # skip "dummy" encodings
       yield encoding
     end
-  end
-
-  def no_warnings
-    old_verbose, $VERBOSE = $VERBOSE, nil
-    yield
-  ensure
-    $VERBOSE = old_verbose
   end
 end

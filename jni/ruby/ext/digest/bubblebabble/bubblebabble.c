@@ -2,17 +2,17 @@
 
   bubblebabble.c - BubbleBabble encoding support
 
-  $Author: zzak $
+  $Author: knu $
   created at: Fri Oct 13 18:31:42 JST 2006
 
   Copyright (C) 2006 Akinori MUSHA
 
-  $Id: bubblebabble.c 43754 2013-11-21 07:53:39Z zzak $
+  $Id: bubblebabble.c 28341 2010-06-16 09:38:14Z knu $
 
 ************************************************/
 
 #include "ruby.h"
-#include "digest.h"
+#include "../digest.h"
 
 static ID id_digest;
 
@@ -78,8 +78,7 @@ bubblebabble_str_new(VALUE str_digest)
     return str;
 }
 
-/* Document-method: Digest::bubblebabble
- *
+/*
  * call-seq:
  *     Digest.bubblebabble(string) -> bubblebabble_string
  *
@@ -91,8 +90,7 @@ rb_digest_s_bubblebabble(VALUE klass, VALUE str)
     return bubblebabble_str_new(str);
 }
 
-/* Document-method: Digest::Class::bubblebabble
- *
+/*
  * call-seq:
  *     Digest::Class.bubblebabble(string, ...) -> hash_string
  *
@@ -104,8 +102,7 @@ rb_digest_class_s_bubblebabble(int argc, VALUE *argv, VALUE klass)
     return bubblebabble_str_new(rb_funcall2(klass, id_digest, argc, argv));
 }
 
-/* Document-method: Digest::Instance#bubblebabble
- *
+/*
  * call-seq:
  *     digest_obj.bubblebabble -> hash_string
  *
@@ -124,23 +121,22 @@ rb_digest_instance_bubblebabble(VALUE self)
 void
 Init_bubblebabble(void)
 {
-    VALUE rb_mDigest, rb_mDigest_Instance, rb_cDigest_Class;
+    VALUE mDigest, mDigest_Instance, cDigest_Class;
 
     rb_require("digest");
 
-    rb_mDigest = rb_path2class("Digest");
-    rb_mDigest_Instance = rb_path2class("Digest::Instance");
-    rb_cDigest_Class = rb_path2class("Digest::Class");
+    mDigest = rb_path2class("Digest");
+    mDigest_Instance = rb_path2class("Digest::Instance");
+    cDigest_Class = rb_path2class("Digest::Class");
 
-#if 0
-    rb_mDigest = rb_define_module("Digest");
-    rb_mDigest_Instance = rb_define_module_under(rb_mDigest, "Instance");
-    rb_cDigest_Class = rb_define_class_under(rb_mDigest, "Class", rb_cObject);
-#endif
+    /* Digest::bubblebabble() */
+    rb_define_module_function(mDigest, "bubblebabble", rb_digest_s_bubblebabble, 1);
 
-    rb_define_module_function(rb_mDigest, "bubblebabble", rb_digest_s_bubblebabble, 1);
-    rb_define_singleton_method(rb_cDigest_Class, "bubblebabble", rb_digest_class_s_bubblebabble, -1);
-    rb_define_method(rb_mDigest_Instance, "bubblebabble", rb_digest_instance_bubblebabble, 0);
+    /* Digest::Class::bubblebabble() */
+    rb_define_singleton_method(cDigest_Class, "bubblebabble", rb_digest_class_s_bubblebabble, -1);
+
+    /* Digest::Instance#bubblebabble() */
+    rb_define_method(mDigest_Instance, "bubblebabble", rb_digest_instance_bubblebabble, 0);
 
     id_digest = rb_intern("digest");
 }

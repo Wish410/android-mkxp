@@ -1,6 +1,5 @@
 /* public domain rewrite of strtol(3) */
 
-#include "ruby/missing.h"
 #include <ctype.h>
 
 long

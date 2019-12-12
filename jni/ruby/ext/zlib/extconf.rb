@@ -1,7 +1,7 @@
 #
 # extconf.rb
 #
-# $Id: extconf.rb 37527 2012-11-06 18:50:53Z luislavena $
+# $Id: extconf.rb 26353 2010-01-19 05:14:29Z usa $
 #
 
 require 'mkmf'
@@ -10,12 +10,12 @@ require 'rbconfig'
 dir_config 'zlib'
 
 
-if %w'z libz zlib1 zlib zdll zlibwapi'.find {|z| have_library(z, 'deflateReset')} and
+if %w'z libz zlib1 zlib zdll'.find {|z| have_library(z, 'deflateReset')} and
     have_header('zlib.h') then
 
   defines = []
 
-  Logging::message 'checking for kind of operating system... '
+  message 'checking for kind of operating system... '
   os_code = with_config('os-code') ||
     case RUBY_PLATFORM.split('-',2)[1]
     when 'amigaos' then
@@ -48,16 +48,16 @@ if %w'z libz zlib1 zlib zdll zlibwapi'.find {|z| have_library(z, 'deflateReset')
     'OS_UNKNOWN' => 'Unknown',
   }
   unless OS_NAMES.key? os_code then
-    raise "invalid OS_CODE `#{os_code}'"
+    puts "invalid OS_CODE `#{os_code}'"
+    exit
   end
-  Logging::message "#{OS_NAMES[os_code]}\n"
+  message "#{OS_NAMES[os_code]}\n"
   defines << "OS_CODE=#{os_code}"
 
   $defs.concat(defines.collect{|d|' -D'+d})
 
   have_func('crc32_combine', 'zlib.h')
   have_func('adler32_combine', 'zlib.h')
-  have_type('z_crc_t', 'zlib.h')
 
   create_makefile('zlib')
 

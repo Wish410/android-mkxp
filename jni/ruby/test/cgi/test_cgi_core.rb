@@ -31,14 +31,14 @@ class CGICoreTest < Test::Unit::TestCase
     }
     ENV.update(@environ)
     cgi = CGI.new
-    assert_equal(["a","b","c","d"],cgi.keys.sort)
+    assert_equal(["a","b","c","d"],cgi.keys.sort) if RUBY_VERSION>="1.9"
     assert_equal("",cgi["d"])
   end
 
   def test_cgi_core_params_GET
     @environ = {
       'REQUEST_METHOD'  => 'GET',
-      'QUERY_STRING'    => 'id=123&id=456&id=&id&str=%40h+%3D%7E+%2F%5E%24%2F',
+      'QUERY_STRING'    => 'id=123&id=456&id=&str=%40h+%3D%7E+%2F%5E%24%2F',
       'HTTP_COOKIE'     => '_session_id=12345; name1=val1&val2;',
       'SERVER_SOFTWARE' => 'Apache 2.2.0',
       'SERVER_PROTOCOL' => 'HTTP/1.1',
@@ -48,6 +48,27 @@ class CGICoreTest < Test::Unit::TestCase
     ## cgi[]
     assert_equal('123', cgi['id'])
     assert_equal('@h =~ /^$/', cgi['str'])
+    ## cgi[][], cgi[].first, cgi[].to_ary (obsolete 1.9)
+    if RUBY_VERSION<"1.9"
+      $stderr = StringIO.new
+      begin
+        assert_equal('123', cgi['id'][0])
+        assert_equal('456', cgi['id'][1])
+        assert_equal('',    cgi['id'][2])
+        assert_nil(cgi['id'][3])
+        assert_equal('@h =~ /^$/', cgi['str'][0])
+        assert_nil(cgi['str'][1])
+        assert_equal('123', cgi['id'].first)
+        assert_equal('123', cgi['id'].last)       # should be '' ?
+        id1, id2, id3 = cgi['id']
+        assert_equal(['123', '456', ''], [id1, id2, id3])
+        str1, = cgi['str']
+        assert_equal('@h =~ /^$/', str1)
+        assert_not_same(str1, cgi['str'])    # necessary?
+      ensure
+        $stderr = STDERR
+      end
+    end
     ## cgi.params
     assert_equal(['123', '456', ''], cgi.params['id'])
     assert_equal(['@h =~ /^$/'], cgi.params['str'])
@@ -162,7 +183,7 @@ class CGICoreTest < Test::Unit::TestCase
     }
     ENV.update(@environ)
     ex = assert_raise(StandardError) do
-      CGI.new
+      cgi = CGI.new
     end
     assert_equal("too large post data.", ex.message)
   end if CGI.const_defined?(:MAX_CONTENT_LENGTH)
@@ -178,8 +199,48 @@ class CGICoreTest < Test::Unit::TestCase
     }
     ENV.update(@environ)
     cgi = CGI.new
-    ## euc string
+    ## jis, euc, sjis string
+    jis_str = "\e$B8+$m!\"?M$,%4%_$N$h$&$@\e(B"
     euc_str = "\270\253\244\355\241\242\277\315\244\254\245\264\245\337\244\316\244\350\244\246\244\300"
+    sjis_str = "\214\251\202\353\201A\220l\202\252\203S\203~\202\314\202\346\202\244\202\276"
+    if RUBY_VERSION<"1.9"
+      ## iso-2022-jp
+      options = { 'charset'=>'iso-2022-jp' }
+      $stdout = StringIO.new
+      cgi.out(options) { euc_str }
+      assert_equal('ja', options['language'])
+      actual = $stdout.string
+      expected = "Content-Type: text/html; charset=iso-2022-jp\r\n" +
+               "Content-Length: 28\r\n" +
+               "Content-Language: ja\r\n" +
+               "\r\n" +
+               jis_str
+      assert_equal(expected,actual)
+      ## euc-jp
+      options = { 'charset'=>'EUC-JP' }
+      $stdout = StringIO.new
+      cgi.out(options) { euc_str }
+      assert_equal('ja', options['language'])
+      actual = $stdout.string
+      expected = "Content-Type: text/html; charset=EUC-JP\r\n" +
+               "Content-Length: 22\r\n" +
+               "Content-Language: ja\r\n" +
+               "\r\n" +
+               euc_str
+      assert_equal(expected, actual)
+      ## shift_jis
+      options = { 'charset'=>'Shift_JIS' }
+      $stdout = StringIO.new
+      cgi.out(options) { euc_str }
+      assert_equal('ja', options['language'])
+      actual = $stdout.string
+      expected = "Content-Type: text/html; charset=Shift_JIS\r\n" +
+               "Content-Length: 22\r\n" +
+               "Content-Language: ja\r\n" +
+               "\r\n" +
+               sjis_str
+      assert_equal(expected, actual)
+    end
     ## utf8 (not converted)
     options = { 'charset'=>'utf8' }
     $stdout = StringIO.new
@@ -243,7 +304,7 @@ class CGICoreTest < Test::Unit::TestCase
         HTTP_ACCEPT_LANGUAGE HTTP_CACHE_CONTROL HTTP_FROM HTTP_HOST
         HTTP_NEGOTIATE HTTP_PRAGMA HTTP_REFERER HTTP_USER_AGENT
     ]
-    # list2 = %w[ CONTENT_LENGTH SERVER_PORT ]
+    list2 = %w[ CONTENT_LENGTH SERVER_PORT ]
     ## string expected
     list1.each do |name|
       @environ[name] = "**#{name}**"
@@ -268,7 +329,7 @@ class CGICoreTest < Test::Unit::TestCase
   end
 
 
-  def test_cgi_core_htmltype_header
+  def test_cgi_core_htmltype
     @environ = {
       'REQUEST_METHOD' => 'GET',
     }
@@ -276,32 +337,22 @@ class CGICoreTest < Test::Unit::TestCase
     ## no htmltype
     cgi = CGI.new
     assert_raise(NoMethodError) do cgi.doctype end
-    assert_equal("Content-Type: text/html\r\n\r\n",cgi.header)
     ## html3
     cgi = CGI.new('html3')
     expected = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">'
     assert_equal(expected, cgi.doctype)
-    assert_equal("Content-Type: text/html\r\n\r\n",cgi.header)
     ## html4
     cgi = CGI.new('html4')
     expected = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'
     assert_equal(expected, cgi.doctype)
-    assert_equal("Content-Type: text/html\r\n\r\n",cgi.header)
     ## html4 transitional
     cgi = CGI.new('html4Tr')
     expected = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">'
     assert_equal(expected, cgi.doctype)
-    assert_equal("Content-Type: text/html\r\n\r\n",cgi.header)
     ## html4 frameset
     cgi = CGI.new('html4Fr')
     expected = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">'
     assert_equal(expected, cgi.doctype)
-    assert_equal("Content-Type: text/html\r\n\r\n",cgi.header)
-    ## html5
-    cgi = CGI.new('html5')
-    expected = '<!DOCTYPE HTML>'
-    assert_equal(expected, cgi.doctype)
-    assert_match(/^<HEADER><\/HEADER>$/i,cgi.header)
   end
 
 

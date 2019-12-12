@@ -1,6 +1,11 @@
-require_relative "utils"
+begin
+  require "openssl"
+  require_relative "utils"
+rescue LoadError
+end
+require "test/unit"
 
-if defined?(OpenSSL::TestUtils)
+if defined?(OpenSSL)
 
 class OpenSSL::TestX509Store < Test::Unit::TestCase
   def setup
@@ -15,16 +20,6 @@ class OpenSSL::TestX509Store < Test::Unit::TestCase
   end
 
   def teardown
-  end
-
-  def test_nosegv_on_cleanup
-    cert  = OpenSSL::X509::Certificate.new
-    store = OpenSSL::X509::Store.new
-    ctx   = OpenSSL::X509::StoreContext.new(store, cert, [])
-    EnvUtil.suppress_warning do
-      ctx.cleanup
-    end
-    ctx.verify
   end
 
   def issue_cert(*args)
@@ -214,17 +209,9 @@ class OpenSSL::TestX509Store < Test::Unit::TestCase
     crl2 = issue_crl(revoke_info, 2, now+1800, now+3600, [],
                      ca1_cert, @rsa2048, OpenSSL::Digest::SHA1.new)
     store.add_crl(crl1)
-    if /0\.9\.8.*-rhel/ =~ OpenSSL::OPENSSL_VERSION
-      # RedHat is distributing a patched version of OpenSSL that allows
-      # multiple CRL for a key (multi-crl.patch)
-      assert_nothing_raised do
-        store.add_crl(crl2) # add CRL issued by same CA twice.
-      end
-    else
-      assert_raise(OpenSSL::X509::StoreError){
-        store.add_crl(crl2) # add CRL issued by same CA twice.
-      }
-    end
+    assert_raise(OpenSSL::X509::StoreError){
+      store.add_crl(crl2) # add CRL issued by same CA twice.
+    }
   end
 end
 

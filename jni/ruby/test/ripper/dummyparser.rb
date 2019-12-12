@@ -26,8 +26,8 @@ class Node
 end
 
 class NodeList
-  def initialize(list = [])
-    @list = list
+  def initialize
+    @list = []
   end
 
   attr_reader :list
@@ -151,7 +151,7 @@ class DummyParser < Ripper
     "&#{var}"
   end
 
-  def on_params(required, optional, rest, more, keyword, keyword_rest, block)
+  def on_params(required, optional, rest, more, block)
     args = NodeList.new
 
     required.each do |req|
@@ -206,10 +206,6 @@ class DummyParser < Ripper
 
   def on_qwords_add(words, word)
     words.push word
-  end
-
-  def on_rescue(exc, *rest)
-    Node.new('rescue', (exc && NodeList.new(exc)), *rest)
   end
 
   (Ripper::PARSER_EVENTS.map(&:to_s) - instance_methods(false).map {|n|n.to_s.sub(/^on_/, '')}).each do |event|

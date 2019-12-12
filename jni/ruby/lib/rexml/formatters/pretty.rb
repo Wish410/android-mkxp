@@ -24,7 +24,7 @@ module REXML
       #   is undefined.  Defaults to 2.
       # ie_hack::
       #   If true, the printer will insert whitespace before closing empty
-      #   tags, thereby allowing Internet Explorer's XML parser to
+      #   tags, thereby allowing Internet Explorer's feeble XML parser to
       #   function. Defaults to false.
       def initialize( indentation=2, ie_hack=false )
         @indentation = indentation
@@ -126,13 +126,11 @@ module REXML
       end
 
       def wrap(string, width)
-        parts = []
-        while string.length > width and place = string.rindex(' ', width)
-          parts << string[0...place]
-          string = string[place+1..-1]
-        end
-        parts << string
-        parts.join("\n")
+        # Recursively wrap string at width.
+        return string if string.length <= width
+        place = string.rindex(' ', width) # Position in string with last ' ' before cutoff
+        return string if place.nil?
+        return string[0,place] + "\n" + wrap(string[place+1..-1], width)
       end
 
     end

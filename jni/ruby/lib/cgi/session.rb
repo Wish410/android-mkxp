@@ -8,22 +8,28 @@
 # Author: Yukihiro "Matz" Matsumoto
 #
 # Documentation: William Webber (william@williamwebber.com)
+#
+# == Overview
+#
+# This file provides the +CGI::Session+ class, which provides session
+# support for CGI scripts.  A session is a sequence of HTTP requests
+# and responses linked together and associated with a single client.
+# Information associated with the session is stored
+# on the server between requests.  A session id is passed between client
+# and server with every request and response, transparently
+# to the user.  This adds state information to the otherwise stateless
+# HTTP request/response protocol.
+#
+# See the documentation to the +CGI::Session+ class for more details
+# and examples of usage.  See cgi.rb for the +CGI+ class itself.
 
 require 'cgi'
 require 'tmpdir'
 
 class CGI
 
-  # == Overview
-  #
-  # This file provides the CGI::Session class, which provides session
-  # support for CGI scripts.  A session is a sequence of HTTP requests
-  # and responses linked together and associated with a single client.
-  # Information associated with the session is stored
-  # on the server between requests.  A session id is passed between client
-  # and server with every request and response, transparently
-  # to the user.  This adds state information to the otherwise stateless
-  # HTTP request/response protocol.
+  # Class representing an HTTP session.  See documentation for the file
+  # cgi/session.rb for an introduction to HTTP sessions.
   #
   # == Lifecycle
   #
@@ -62,7 +68,7 @@ class CGI
   #                           works with String data.  This is the default
   #                           storage type.
   # CGI::Session::MemoryStore:: stores data in an in-memory hash.  The data
-  #                             only persists for as long as the current Ruby
+  #                             only persists for as long as the current ruby
   #                             interpreter instance does.
   # CGI::Session::PStore:: stores data in Marshalled format.  Provided by
   #                        cgi/session/pstore.rb.  Supports data of any type,
@@ -308,7 +314,7 @@ class CGI
       @data[key]
     end
 
-    # Set the session data for key +key+.
+    # Set the session date for key +key+.
     def []=(key, val)
       @write_lock ||= true
       @data ||= @dbman.restore
@@ -437,14 +443,14 @@ class CGI
       def delete
         File::unlink @path+".lock" rescue nil
         File::unlink @path+".new" rescue nil
-        File::unlink @path rescue nil
+        File::unlink @path rescue Errno::ENOENT
       end
     end
 
     # In-memory session storage class.
     #
     # Implements session storage as a global in-memory hash.  Session
-    # data will only persist for as long as the Ruby interpreter
+    # data will only persist for as long as the ruby interpreter
     # instance does.
     class MemoryStore
       GLOBAL_HASH_TABLE = {} #:nodoc:
@@ -453,7 +459,7 @@ class CGI
       #
       # +session+ is the session this instance is associated with.
       # +option+ is a list of initialisation options.  None are
-      # currently recognized.
+      # currently recognised.
       def initialize(session, option=nil)
         @session_id = session.session_id
         unless GLOBAL_HASH_TABLE.key?(@session_id)

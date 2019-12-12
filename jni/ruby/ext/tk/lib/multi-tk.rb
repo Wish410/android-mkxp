@@ -148,7 +148,7 @@ class MultiTkIp
       end
 
       def delete(idx, &blk)
-        # if gets an entry, is permitted to delete
+        # if gets an entry, is permited to delete
         if self[idx]
           @tbl.delete(idx)
         elsif blk
@@ -774,7 +774,7 @@ class MultiTkIp
 
         ensure
           # interp must be deleted before the thread for interp is dead.
-          # If not, raise Tcl_Panic on Tcl_AsyncDelete because async handler
+          # If not, raise Tcl_Panic on Tcl_AsyncDelete because async handler 
           # deleted by the wrong thread.
           interp.delete
         end
@@ -1933,7 +1933,7 @@ class MultiTkIp
   end
 =end
   def cb_eval(cmd, *args)
-    self.eval_callback(*args,
+    self.eval_callback(*args, 
                        &_proc_on_safelevel{|*params|
                          TkComm._get_eval_string(TkUtil.eval_cmd(cmd, *params))
                        })
@@ -2103,7 +2103,7 @@ end
 # evaluate a procedure on the proper interpreter
 class MultiTkIp
   # instance & class method
-  def _proc_on_safelevel(cmd=nil) # require a block for eval
+  def _proc_on_safelevel(cmd=nil, &blk) # require a block for eval
     if cmd
       if cmd.kind_of?(Method)
         _proc_on_safelevel{|*args| cmd.call(*args)}
@@ -2121,7 +2121,7 @@ class MultiTkIp
           end
           err
         }
-        $SAFE=safe if $SAFE < safe;
+        $SAFE=safe if $SAFE < safe; 
         begin
           yield(*args)
         rescue Exception => e
@@ -2300,7 +2300,7 @@ end
         current[:callback_ip] = backup_ip
       end
     else
-      eval_proc_core(true,
+      eval_proc_core(true, 
                      proc{|safe, *params|
                        Thread.new{cmd.call(safe, *params)}.value
                      },

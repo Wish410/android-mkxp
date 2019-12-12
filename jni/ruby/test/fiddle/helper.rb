@@ -1,7 +1,9 @@
 require 'minitest/autorun'
+require 'dl'
 require 'fiddle'
 
 # FIXME: this is stolen from DL and needs to be refactored.
+require_relative '../ruby/envutil'
 
 libc_so = libm_so = nil
 
@@ -26,37 +28,16 @@ when /linux/
   libm_so = File.join(libdir, "libm.so.6")
 when /mingw/, /mswin/
   require "rbconfig"
-  libc_so = libm_so = RbConfig::CONFIG["RUBY_SO_NAME"].split(/-/).find{|e| /^msvc/ =~ e} + ".dll"
+  libc_so = libm_so = RbConfig::CONFIG["RUBY_SO_NAME"].split(/-/, 2)[0] + ".dll"
 when /darwin/
   libc_so = "/usr/lib/libc.dylib"
   libm_so = "/usr/lib/libm.dylib"
 when /kfreebsd/
   libc_so = "/lib/libc.so.0.1"
   libm_so = "/lib/libm.so.1"
-when /gnu/	#GNU/Hurd
-  libc_so = "/lib/libc.so.0.3"
-  libm_so = "/lib/libm.so.6"
-when /mirbsd/
-  libc_so = "/usr/lib/libc.so.41.10"
-  libm_so = "/usr/lib/libm.so.7.0"
-when /freebsd/
-  libc_so = "/lib/libc.so.7"
-  libm_so = "/lib/libm.so.5"
 when /bsd|dragonfly/
   libc_so = "/usr/lib/libc.so"
   libm_so = "/usr/lib/libm.so"
-when /solaris/
-  libdir = '/lib'
-  case [0].pack('L!').size
-  when 4
-    # 32-bit ruby
-    libdir = '/lib' if File.directory? '/lib'
-  when 8
-    # 64-bit ruby
-    libdir = '/lib/64' if File.directory? '/lib/64'
-  end
-  libc_so = File.join(libdir, "libc.so")
-  libm_so = File.join(libdir, "libm.so")
 when /aix/
   pwd=Dir.pwd
   libc_so = libm_so = "#{pwd}/libaixdltest.so"
@@ -111,14 +92,8 @@ Fiddle::LIBM_SO = libm_so
 module Fiddle
   class TestCase < MiniTest::Unit::TestCase
     def setup
-      @libc = Fiddle.dlopen(LIBC_SO)
-      @libm = Fiddle.dlopen(LIBM_SO)
-    end
-
-    def teardown
-      if /linux/ =~ RUBY_PLATFORM
-        GC.start
-      end
+      @libc = DL.dlopen(LIBC_SO)
+      @libm = DL.dlopen(LIBM_SO)
     end
   end
 end

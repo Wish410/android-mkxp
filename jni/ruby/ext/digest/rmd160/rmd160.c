@@ -1,6 +1,6 @@
 /*	$NetBSD: rmd160.c,v 1.1.1.1 2001/03/06 11:21:05 agc Exp $	*/
 /*	$RoughId: rmd160.c,v 1.2 2001/07/13 19:49:10 knu Exp $	*/
-/*	$Id: rmd160.c 46827 2014-07-15 14:59:20Z nobu $	*/
+/*	$Id: rmd160.c 25189 2009-10-02 12:04:37Z akr $	*/
 
 /********************************************************************\
  *
@@ -124,7 +124,7 @@
 
 /********************************************************************/
 
-int
+void
 RMD160_Init(RMD160_CTX *context)
 {
 
@@ -138,7 +138,6 @@ RMD160_Init(RMD160_CTX *context)
 	context->state[4] = 0xc3d2e1f0U;
 	context->length[0] = context->length[1] = 0;
 	context->buflen = 0;
-	return 1;
 }
 
 /********************************************************************/
@@ -363,20 +362,16 @@ RMD160_Update(RMD160_CTX *context, const uint8_t *data, size_t nbytes)
 	_DIAGASSERT(data != NULL);
 
 	/* update length[] */
-#if SIZEOF_SIZE_T * CHAR_BIT > 32
-	context->length[1] += (uint32_t)((context->length[0] + nbytes) >> 32);
-#else
 	if (context->length[0] + nbytes < context->length[0])
 		context->length[1]++;		/* overflow to msb of length */
-#endif
-	context->length[0] += (uint32_t)nbytes;
+	context->length[0] += nbytes;
 
 	(void)memset(X, 0, sizeof(X));
 
         if ( context->buflen + nbytes < 64 )
         {
                 (void)memcpy(context->bbuffer + context->buflen, data, nbytes);
-                context->buflen += (uint32_t)nbytes;
+                context->buflen += nbytes;
         }
         else
         {
@@ -406,14 +401,14 @@ RMD160_Update(RMD160_CTX *context, const uint8_t *data, size_t nbytes)
                 /*
                  * Put last bytes from data into context's buffer
                  */
-                context->buflen = (uint32_t)nbytes & 63;
+                context->buflen = nbytes & 63;
                 memcpy(context->bbuffer, data + (64 * i) + ofs, context->buflen);
         }
 }
 
 /********************************************************************/
 
-int
+void
 RMD160_Finish(RMD160_CTX *context, uint8_t digest[20])
 {
 	uint32_t i;
@@ -457,7 +452,6 @@ RMD160_Finish(RMD160_CTX *context, uint8_t digest[20])
 			digest[i + 3] = (context->state[i>>2] >> 24);
 		}
 	}
-	return 1;
 }
 
 /************************ end of file rmd160.c **********************/

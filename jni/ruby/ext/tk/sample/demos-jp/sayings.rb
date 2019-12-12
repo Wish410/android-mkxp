@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
+# -*- coding: euc-jp -*-
 #
 # listbox widget demo 'sayings' (called by 'widget')
 #
 
-# toplevel widget ãŒå­˜åœ¨ã™ã‚Œã°å‰Šé™¤ã™ã‚‹
+# toplevel widget ¤¬Â¸ºß¤¹¤ì¤Ðºï½ü¤¹¤ë
 if defined?($sayings_demo) && $sayings_demo
   $sayings_demo.destroy
   $sayings_demo = nil
 end
 
-# demo ç”¨ã® toplevel widget ã‚’ç”Ÿæˆ
+# demo ÍÑ¤Î toplevel widget ¤òÀ¸À®
 $sayings_demo = TkToplevel.new {|w|
   title("Listbox Demonstration (well-known sayings)")
   iconname("sayings")
@@ -18,20 +18,20 @@ $sayings_demo = TkToplevel.new {|w|
 
 base_frame = TkFrame.new($sayings_demo).pack(:fill=>:both, :expand=>true)
 
-# label ç”Ÿæˆ
+# label À¸À®
 msg = TkLabel.new(base_frame) {
   font $font
   wraplength '4i'
   justify 'left'
-  text "ä¸‹ã®ãƒªã‚¹ãƒˆãƒœãƒƒã‚¯ã‚¹ã«ã¯ã„ã‚ã„ã‚ãªæ ¼è¨€ãŒå…¥ã£ã¦ã„ã¾ã™ã€‚ãƒªã‚¹ãƒˆã‚’ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ã•ã›ã‚‹ã®ã¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ãƒãƒ¼ã§ã‚‚ã§ãã¾ã™ã—ã€ãƒªã‚¹ãƒˆãƒœãƒƒã‚¯ã‚¹ã®ä¸­ã§ãƒžã‚¦ã‚¹ã®ãƒœã‚¿ãƒ³2(ä¸­ãƒœã‚¿ãƒ³)ã‚’æŠ¼ã—ãŸã¾ã¾ãƒ‰ãƒ©ãƒƒã‚°ã—ã¦ã‚‚ã§ãã¾ã™ã€‚"
+  text "²¼¤Î¥ê¥¹¥È¥Ü¥Ã¥¯¥¹¤Ë¤Ï¤¤¤í¤¤¤í¤Ê³Ê¸À¤¬Æþ¤Ã¤Æ¤¤¤Þ¤¹¡£¥ê¥¹¥È¤ò¥¹¥¯¥í¡¼¥ë¤µ¤»¤ë¤Î¤Ï¥¹¥¯¥í¡¼¥ë¥Ð¡¼¤Ç¤â¤Ç¤­¤Þ¤¹¤·¡¢¥ê¥¹¥È¥Ü¥Ã¥¯¥¹¤ÎÃæ¤Ç¥Þ¥¦¥¹¤Î¥Ü¥¿¥ó2(Ãæ¥Ü¥¿¥ó)¤ò²¡¤·¤¿¤Þ¤Þ¥É¥é¥Ã¥°¤·¤Æ¤â¤Ç¤­¤Þ¤¹¡£"
 }
 msg.pack('side'=>'top')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 TkFrame.new(base_frame) {|frame|
   TkButton.new(frame) {
-    #text 'äº†è§£'
-    text 'é–‰ã˜ã‚‹'
+    #text 'Î»²ò'
+    text 'ÊÄ¤¸¤ë'
     command proc{
       tmppath = $sayings_demo
       $sayings_demo = nil
@@ -40,13 +40,13 @@ TkFrame.new(base_frame) {|frame|
   }.pack('side'=>'left', 'expand'=>'yes')
 
   TkButton.new(frame) {
-    text 'ã‚³ãƒ¼ãƒ‰å‚ç…§'
+    text '¥³¡¼¥É»²¾È'
     command proc{showCode 'sayings'}
   }.pack('side'=>'left', 'expand'=>'yes')
 
 }.pack('side'=>'bottom', 'fill'=>'x', 'pady'=>'2m')
 
-# frame ç”Ÿæˆ
+# frame À¸À®
 sayings_lbox = nil
 TkFrame.new(base_frame, 'borderwidth'=>10) {|w|
   sv = TkScrollbar.new(w)

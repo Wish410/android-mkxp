@@ -1,6 +1,6 @@
 require "rexml/document"
 
-require_relative "rss-testcase"
+require "rss-testcase"
 
 require "rss/1.0"
 
@@ -24,8 +24,9 @@ module RSS
 
       xmldecl = doc.xml_decl
 
-      assert_equal(version, xmldecl.version)
-      assert_equal(encoding, xmldecl.encoding.to_s)
+      %w(version encoding).each do |x|
+        assert_equal(instance_eval(x), xmldecl.__send__(x))
+      end
       assert_equal(standalone, !xmldecl.standalone.nil?)
 
       assert_equal(@rdf_uri, doc.root.namespace)
@@ -54,6 +55,9 @@ module RSS
 
     def test_channel
       about = "http://hoge.com"
+      title = "fugafuga"
+      link = "http://hoge.com"
+      description = "fugafugafugafuga"
       resource = "http://hoge.com/hoge.png"
 
       item_title = "item title"
@@ -69,18 +73,9 @@ module RSS
       rss_item.link = item_link
       rss_item.about = item_link
 
-      h = {
-        'title' => "fugafuga",
-        'link' => "http://hoge.com",
-        'description' => "fugafugafugafuga",
-        'image' => image,
-        'items' => items,
-        'textinput' => textinput,
-      }
-
       channel = RDF::Channel.new(about)
       %w(title link description image items textinput).each do |x|
-        channel.__send__("#{x}=", h[x])
+        channel.__send__("#{x}=", instance_eval(x))
       end
 
       doc = REXML::Document.new(make_RDF(<<-EOR))
@@ -102,7 +97,7 @@ EOR
           assert_equal(@rdf_uri, res.namespace)
           value = res.value
         else
-          excepted = h[x]
+          excepted = instance_eval(x)
           value = elem.text
         end
         assert_equal(excepted, value)
@@ -205,15 +200,13 @@ EOR
 
     def test_image
       about = "http://hoge.com"
-      h = {
-        'title' => "fugafuga",
-        'url' => "http://hoge.com/hoge",
-        'link' => "http://hoge.com/fuga",
-      }
+      title = "fugafuga"
+      url = "http://hoge.com/hoge"
+      link = "http://hoge.com/fuga"
 
       image = RDF::Image.new(about)
       %w(title url link).each do |x|
-        image.__send__("#{x}=", h[x])
+        image.__send__("#{x}=", instance_eval(x))
       end
 
       doc = REXML::Document.new(make_RDF(image.to_s))
@@ -224,21 +217,19 @@ EOR
         elem = i.elements[x]
         assert_equal(x, elem.name)
         assert_equal(@uri, elem.namespace)
-        assert_equal(h[x], elem.text)
+        assert_equal(instance_eval(x), elem.text)
       end
     end
 
     def test_item
       about = "http://hoge.com"
-      h = {
-        'title' => "fugafuga",
-        'link' => "http://hoge.com/fuga",
-        'description' => "hogehogehoge",
-      }
+      title = "fugafuga"
+      link = "http://hoge.com/fuga"
+      description = "hogehogehoge"
 
       item = RDF::Item.new(about)
       %w(title link description).each do |x|
-        item.__send__("#{x}=", h[x])
+        item.__send__("#{x}=", instance_eval(x))
       end
 
       doc = REXML::Document.new(make_RDF(item.to_s))
@@ -249,22 +240,20 @@ EOR
         elem = i.elements[x]
         assert_equal(x, elem.name)
         assert_equal(@uri, elem.namespace)
-        assert_equal(h[x], elem.text)
+        assert_equal(instance_eval(x), elem.text)
       end
     end
 
     def test_textinput
       about = "http://hoge.com"
-      h = {
-        'title' => "fugafuga",
-        'link' => "http://hoge.com/fuga",
-        'name' => "foo",
-        'description' => "hogehogehoge",
-      }
+      title = "fugafuga"
+      link = "http://hoge.com/fuga"
+      name = "foo"
+      description = "hogehogehoge"
 
       textinput = RDF::Textinput.new(about)
       %w(title link name description).each do |x|
-        textinput.__send__("#{x}=", h[x])
+        textinput.__send__("#{x}=", instance_eval(x))
       end
 
       doc = REXML::Document.new(make_RDF(textinput.to_s))
@@ -275,7 +264,7 @@ EOR
         elem = t.elements[x]
         assert_equal(x, elem.name)
         assert_equal(@uri, elem.namespace)
-        assert_equal(h[x], elem.text)
+        assert_equal(instance_eval(x), elem.text)
       end
     end
 

@@ -1,4 +1,4 @@
-#--
+#
 # HTTPVersion.rb -- presentation of HTTP version
 #
 # Author: IPR -- Internet Programming with Ruby -- writers
@@ -8,32 +8,14 @@
 # $IPR: httpversion.rb,v 1.5 2002/09/21 12:23:37 gotoyuzo Exp $
 
 module WEBrick
-
-  ##
-  # Represents an HTTP protocol version
-
   class HTTPVersion
     include Comparable
 
-    ##
-    # The major protocol version number
-
-    attr_accessor :major
-
-    ##
-    # The minor protocol version number
-
-    attr_accessor :minor
-
-    ##
-    # Converts +version+ into an HTTPVersion
+    attr_accessor :major, :minor
 
     def self.convert(version)
       version.is_a?(self) ? version : new(version)
     end
-
-    ##
-    # Creates a new HTTPVersion from +version+.
 
     def initialize(version)
       case version
@@ -50,10 +32,6 @@ module WEBrick
       end
     end
 
-    ##
-    # Compares this version with +other+ according to the HTTP specification
-    # rules.
-
     def <=>(other)
       unless other.is_a?(self.class)
         other = self.class.new(other)
@@ -63,10 +41,6 @@ module WEBrick
       end
       return ret
     end
-
-    ##
-    # The HTTP version as show in the HTTP request and response.  For example,
-    # "1.1"
 
     def to_s
       format("%d.%d", @major, @minor)

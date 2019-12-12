@@ -1,10 +1,8 @@
-# TODO: Remove in Rake 11
-
 require 'rake/contrib/sshpublisher'
 
 module Rake
 
-  class RubyForgePublisher < SshDirPublisher # :nodoc: all
+  class RubyForgePublisher < SshDirPublisher
     attr_reader :project, :proj_id, :user
 
     def initialize(projname, user)

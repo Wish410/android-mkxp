@@ -30,14 +30,8 @@ module Psych
   # construct an AST of the parsed YAML document.
 
   class Parser
-    class Mark < Struct.new(:index, :line, :column)
-    end
-
     # The handler on which events will be called
     attr_accessor :handler
-
-    # Set the encoding for this parser to +encoding+
-    attr_writer :external_encoding
 
     ###
     # Creates a new Psych::Parser instance with +handler+.  YAML events will
@@ -45,7 +39,6 @@ module Psych
 
     def initialize handler = Handler.new
       @handler = handler
-      @external_encoding = ANY
     end
   end
 end

@@ -1,30 +1,15 @@
 require 'psych/scalar_scanner'
-require 'psych/class_loader'
-require 'psych/exception'
-
-unless defined?(Regexp::NOENCODING)
-  Regexp::NOENCODING = 32
-end
 
 module Psych
   module Visitors
     ###
-    # This class walks a YAML AST, converting each node to Ruby
+    # This class walks a YAML AST, converting each node to ruby
     class ToRuby < Psych::Visitors::Visitor
-      def self.create
-        class_loader = ClassLoader.new
-        scanner      = ScalarScanner.new class_loader
-        new(scanner, class_loader)
-      end
-
-      attr_reader :class_loader
-
-      def initialize ss, class_loader
-        super()
+      def initialize
+        super
         @st = {}
-        @ss = ss
+        @ss = ScalarScanner.new
         @domain_types = Psych.domain_types
-        @class_loader = class_loader
       end
 
       def accept target
@@ -42,8 +27,10 @@ module Psych
         result
       end
 
-      def deserialize o
-        if klass = resolve_class(Psych.load_tags[o.tag])
+      def visit_Psych_Nodes_Scalar o
+        @st[o.anchor] = o.value if o.anchor
+
+        if klass = Psych.load_tags[o.tag]
           instance = klass.allocate
 
           if instance.respond_to?(:init_with)
@@ -61,34 +48,18 @@ module Psych
         case o.tag
         when '!binary', 'tag:yaml.org,2002:binary'
           o.value.unpack('m').first
-        when /^!(?:str|ruby\/string)(?::(.*))?/, 'tag:yaml.org,2002:str'
-          klass = resolve_class($1)
-          if klass
-            klass.allocate.replace o.value
-          else
-            o.value
-          end
-        when '!ruby/object:BigDecimal'
-          require 'bigdecimal'
-          class_loader.big_decimal._load o.value
+        when '!str', 'tag:yaml.org,2002:str'
+          o.value
         when "!ruby/object:DateTime"
-          class_loader.date_time
           require 'date'
           @ss.parse_time(o.value).to_datetime
-        when '!ruby/encoding'
-          ::Encoding.find o.value
         when "!ruby/object:Complex"
-          class_loader.complex
           Complex(o.value)
         when "!ruby/object:Rational"
-          class_loader.rational
           Rational(o.value)
-        when "!ruby/class", "!ruby/module"
-          resolve_class o.value
         when "tag:yaml.org,2002:float", "!float"
           Float(@ss.tokenize(o.value))
         when "!ruby/regexp"
-          klass = class_loader.regexp
           o.value =~ /^\/(.*)\/([mixn]*)$/
           source  = $1
           options = 0
@@ -98,32 +69,28 @@ module Psych
             when 'x' then options |= Regexp::EXTENDED
             when 'i' then options |= Regexp::IGNORECASE
             when 'm' then options |= Regexp::MULTILINE
-            when 'n' then options |= Regexp::NOENCODING
+
+            # FIXME: there is no constant for ARG_ENCODING_NONE
+            when 'n' then options |= 32
             else lang = option
             end
           end
-          klass.new(*[source, options, lang].compact)
+          Regexp.new(*[source, options, lang].compact)
         when "!ruby/range"
-          klass = class_loader.range
           args = o.value.split(/([.]{2,3})/, 2).map { |s|
             accept Nodes::Scalar.new(s)
           }
           args.push(args.delete_at(1) == '...')
-          klass.new(*args)
+          Range.new(*args)
         when /^!ruby\/sym(bol)?:?(.*)?$/
-          class_loader.symbolize o.value
+          o.value.to_sym
         else
           @ss.tokenize o.value
         end
       end
-      private :deserialize
-
-      def visit_Psych_Nodes_Scalar o
-        register o, deserialize(o)
-      end
 
       def visit_Psych_Nodes_Sequence o
-        if klass = resolve_class(Psych.load_tags[o.tag])
+        if klass = Psych.load_tags[o.tag]
           instance = klass.allocate
 
           if instance.respond_to?(:init_with)
@@ -136,43 +103,42 @@ module Psych
         end
 
         case o.tag
-        when nil
-          register_empty(o)
         when '!omap', 'tag:yaml.org,2002:omap'
-          map = register(o, Psych::Omap.new)
+          map = Psych::Omap.new
+          @st[o.anchor] = map if o.anchor
           o.children.each { |a|
             map[accept(a.children.first)] = accept a.children.last
           }
           map
-        when /^!(?:seq|ruby\/array):(.*)$/
-          klass = resolve_class($1)
-          list  = register(o, klass.allocate)
+        else
+          list = []
+          @st[o.anchor] = list if o.anchor
           o.children.each { |c| list.push accept c }
           list
-        else
-          register_empty(o)
         end
       end
 
       def visit_Psych_Nodes_Mapping o
-        if Psych.load_tags[o.tag]
-          return revive(resolve_class(Psych.load_tags[o.tag]), o)
-        end
-        return revive_hash(register(o, {}), o) unless o.tag
+        return revive(Psych.load_tags[o.tag], o) if Psych.load_tags[o.tag]
 
         case o.tag
+        when '!str', 'tag:yaml.org,2002:str'
+          members = Hash[*o.children.map { |c| accept c }]
+          string = members.delete 'str'
+          init_with(string, members.map { |k,v| [k.to_s.sub(/^@/, ''),v] }, o)
         when /^!ruby\/struct:?(.*)?$/
-          klass = resolve_class($1) if $1
+          klass = resolve_class($1)
 
           if klass
-            s = register(o, klass.allocate)
+            s = klass.allocate
+            @st[o.anchor] = s if o.anchor
 
             members = {}
-            struct_members = s.members.map { |x| class_loader.symbolize x }
+            struct_members = s.members.map { |x| x.to_sym }
             o.children.each_slice(2) do |k,v|
               member = accept(k)
               value  = accept(v)
-              if struct_members.include?(class_loader.symbolize(member))
+              if struct_members.include?(member.to_sym)
                 s.send("#{member}=", value)
               else
                 members[member.to_s.sub(/^@/, '')] = value
@@ -180,114 +146,67 @@ module Psych
             end
             init_with(s, members, o)
           else
-            klass = class_loader.struct
             members = o.children.map { |c| accept c }
             h = Hash[*members]
-            s = klass.new(*h.map { |k,v|
-              class_loader.symbolize k
-            }).new(*h.map { |k,v| v })
-            register(o, s)
-            s
+            Struct.new(*h.map { |k,v| k.to_sym }).new(*h.map { |k,v| v })
           end
-
-        when /^!ruby\/object:?(.*)?$/
-          name = $1 || 'Object'
-
-          if name == 'Complex'
-            class_loader.complex
-            h = Hash[*o.children.map { |c| accept c }]
-            register o, Complex(h['real'], h['image'])
-          elsif name == 'Rational'
-            class_loader.rational
-            h = Hash[*o.children.map { |c| accept c }]
-            register o, Rational(h['numerator'], h['denominator'])
-          elsif name == 'Hash'
-            revive_hash(register(o, {}), o)
-          else
-            obj = revive((resolve_class(name) || class_loader.object), o)
-            obj
-          end
-
-        when /^!(?:str|ruby\/string)(?::(.*))?/, 'tag:yaml.org,2002:str'
-          klass   = resolve_class($1)
-          members = {}
-          string  = nil
-
-          o.children.each_slice(2) do |k,v|
-            key   = accept k
-            value = accept v
-
-            if key == 'str'
-              if klass
-                string = klass.allocate.replace value
-              else
-                string = value
-              end
-              register(o, string)
-            else
-              members[key] = value
-            end
-          end
-          init_with(string, members.map { |k,v| [k.to_s.sub(/^@/, ''),v] }, o)
-        when /^!ruby\/array:(.*)$/
-          klass = resolve_class($1)
-          list  = register(o, klass.allocate)
-
-          members = Hash[o.children.map { |c| accept c }.each_slice(2).to_a]
-          list.replace members['internal']
-
-          members['ivars'].each do |ivar, v|
-            list.instance_variable_set ivar, v
-          end
-          list
 
         when '!ruby/range'
-          klass = class_loader.range
           h = Hash[*o.children.map { |c| accept c }]
-          register o, klass.new(h['begin'], h['end'], h['excl'])
+          Range.new(h['begin'], h['end'], h['excl'])
 
         when /^!ruby\/exception:?(.*)?$/
           h = Hash[*o.children.map { |c| accept c }]
 
-          e = build_exception((resolve_class($1) || class_loader.exception),
+          e = build_exception((resolve_class($1) || Exception),
                               h.delete('message'))
           init_with(e, h, o)
 
         when '!set', 'tag:yaml.org,2002:set'
-          set = class_loader.psych_set.new
+          set = Psych::Set.new
           @st[o.anchor] = set if o.anchor
           o.children.each_slice(2) do |k,v|
             set[accept(k)] = accept(v)
           end
           set
 
-        when /^!map:(.*)$/, /^!ruby\/hash:(.*)$/
-          revive_hash register(o, resolve_class($1).new), o
+        when '!ruby/object:Complex'
+          h = Hash[*o.children.map { |c| accept c }]
+          Complex(h['real'], h['image'])
 
-        when '!omap', 'tag:yaml.org,2002:omap'
-          map = register(o, class_loader.psych_omap.new)
-          o.children.each_slice(2) do |l,r|
-            map[accept(l)] = accept r
-          end
-          map
+        when '!ruby/object:Rational'
+          h = Hash[*o.children.map { |c| accept c }]
+          Rational(h['numerator'], h['denominator'])
 
-        when /^!ruby\/marshalable:(.*)$/
-          name = $1
-          klass = resolve_class(name)
-          obj = register(o, klass.allocate)
-
-          if obj.respond_to?(:init_with)
-            init_with(obj, revive_hash({}, o), o)
-          elsif obj.respond_to?(:marshal_load)
-            marshal_data = o.children.map(&method(:accept))
-            obj.marshal_load(marshal_data)
-            obj
-          else
-            raise ArgumentError, "Cannot deserialize #{name}"
-          end
-
+        when /^!ruby\/object:?(.*)?$/
+          name = $1 || 'Object'
+          obj = revive((resolve_class(name) || Object), o)
+          @st[o.anchor] = obj if o.anchor
+          obj
         else
-          revive_hash(register(o, {}), o)
+          hash = {}
+          @st[o.anchor] = hash if o.anchor
+
+          o.children.each_slice(2) { |k,v|
+            key = accept(k)
+
+            if key == '<<'
+              case v
+              when Nodes::Alias
+                hash.merge! accept(v)
+              when Nodes::Sequence
+                accept(v).reverse_each do |value|
+                  hash.merge! value
+                end
+              else
+                hash[key] = accept(v)
+              end
+            else
+              hash[key] = accept(v)
+            end
+
+          }
+          hash
         end
       end
 
@@ -300,61 +219,14 @@ module Psych
       end
 
       def visit_Psych_Nodes_Alias o
-        @st.fetch(o.anchor) { raise BadAlias, "Unknown alias: #{o.anchor}" }
+        @st[o.anchor]
       end
 
       private
-      def register node, object
-        @st[node.anchor] = object if node.anchor
-        object
-      end
-
-      def register_empty object
-        list = register(object, [])
-        object.children.each { |c| list.push accept c }
-        list
-      end
-
-      def revive_hash hash, o
-        o.children.each_slice(2) { |k,v|
-          key = accept(k)
-          val = accept(v)
-
-          if key == '<<' && k.tag != "tag:yaml.org,2002:str"
-            case v
-            when Nodes::Alias, Nodes::Mapping
-              begin
-                hash.merge! val
-              rescue TypeError
-                hash[key] = val
-              end
-            when Nodes::Sequence
-              begin
-                h = {}
-                val.reverse_each do |value|
-                  h.merge! value
-                end
-                hash.merge! h
-              rescue TypeError
-                hash[key] = val
-              end
-            else
-              hash[key] = val
-            end
-          else
-            hash[key] = val
-          end
-
-        }
-        hash
-      end
-
-      def merge_key hash, key, val
-      end
-
       def revive klass, node
-        s = register(node, klass.allocate)
-        init_with(s, revive_hash({}, node), node)
+        s = klass.allocate
+        h = Hash[*node.children.map { |c| accept c }]
+        init_with(s, h, node)
       end
 
       def init_with o, h, node
@@ -365,7 +237,7 @@ module Psych
           o.init_with c
         elsif o.respond_to?(:yaml_initialize)
           if $VERBOSE
-            warn "Implementing #{o.class}#yaml_initialize is deprecated, please implement \"init_with(coder)\""
+            "Implementing #{o.class}#yaml_initialize is deprecated, please implement \"init_with(coder)\""
           end
           o.yaml_initialize c.tag, c.map
         else
@@ -376,13 +248,21 @@ module Psych
 
       # Convert +klassname+ to a Class
       def resolve_class klassname
-        class_loader.load klassname
-      end
-    end
+        return nil unless klassname and not klassname.empty?
 
-    class NoAliasRuby < ToRuby
-      def visit_Psych_Nodes_Alias o
-        raise BadAlias, "Unknown alias: #{o.anchor}"
+        name    = klassname
+        retried = false
+
+        begin
+          path2class(name)
+        rescue ArgumentError, NameError => ex
+          unless retried
+            name    = "Struct::#{name}"
+            retried = ex
+            retry
+          end
+          raise retried
+        end
       end
     end
   end

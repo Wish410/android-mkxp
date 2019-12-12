@@ -1,13 +1,12 @@
+#!/usr/bin/env ruby
+# $RoughId: test.rb,v 1.9 2002/02/25 08:20:14 knu Exp $
+# $Id: test_syslog.rb 31793 2011-05-29 22:48:42Z yugui $
+
 # Please only run this test on machines reasonable for testing.
 # If in doubt, ask your admin.
 
 require 'test/unit'
-
-begin
-  require 'syslog'
-rescue LoadError
-  # suppress error messages.
-end
+require 'syslog'
 
 class TestSyslog < Test::Unit::TestCase
   def test_new
@@ -111,79 +110,55 @@ class TestSyslog < Test::Unit::TestCase
     Syslog.close if Syslog.opened?
   end
 
-  def syslog_line_regex(ident, message)
-    /(?:^| )#{Regexp.quote(ident)}(?:\[([1-9][0-9]*)\])?(?: |[: ].* )#{Regexp.quote(message)}$/
-  end
-
   def test_log
-    IO.pipe {|stderr|
-      pid = fork {
-        stderr[0].close
-        STDERR.reopen(stderr[1])
-        stderr[1].close
+    stderr = IO::pipe
 
-        options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
-
-        Syslog.open("syslog_test", options) { |sl|
-          sl.log(Syslog::LOG_NOTICE, "test1 - hello, %s!", "world")
-          sl.notice("test1 - hello, %s!", "world")
-        }
-
-        Syslog.open("syslog_test", options | Syslog::LOG_PID) { |sl|
-          sl.log(Syslog::LOG_CRIT, "test2 - pid")
-          sl.crit("test2 - pid")
-        }
-        exit!
-      }
-
+    pid = fork {
+      stderr[0].close
+      STDERR.reopen(stderr[1])
       stderr[1].close
-      Process.waitpid(pid)
 
-      # LOG_PERROR is not implemented on Cygwin or Solaris.  Only test
-      # these on systems that define it.
-      return unless Syslog.const_defined?(:LOG_PERROR)
+      options = Syslog::LOG_PERROR | Syslog::LOG_NDELAY
 
-      2.times {
-        re = syslog_line_regex("syslog_test", "test1 - hello, world!")
-        line = stderr[0].gets
-        # In AIX, each LOG_PERROR output line has an appended empty line.
-        if /aix/ =~ RUBY_PLATFORM && line =~ /^$/
-          line = stderr[0].gets
-        end
-        m = re.match(line)
-        assert_not_nil(m)
-        if m[1]
-          # pid is written regardless of LOG_PID on OS X 10.7+
-          assert_equal(pid, m[1].to_i)
-        end
+      Syslog.open("syslog_test", options) { |sl|
+	sl.log(Syslog::LOG_NOTICE, "test1 - hello, %s!", "world")
+	sl.notice("test1 - hello, %s!", "world")
       }
 
-      2.times {
-        re = syslog_line_regex("syslog_test", "test2 - pid")
-        line = stderr[0].gets
-        # In AIX, each LOG_PERROR output line has an appended empty line.
-        if /aix/ =~ RUBY_PLATFORM && line =~ /^$/
-          line = stderr[0].gets
-        end
-        m = re.match(line)
-        assert_not_nil(m)
-        assert_not_nil(m[1])
-        assert_equal(pid, m[1].to_i)
+      Syslog.open("syslog_test", options | Syslog::LOG_PID) { |sl|
+	sl.log(Syslog::LOG_CRIT, "test2 - pid")
+	sl.crit("test2 - pid")
       }
+      exit!
+    }
+
+    stderr[1].close
+    Process.waitpid(pid)
+
+    # LOG_PERROR is not implemented on Cygwin or Solaris.  Only test
+    # these on systems that define it.
+    return unless Syslog.const_defined?(:LOG_PERROR)
+
+    2.times {
+      assert_equal("syslog_test: test1 - hello, world!\n", stderr[0].gets)
+    }
+
+    2.times {
+      assert_equal(format("syslog_test[%d]: test2 - pid\n", pid), stderr[0].gets)
     }
   end
 
   def test_inspect
     Syslog.open { |sl|
       assert_equal(format('<#%s: opened=true, ident="%s", options=%d, facility=%d, mask=%d>',
-          Syslog,
-          sl.ident,
-          sl.options,
-          sl.facility,
-          sl.mask),
-        sl.inspect)
+			  Syslog,
+			  sl.ident,
+			  sl.options,
+			  sl.facility,
+			  sl.mask),
+		   sl.inspect)
     }
 
     assert_equal(format('<#%s: opened=false>', Syslog), Syslog.inspect)
   end
-end if defined?(Syslog)
+end

@@ -10,12 +10,7 @@ module REXML
       @output = real_IO
       self.encoding = encd
 
-      @to_utf = encoding != 'UTF-8'
-
-      if encoding == "UTF-16"
-        @output << "\ufeff".encode("UTF-16BE")
-        self.encoding = "UTF-16BE"
-      end
+      @to_utf = encd == UTF_8 ? false : true
     end
 
     def <<( content )

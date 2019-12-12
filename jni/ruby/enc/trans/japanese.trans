@@ -90,7 +90,8 @@ rb_sjis2eucjp = {
     NULL, NULL, NULL, fun_so_sjis2eucjp
 };
 
-TRANS_INIT(japanese)
+void
+Init_japanese(void)
 {
     rb_register_transcoder(&rb_eucjp2sjis);
     rb_register_transcoder(&rb_sjis2eucjp);

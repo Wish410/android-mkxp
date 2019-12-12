@@ -3,7 +3,6 @@ require_relative 'helper'
 module Psych
   class TestDeprecated < TestCase
     def teardown
-      $VERBOSE = @orig_verbose
       Psych.domain_types.clear
     end
 
@@ -28,7 +27,6 @@ module Psych
 
     def setup
       @qe = QuickEmitter.new
-      @orig_verbose, $VERBOSE = $VERBOSE, false
     end
 
     def test_quick_emit
@@ -147,9 +145,7 @@ module Psych
     end
 
     class YamlAs
-      TestCase.suppress_warning do
-        psych_yaml_as 'helloworld' # this should be yaml_as but to avoid syck
-      end
+      yaml_as 'helloworld'
     end
 
     def test_yaml_as

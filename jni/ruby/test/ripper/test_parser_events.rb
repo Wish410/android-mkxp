@@ -1,5 +1,6 @@
 begin
   require_relative 'dummyparser'
+  require_relative '../ruby/envutil'
   require 'test/unit'
   ripper_test = true
   module TestRipper; end
@@ -8,20 +9,19 @@ end
 
 class TestRipper::ParserEvents < Test::Unit::TestCase
 
+  # should be enabled
   def test_event_coverage
-    dispatched = Ripper::PARSER_EVENTS
-    tested = self.class.instance_methods(false).grep(/\Atest_(\w+)/) {$1.intern}
-    assert_empty dispatched-tested
+    dispatched = Ripper::PARSER_EVENTS.map {|event,*| event }
+    dispatched.each do |e|
+      assert_equal true, respond_to?("test_#{e}", true),
+                   "event not tested: #{e.inspect}"
+    end
   end
 
   def parse(str, nm = nil, &bl)
     dp = DummyParser.new(str)
     dp.hook(*nm, &bl) if nm
     dp.parse.to_s
-  end
-
-  def compile_error(str)
-    parse(str, :compile_error) {|e, msg| return msg}
   end
 
   def test_program
@@ -46,13 +46,9 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   end
 
   def test_var_ref
-    assert_equal '[assign(var_field(a),ref(a))]', parse('a=a')
+    assert_equal '[ref(a)]', parse('a')
     assert_equal '[ref(nil)]', parse('nil')
     assert_equal '[ref(true)]', parse('true')
-  end
-
-  def test_vcall
-    assert_equal '[vcall(a)]', parse('a')
   end
 
   def test_BEGIN
@@ -81,15 +77,15 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     assert_equal '[fcall(m,[])]', parse('m()')
     assert_equal '[fcall(m,[1])]', parse('m(1)')
     assert_equal '[fcall(m,[1,2])]', parse('m(1,2)')
-    assert_equal '[fcall(m,[*vcall(r)])]', parse('m(*r)')
-    assert_equal '[fcall(m,[1,*vcall(r)])]', parse('m(1,*r)')
-    assert_equal '[fcall(m,[1,2,*vcall(r)])]', parse('m(1,2,*r)')
-    assert_equal '[fcall(m,[&vcall(r)])]', parse('m(&r)')
-    assert_equal '[fcall(m,[1,&vcall(r)])]', parse('m(1,&r)')
-    assert_equal '[fcall(m,[1,2,&vcall(r)])]', parse('m(1,2,&r)')
-    assert_equal '[fcall(m,[*vcall(a),&vcall(b)])]', parse('m(*a,&b)')
-    assert_equal '[fcall(m,[1,*vcall(a),&vcall(b)])]', parse('m(1,*a,&b)')
-    assert_equal '[fcall(m,[1,2,*vcall(a),&vcall(b)])]', parse('m(1,2,*a,&b)')
+    assert_equal '[fcall(m,[*ref(r)])]', parse('m(*r)')
+    assert_equal '[fcall(m,[1,*ref(r)])]', parse('m(1,*r)')
+    assert_equal '[fcall(m,[1,2,*ref(r)])]', parse('m(1,2,*r)')
+    assert_equal '[fcall(m,[&ref(r)])]', parse('m(&r)')
+    assert_equal '[fcall(m,[1,&ref(r)])]', parse('m(1,&r)')
+    assert_equal '[fcall(m,[1,2,&ref(r)])]', parse('m(1,2,&r)')
+    assert_equal '[fcall(m,[*ref(a),&ref(b)])]', parse('m(*a,&b)')
+    assert_equal '[fcall(m,[1,*ref(a),&ref(b)])]', parse('m(1,*a,&b)')
+    assert_equal '[fcall(m,[1,2,*ref(a),&ref(b)])]', parse('m(1,2,*a,&b)')
   end
 
   def test_args_add
@@ -124,8 +120,8 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   end
 
   def test_aref
-    assert_equal '[aref(vcall(v),[1])]', parse('v[1]')
-    assert_equal '[aref(vcall(v),[1,2])]', parse('v[1,2]')
+    assert_equal '[aref(ref(v),[1])]', parse('v[1]')
+    assert_equal '[aref(ref(v),[1,2])]', parse('v[1,2]')
   end
 
   def test_assoclist_from_args
@@ -146,14 +142,8 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     assert_equal true, thru_assoc_new
   end
 
-  def test_assoc_splat
-    thru_assoc_splat = false
-    parse('m(**h)', :on_assoc_splat) {thru_assoc_splat = true}
-    assert_equal true, thru_assoc_splat
-  end
-
   def test_aref_field
-    assert_equal '[assign(aref_field(vcall(a),[1]),2)]', parse('a[1]=2')
+    assert_equal '[assign(aref_field(ref(a),[1]),2)]', parse('a[1]=2')
   end
 
   def test_arg_ambiguous
@@ -179,48 +169,29 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   end
 
   def test_assign_error
-    # for test_coverage
-  end
-
-  def test_assign_error_backref
     thru_assign_error = false
     parse('$` = 1', :on_assign_error) {thru_assign_error = true}
     assert_equal true, thru_assign_error
     thru_assign_error = false
     parse('$`, _ = 1', :on_assign_error) {thru_assign_error = true}
     assert_equal true, thru_assign_error
-  end
 
-  def test_assign_error_const_qualified
     thru_assign_error = false
     parse('self::X = 1', :on_assign_error) {thru_assign_error = true}
     assert_equal false, thru_assign_error
-    parse("def m\n self::X = 1\nend", :on_assign_error) {thru_assign_error = true}
+    parse('def m\n self::X = 1\nend', :on_assign_error) {thru_assign_error = true}
     assert_equal true, thru_assign_error
-    thru_assign_error = false
-    parse("def m\n self::X, a = 1, 2\nend", :on_assign_error) {thru_assign_error = true}
-    assert_equal true, thru_assign_error
-  end
 
-  def test_assign_error_const
     thru_assign_error = false
     parse('X = 1', :on_assign_error) {thru_assign_error = true}
     assert_equal false, thru_assign_error
-    parse("def m\n X = 1\nend", :on_assign_error) {thru_assign_error = true}
+    parse('def m\n X = 1\nend', :on_assign_error) {thru_assign_error = true}
     assert_equal true, thru_assign_error
-    thru_assign_error = false
-    parse("def m\n X, a = 1, 2\nend", :on_assign_error) {thru_assign_error = true}
-    assert_equal true, thru_assign_error
-  end
 
-  def test_assign_error_const_toplevel
     thru_assign_error = false
     parse('::X = 1', :on_assign_error) {thru_assign_error = true}
     assert_equal false, thru_assign_error
-    parse("def m\n ::X = 1\nend", :on_assign_error) {thru_assign_error = true}
-    assert_equal true, thru_assign_error
-    thru_assign_error = false
-    parse("def m\n ::X, a = 1, 2\nend", :on_assign_error) {thru_assign_error = true}
+    parse('def m\n ::X = 1\nend', :on_assign_error) {thru_assign_error = true}
     assert_equal true, thru_assign_error
   end
 
@@ -245,8 +216,9 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     assert_equal true, thru_begin
   end
 
-  %w"and or + - * / % ** | ^ & <=> > >= < <= == === != =~ !~ << >> && ||".each do |op|
-    define_method("test_binary(#{op})") do
+  def test_binary
+    thru_binary = nil
+    %w"and or + - * / % ** | ^ & <=> > >= < <= == === != =~ !~ << >> && ||".each do |op|
       thru_binary = false
       parse("a #{op} b", :on_binary) {thru_binary = true}
       assert_equal true, thru_binary
@@ -351,7 +323,7 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
       tree = parse("foo.()", :on_call) {thru_call = true}
     }
     assert_equal true, thru_call
-    assert_equal "[call(vcall(foo),.,call,[])]", tree
+    assert_equal "[call(ref(foo),.,call,[])]", tree
   end
 
   def test_excessed_comma
@@ -373,14 +345,14 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   def test_heredoc
     bug1921 = '[ruby-core:24855]'
     thru_heredoc_beg = false
-    tree = parse("<""<EOS\nheredoc\nEOS\n", :on_heredoc_beg) {thru_heredoc_beg = true}
+    tree = parse("<<EOS\nheredoc\nEOS\n", :on_heredoc_beg) {thru_heredoc_beg = true}
     assert_equal true, thru_heredoc_beg
     assert_match(/string_content\(\),heredoc\n/, tree, bug1921)
     heredoc = nil
-    parse("<""<EOS\nheredoc1\nheredoc2\nEOS\n", :on_string_add) {|e, n, s| heredoc = s}
+    parse("<<EOS\nheredoc1\nheredoc2\nEOS\n", :on_string_add) {|e, n, s| heredoc = s}
     assert_equal("heredoc1\nheredoc2\n", heredoc, bug1921)
     heredoc = nil
-    parse("<""<-EOS\nheredoc1\nheredoc2\n\tEOS\n", :on_string_add) {|e, n, s| heredoc = s}
+    parse("<<-EOS\nheredoc1\nheredoc2\n\tEOS\n", :on_string_add) {|e, n, s| heredoc = s}
     assert_equal("heredoc1\nheredoc2\n", heredoc, bug1921)
   end
 
@@ -543,10 +515,6 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     thru_dyna_symbol = false
     parse(':"#{foo}"', :on_dyna_symbol) {thru_dyna_symbol = true}
     assert_equal true, thru_dyna_symbol
-
-    thru_dyna_symbol = false
-    parse('{"#{foo}": 1}', :on_dyna_symbol) {thru_dyna_symbol = true}
-    assert_equal true, thru_dyna_symbol
   end
 
   def test_else
@@ -620,8 +588,8 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
 
   def test_magic_comment
     thru_magic_comment = false
-    parse('# -*- bug-5753: ruby-dev:44984 -*-', :on_magic_comment) {|*x|thru_magic_comment = x}
-    assert_equal [:on_magic_comment, "bug_5753", "ruby-dev:44984"], thru_magic_comment
+    parse('# -*- foo:bar -*-', :on_magic_comment) {thru_magic_comment = true}
+    assert_equal true, thru_magic_comment
   end
 
   def test_method_add_block
@@ -721,15 +689,12 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     thru_opassign = false
     parse('a ||= b', :on_opassign) {thru_opassign = true}
     assert_equal true, thru_opassign
-    thru_opassign = false
-    parse('a::X ||= c 1', :on_opassign) {thru_opassign = true}
-    assert_equal true, thru_opassign
   end
 
   def test_opassign_error
     thru_opassign = []
-    events = [:on_opassign]
-    parse('$~ ||= 1', events) {|a,*b|
+    events = [:on_opassign, :on_assign_error]
+    parse('a::X ||= c 1', events) {|a,*b|
       thru_opassign << a
     }
     assert_equal events, thru_opassign
@@ -751,31 +716,15 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   end
 
   def test_params
-    arg = nil
     thru_params = false
-    parse('a {||}', :on_params) {|_, *v| thru_params = true; arg = v}
+    parse('a {||}', :on_params) {thru_params = true}
     assert_equal true, thru_params
-    assert_equal [nil, nil, nil, nil, nil, nil, nil], arg
     thru_params = false
-    parse('a {|x|}', :on_params) {|_, *v| thru_params = true; arg = v}
+    parse('a {|x|}', :on_params) {thru_params = true}
     assert_equal true, thru_params
-    assert_equal [["x"], nil, nil, nil, nil, nil, nil], arg
     thru_params = false
-    parse('a {|*x|}', :on_params) {|_, *v| thru_params = true; arg = v}
+    parse('a {|*x|}', :on_params) {thru_params = true}
     assert_equal true, thru_params
-    assert_equal [nil, nil, "*x", nil, nil, nil, nil], arg
-    thru_params = false
-    parse('a {|x: 1|}', :on_params) {|_, *v| thru_params = true; arg = v}
-    assert_equal true, thru_params
-    assert_equal [nil, nil, nil, nil, [["x:", "1"]], nil, nil], arg
-    thru_params = false
-    parse('a {|x:|}', :on_params) {|_, *v| thru_params = true; arg = v}
-    assert_equal true, thru_params
-    assert_equal [nil, nil, nil, nil, [["x:", false]], nil, nil], arg
-    thru_params = false
-    parse('a {|**x|}', :on_params) {|_, *v| thru_params = true; arg = v}
-    assert_equal true, thru_params
-    assert_equal [nil, nil, nil, nil, nil, "x", nil], arg
   end
 
   def test_paren
@@ -796,34 +745,10 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     assert_equal true, thru_qwords_add
   end
 
-  def test_qsymbols_add
-    thru_qsymbols_add = false
-    parse('%i[a]', :on_qsymbols_add) {thru_qsymbols_add = true}
-    assert_equal true, thru_qsymbols_add
-  end
-
-  def test_symbols_add
-    thru_symbols_add = false
-    parse('%I[a]', :on_symbols_add) {thru_symbols_add = true}
-    assert_equal true, thru_symbols_add
-  end
-
   def test_qwords_new
     thru_qwords_new = false
     parse('%w[]', :on_qwords_new) {thru_qwords_new = true}
     assert_equal true, thru_qwords_new
-  end
-
-  def test_qsymbols_new
-    thru_qsymbols_new = false
-    parse('%i[]', :on_qsymbols_new) {thru_qsymbols_new = true}
-    assert_equal true, thru_qsymbols_new
-  end
-
-  def test_symbols_new
-    thru_symbols_new = false
-    parse('%I[]', :on_symbols_new) {thru_symbols_new = true}
-    assert_equal true, thru_symbols_new
   end
 
   def test_redo
@@ -852,26 +777,14 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
 
   def test_rescue
     thru_rescue = false
-    parsed = parse('begin; 1; rescue => e; 2; end', :on_rescue) {thru_rescue = true}
+    parse('begin; rescue; end', :on_rescue) {thru_rescue = true}
     assert_equal true, thru_rescue
-    assert_match(/1.*rescue/, parsed)
-    assert_match(/rescue\(,var_field\(e\),\[2\]\)/, parsed)
-  end
-
-  def test_rescue_class
-    thru_rescue = false
-    parsed = parse('begin; 1; rescue RuntimeError => e; 2; end', :on_rescue) {thru_rescue = true}
-    assert_equal true, thru_rescue
-    assert_match(/1.*rescue/, parsed)
-    assert_match(/rescue\(\[ref\(RuntimeError\)\],var_field\(e\),\[2\]\)/, parsed)
   end
 
   def test_rescue_mod
     thru_rescue_mod = false
-    parsed = parse('1 rescue 2', :on_rescue_mod) {thru_rescue_mod = true}
+    parse('nil rescue nil', :on_rescue_mod) {thru_rescue_mod = true}
     assert_equal true, thru_rescue_mod
-    bug4716 = '[ruby-core:36248]'
-    assert_equal "[rescue_mod(1,2)]", parsed, bug4716
   end
 
   def test_rest_param
@@ -1195,6 +1108,7 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
   def test_local_variables
     cmd = 'command(w,[regexp_literal(regexp_add(regexp_new(),25 # ),/)])'
     div = 'binary(ref(w),/,25)'
+    var = '[w]'
     bug1939 = '[ruby-core:24923]'
 
     assert_equal("[#{cmd}]", parse('w /25 # /'), bug1939)
@@ -1207,26 +1121,14 @@ class TestRipper::ParserEvents < Test::Unit::TestCase
     assert_equal("[fcall(proc,[],&block([],[void()]))]", parse("proc{|;y|}"))
     if defined?(Process::RLIMIT_AS)
       assert_in_out_err(["-I#{File.dirname(__FILE__)}", "-rdummyparser"],
-                        'Process.setrlimit(Process::RLIMIT_AS,100*1024*1024); puts DummyParser.new("proc{|;y|!y}").parse',
-                        ["[fcall(proc,[],&block([],[unary(!,ref(y))]))]"], [], '[ruby-dev:39423]')
+                        'Process.setrlimit(Process::RLIMIT_AS,102400); puts DummyParser.new("proc{|;y|}").parse',
+                        ["[fcall(proc,[],&block([],[void()]))]"], [], '[ruby-dev:39423]')
     end
   end
 
   def test_unterminated_regexp
-    assert_equal("unterminated regexp meets end of file", compile_error('/'))
-  end
-
-  def test_invalid_instance_variable_name
-    assert_equal("`@1' is not allowed as an instance variable name", compile_error('@1'))
-    assert_equal("`@%' is not allowed as an instance variable name", compile_error('@%'))
-  end
-
-  def test_invalid_class_variable_name
-    assert_equal("`@@1' is not allowed as a class variable name", compile_error('@@1'))
-    assert_equal("`@@%' is not allowed as a class variable name", compile_error('@@%'))
-  end
-
-  def test_invalid_global_variable_name
-    assert_equal("`$%' is not allowed as a global variable name", compile_error('$%'))
+    compile_error = false
+    parse('/', :compile_error) {|e, msg| compile_error = msg}
+    assert_equal("unterminated regexp meets end of file", compile_error)
   end
 end if ripper_test

@@ -2,7 +2,7 @@
 #
 #  Tk::Img demo
 #
-#    --  This script is based on demo.tcl of Tcl/Tk's 'Img' extension.
+#    --  This script is based on demo.tcl of Tcl/Tk's 'Img' extention.
 #        Image data in this script is those of demo.tcl.
 #        Please read 'license_terms_of_Img_extension' file.
 #

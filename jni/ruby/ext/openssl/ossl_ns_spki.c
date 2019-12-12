@@ -1,5 +1,5 @@
 /*
- * $Id: ossl_ns_spki.c 48794 2014-12-12 21:58:03Z nobu $
+ * $Id: ossl_ns_spki.c 27440 2010-04-22 08:21:01Z nobu $
  * 'OpenSSL for Ruby' project
  * Copyright (C) 2001-2002  Michal Rokos <m.rokos@sh.cvut.cz>
  * All rights reserved.
@@ -11,14 +11,14 @@
 #include "ossl.h"
 
 #define WrapSPKI(klass, obj, spki) do { \
-    if (!(spki)) { \
+    if (!spki) { \
 	ossl_raise(rb_eRuntimeError, "SPKI wasn't initialized!"); \
     } \
-    (obj) = TypedData_Wrap_Struct((klass), &ossl_netscape_spki_type, (spki)); \
+    obj = Data_Wrap_Struct(klass, 0, NETSCAPE_SPKI_free, spki); \
 } while (0)
 #define GetSPKI(obj, spki) do { \
-    TypedData_Get_Struct((obj), NETSCAPE_SPKI, &ossl_netscape_spki_type, (spki)); \
-    if (!(spki)) { \
+    Data_Get_Struct(obj, NETSCAPE_SPKI, spki); \
+    if (!spki) { \
 	ossl_raise(rb_eRuntimeError, "SPKI wasn't initialized!"); \
     } \
 } while (0)
@@ -37,21 +37,6 @@ VALUE eSPKIError;
 /*
  * Private functions
  */
-
-static void
-ossl_netscape_spki_free(void *spki)
-{
-    NETSCAPE_SPKI_free(spki);
-}
-
-static const rb_data_type_t ossl_netscape_spki_type = {
-    "OpenSSL/NETSCAPE_SPKI",
-    {
-	0, ossl_netscape_spki_free,
-    },
-    0, 0, RUBY_TYPED_FREE_IMMEDIATELY,
-};
-
 static VALUE
 ossl_spki_alloc(VALUE klass)
 {
@@ -66,13 +51,6 @@ ossl_spki_alloc(VALUE klass)
     return obj;
 }
 
-/*
- * call-seq:
- *    SPKI.new([request]) => spki
- *
- * === Parameters
- * * +request+ - optional raw request, either in PEM or DER format.
- */
 static VALUE
 ossl_spki_initialize(int argc, VALUE *argv, VALUE self)
 {
@@ -97,12 +75,6 @@ ossl_spki_initialize(int argc, VALUE *argv, VALUE self)
     return self;
 }
 
-/*
- * call-seq:
- *    spki.to_der => DER-encoded string
- *
- * Returns the DER encoding of this SPKI.
- */
 static VALUE
 ossl_spki_to_der(VALUE self)
 {
@@ -123,12 +95,6 @@ ossl_spki_to_der(VALUE self)
     return str;
 }
 
-/*
- * call-seq:
- *    spki.to_pem => PEM-encoded string
- *
- * Returns the PEM encoding of this SPKI.
- */
 static VALUE
 ossl_spki_to_pem(VALUE self)
 {
@@ -140,18 +106,11 @@ ossl_spki_to_pem(VALUE self)
     if (!(data = NETSCAPE_SPKI_b64_encode(spki))) {
 	ossl_raise(eSPKIError, NULL);
     }
-    str = ossl_buf2str(data, rb_long2int(strlen(data)));
+    str = ossl_buf2str(data, strlen(data));
 
     return str;
 }
 
-/*
- * call-seq:
- *    spki.to_text => string
- *
- * Returns a textual representation of this SPKI, useful for debugging
- * purposes.
- */
 static VALUE
 ossl_spki_print(VALUE self)
 {
@@ -175,13 +134,6 @@ ossl_spki_print(VALUE self)
     return str;
 }
 
-/*
- * call-seq:
- *    spki.public_key => pkey
- *
- * Returns the public key associated with the SPKI, an instance of
- * OpenSSL::PKey.
- */
 static VALUE
 ossl_spki_get_public_key(VALUE self)
 {
@@ -196,17 +148,6 @@ ossl_spki_get_public_key(VALUE self)
     return ossl_pkey_new(pkey); /* NO DUP - OK */
 }
 
-/*
- * call-seq:
- *    spki.public_key = pub => pkey
- *
- * === Parameters
- * * +pub+ - the public key to be set for this instance
- *
- * Sets the public key to be associated with the SPKI, an instance of
- * OpenSSL::PKey. This should be the public key corresponding to the
- * private key used for signing the SPKI.
- */
 static VALUE
 ossl_spki_set_public_key(VALUE self, VALUE key)
 {
@@ -220,12 +161,6 @@ ossl_spki_set_public_key(VALUE self, VALUE key)
     return key;
 }
 
-/*
- * call-seq:
- *    spki.challenge => string
- *
- * Returns the challenge string associated with this SPKI.
- */
 static VALUE
 ossl_spki_get_challenge(VALUE self)
 {
@@ -241,16 +176,6 @@ ossl_spki_get_challenge(VALUE self)
 		      spki->spkac->challenge->length);
 }
 
-/*
- * call-seq:
- *    spki.challenge = str => string
- *
- * === Parameters
- * * +str+ - the challenge string to be set for this instance
- *
- * Sets the challenge to be associated with the SPKI. May be used by the
- * server, e.g. to prevent replay.
- */
 static VALUE
 ossl_spki_set_challenge(VALUE self, VALUE str)
 {
@@ -259,26 +184,13 @@ ossl_spki_set_challenge(VALUE self, VALUE str)
     StringValue(str);
     GetSPKI(self, spki);
     if (!ASN1_STRING_set(spki->spkac->challenge, RSTRING_PTR(str),
-			 RSTRING_LENINT(str))) {
+			 RSTRING_LEN(str))) {
 	ossl_raise(eSPKIError, NULL);
     }
 
     return str;
 }
 
-/*
- * call-seq:
- *    spki.sign(key, digest) => spki
- *
- * === Parameters
- * * +key+ - the private key to be used for signing this instance
- * * +digest+ - the digest to be used for signing this instance
- *
- * To sign an SPKI, the private key corresponding to the public key set
- * for this instance should be used, in addition to a digest algorithm in
- * the form of an OpenSSL::Digest. The private key should be an instance of
- * OpenSSL::PKey.
- */
 static VALUE
 ossl_spki_sign(VALUE self, VALUE key, VALUE digest)
 {
@@ -297,14 +209,7 @@ ossl_spki_sign(VALUE self, VALUE key, VALUE digest)
 }
 
 /*
- * call-seq:
- *    spki.verify(key) => boolean
- *
- * === Parameters
- * * +key+ - the public key to be used for verifying the SPKI signature
- *
- * Returns +true+ if the signature is valid, +false+ otherwise. To verify an
- * SPKI, the public key contained within the SPKI should be used.
+ * Checks that cert signature is made with PRIVversion of this PUBLIC 'key'
  */
 static VALUE
 ossl_spki_verify(VALUE self, VALUE key)
@@ -323,64 +228,12 @@ ossl_spki_verify(VALUE self, VALUE key)
     return Qnil; /* dummy */
 }
 
-/* Document-class: OpenSSL::Netscape::SPKI
- *
- * A Simple Public Key Infrastructure implementation (pronounced "spookey").
- * The structure is defined as
- *   PublicKeyAndChallenge ::= SEQUENCE {
- *     spki SubjectPublicKeyInfo,
- *     challenge IA5STRING
- *   }
- *
- *   SignedPublicKeyAndChallenge ::= SEQUENCE {
- *     publicKeyAndChallenge PublicKeyAndChallenge,
- *     signatureAlgorithm AlgorithmIdentifier,
- *     signature BIT STRING
- *   }
- * where the definitions of SubjectPublicKeyInfo and AlgorithmIdentifier can
- * be found in RFC5280. SPKI is typically used in browsers for generating
- * a public/private key pair and a subsequent certificate request, using
- * the HTML <keygen> element.
- *
- * == Examples
- *
- * === Creating an SPKI
- *   key = OpenSSL::PKey::RSA.new 2048
- *   spki = OpenSSL::Netscape::SPKI.new
- *   spki.challenge = "RandomChallenge"
- *   spki.public_key = key.public_key
- *   spki.sign(key, OpenSSL::Digest::SHA256.new)
- *   #send a request containing this to a server generating a certificate
- * === Verifiying an SPKI request
- *   request = #...
- *   spki = OpenSSL::Netscape::SPKI.new request
- *   unless spki.verify(spki.public_key)
- *     # signature is invalid
- *   end
- *   #proceed
+/*
+ * NETSCAPE_SPKI init
  */
-
-/* Document-module: OpenSSL::Netscape
- *
- * OpenSSL::Netscape is a namespace for SPKI (Simple Public Key
- * Infrastructure) which implements Signed Public Key and Challenge.
- * See {RFC 2692}[http://tools.ietf.org/html/rfc2692] and {RFC
- * 2693}[http://tools.ietf.org/html/rfc2692] for details.
- */
-
-/* Document-class: OpenSSL::Netscape::SPKIError
- *
- * Generic Exception class that is raised if an error occurs during an
- * operation on an instance of OpenSSL::Netscape::SPKI.
- */
-
 void
-Init_ossl_ns_spki(void)
+Init_ossl_ns_spki()
 {
-#if 0
-    mOSSL = rb_define_module("OpenSSL"); /* let rdoc know about mOSSL */
-#endif
-
     mNetscape = rb_define_module_under(mOSSL, "Netscape");
 
     eSPKIError = rb_define_class_under(mNetscape, "SPKIError", eOSSLError);

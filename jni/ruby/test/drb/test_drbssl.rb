@@ -5,8 +5,6 @@ begin
 rescue LoadError
 end
 
-module DRbTests
-
 if Object.const_defined?("OpenSSL")
 
 
@@ -38,13 +36,8 @@ end
 class TestDRbSSLCore < Test::Unit::TestCase
   include DRbCore
   def setup
-    setup_service 'ut_drb_drbssl.rb'
-    super
-  end
-
-  def teardown
-    super
-    DRbService.finish
+    @ext = DRbSSLService.ext_service('ut_drb_drbssl.rb')
+    @there = @ext.front
   end
 
   def test_02_unknown
@@ -60,17 +53,10 @@ end
 class TestDRbSSLAry < Test::Unit::TestCase
   include DRbAry
   def setup
-    setup_service 'ut_array_drbssl.rb'
-    super
-  end
-
-  def teardown
-    super
-    DRbService.finish
+    @ext = DRbSSLService.ext_service('ut_array_drbssl.rb')
+    @there = @ext.front
   end
 end
 
-
-end
 
 end

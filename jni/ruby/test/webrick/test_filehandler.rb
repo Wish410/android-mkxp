@@ -14,24 +14,19 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
   end
 
   def get_res_body(res)
-    body = res.body
-    if defined? body.read
-      begin
-        body.read
-      ensure
-        body.close
-      end
+    if defined? res.body.read
+      res.body.read
     else
-      body
+      res.body
     end
   end
 
   def make_range_request(range_spec)
-    msg = <<-END_OF_REQUEST
+    msg = <<-_end_of_request_
       GET / HTTP/1.0
       Range: #{range_spec}
 
-    END_OF_REQUEST
+    _end_of_request_
     return StringIO.new(msg.gsub(/^ {6}/, ""))
   end
 
@@ -51,27 +46,27 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
 
     res = make_range_response(filename, "bytes=#{filesize-100}-")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(100, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 100)
 
     res = make_range_response(filename, "bytes=-100")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(100, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 100)
 
     res = make_range_response(filename, "bytes=0-99")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(100, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 100)
 
     res = make_range_response(filename, "bytes=100-199")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(100, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 100)
 
     res = make_range_response(filename, "bytes=0-0")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(1, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 1)
 
     res = make_range_response(filename, "bytes=-1")
     assert_match(%r{^text/plain}, res["content-type"])
-    assert_equal(1, get_res_body(res).size)
+    assert_equal(get_res_body(res).size, 1)
 
     res = make_range_response(filename, "bytes=0-0, -2")
     assert_match(%r{^multipart/byteranges}, res["content-type"])
@@ -165,13 +160,8 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
 
   def test_non_disclosure_name
     config = { :DocumentRoot => File.dirname(__FILE__), }
-    log_tester = lambda {|log, access_log|
-      log = log.reject {|s| /ERROR `.*' not found\./ =~ s }
-      log = log.reject {|s| /WARN  the request refers nondisclosure name/ =~ s }
-      assert_equal([], log)
-    }
     this_file = File.basename(__FILE__)
-    TestWEBrick.start_httpserver(config, log_tester) do |server, addr, port, log|
+    TestWEBrick.start_httpserver(config) do |server, addr, port, log|
       http = Net::HTTP.new(addr, port)
       doc_root_opts = server[:DocumentRootOptions]
       doc_root_opts[:NondisclosureName] = %w(.ht* *~ test_*)
@@ -194,12 +184,8 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
 
   def test_directory_traversal
     config = { :DocumentRoot => File.dirname(__FILE__), }
-    log_tester = lambda {|log, access_log|
-      log = log.reject {|s| /ERROR bad URI/ =~ s }
-      log = log.reject {|s| /ERROR `.*' not found\./ =~ s }
-      assert_equal([], log)
-    }
-    TestWEBrick.start_httpserver(config, log_tester) do |server, addr, port, log|
+    this_file = File.basename(__FILE__)
+    TestWEBrick.start_httpserver(config) do |server, addr, port, log|
       http = Net::HTTP.new(addr, port)
       req = Net::HTTP::Get.new("/../../")
       http.request(req){|res| assert_equal("400", res.code, log.call) }
@@ -213,6 +199,7 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
   def test_unwise_in_path
     if windows?
       config = { :DocumentRoot => File.dirname(__FILE__), }
+      this_file = File.basename(__FILE__)
       TestWEBrick.start_httpserver(config) do |server, addr, port, log|
         http = Net::HTTP.new(addr, port)
         req = Net::HTTP::Get.new("/..%5c..")
@@ -227,22 +214,10 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
       :DocumentRoot => File.dirname(__FILE__),
       :CGIPathEnv => ENV['PATH'],
     }
-    log_tester = lambda {|log, access_log|
-      log = log.reject {|s| /ERROR `.*' not found\./ =~ s }
-      log = log.reject {|s| /WARN  the request refers nondisclosure name/ =~ s }
-      assert_equal([], log)
-    }
-    TestWEBrick.start_httpserver(config, log_tester) do |server, addr, port, log|
+    TestWEBrick.start_httpserver(config) do |server, addr, port, log|
       http = Net::HTTP.new(addr, port)
-      if windows?
-        fname = nil
-        Dir.chdir(config[:DocumentRoot]) do
-          fname = `dir /x webrick_long_filename.cgi`.match(/\s(w.+?cgi)\s/i)[1].downcase
-        end
-      else
-        fname = "webric~1.cgi"
-      end
-      req = Net::HTTP::Get.new("/#{fname}/test")
+
+      req = Net::HTTP::Get.new("/webric~1.cgi/test")
       http.request(req) do |res|
         if windows?
           assert_equal("200", res.code, log.call)
@@ -266,20 +241,8 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
       :CGIInterpreter => TestWEBrick::RubyBin,
       :DocumentRoot => File.dirname(__FILE__),
       :CGIPathEnv => ENV['PATH'],
-      :RequestCallback => Proc.new{|req, res|
-        def req.meta_vars
-          meta = super
-          meta["RUBYLIB"] = $:.join(File::PATH_SEPARATOR)
-          meta[RbConfig::CONFIG['LIBPATHENV']] = ENV[RbConfig::CONFIG['LIBPATHENV']] if RbConfig::CONFIG['LIBPATHENV']
-          return meta
-        end
-      },
     }
-    log_tester = lambda {|log, access_log|
-      log = log.reject {|s| /ERROR `.*' not found\./ =~ s }
-      assert_equal([], log)
-    }
-    TestWEBrick.start_httpserver(config, log_tester) do |server, addr, port, log|
+    TestWEBrick.start_httpserver(config) do |server, addr, port, log|
       http = Net::HTTP.new(addr, port)
 
       req = Net::HTTP::Get.new("/webrick.cgi/test")
@@ -288,9 +251,8 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
         assert_equal("/test", res.body, log.call)
       end
 
-      resok = windows?
       response_assertion = Proc.new do |res|
-        if resok
+        if windows?
           assert_equal("200", res.code, log.call)
           assert_equal("/test", res.body, log.call)
         else
@@ -301,7 +263,6 @@ class WEBrick::TestFileHandler < Test::Unit::TestCase
       http.request(req, &response_assertion)
       req = Net::HTTP::Get.new("/webrick.cgi./test")
       http.request(req, &response_assertion)
-      resok &&= File.exist?(__FILE__+"::$DATA")
       req = Net::HTTP::Get.new("/webrick.cgi::$DATA/test")
       http.request(req, &response_assertion)
     end

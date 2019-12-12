@@ -2,14 +2,6 @@ require_relative 'helper'
 
 module Psych
   class TestSymbol < TestCase
-    def test_cycle_empty
-      assert_cycle :''
-    end
-
-    def test_cycle_colon
-      assert_cycle :':'
-    end
-
     def test_cycle
       assert_cycle :a
     end

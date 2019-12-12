@@ -1205,18 +1205,6 @@ module TkCore
             #  module TkCore; RUN_EVENTLOOP_ON_MAIN_THREAD = true; end
             #  ----------------------------------------------------------
             #
-            # *** ADD (2010/07/05) ***
-            #  The value of TclTkLib::WINDOWING_SYSTEM is defined at compiling.
-            #  If it is inconsistent with linked DLL, please call the following
-            #  before "require 'tk'".
-            #  ----------------------------------------------------------
-            #  require 'tcltklib'
-            #  module TclTkLib
-            #    remove_const :WINDOWING_SYSTEM
-            #    WINDOWING_SYSTEM = 'x11' # or 'aqua'
-            #  end
-            #  ----------------------------------------------------------
-            #
             RUN_EVENTLOOP_ON_MAIN_THREAD = true
           else
             RUN_EVENTLOOP_ON_MAIN_THREAD = false
@@ -1309,17 +1297,13 @@ EOS
           end
 
           unless interp.deleted?
-            begin
-              #Thread.current[:status].value = TclTkLib.mainloop(false)
-              Thread.current[:status].value = interp.mainloop(false)
-            rescue Exception=>e
-              puts "ignore exception on interp: #{e.inspect}\n" if $DEBUG
-            end
+            #Thread.current[:status].value = TclTkLib.mainloop(false)
+            Thread.current[:status].value = interp.mainloop(false)
           end
 
         ensure
           # interp must be deleted before the thread for interp is dead.
-          # If not, raise Tcl_Panic on Tcl_AsyncDelete because async handler
+          # If not, raise Tcl_Panic on Tcl_AsyncDelete because async handler 
           # deleted by the wrong thread.
           interp.delete
         end
@@ -1363,7 +1347,7 @@ EOS
 
     INTERP.instance_eval{
       # @tk_cmd_tbl = TkUtil.untrust({})
-      @tk_cmd_tbl =
+      @tk_cmd_tbl = 
         TkUtil.untrust(Hash.new{|hash, key|
                          fail IndexError, "unknown command ID '#{key}'"
                        })
@@ -1573,15 +1557,7 @@ EOS
   EOL
 =end
 
-  if !WITH_RUBY_VM || RUN_EVENTLOOP_ON_MAIN_THREAD ### check Ruby 1.9 !!!!!!!
-    at_exit{ INTERP.remove_tk_procs(TclTkLib::FINALIZE_PROC_NAME) }
-  else
-    at_exit{
-      Tk.root.destroy
-      INTERP.remove_tk_procs(TclTkLib::FINALIZE_PROC_NAME)
-      INTERP_THREAD.kill.join
-    }
-  end
+  at_exit{ INTERP.remove_tk_procs(TclTkLib::FINALIZE_PROC_NAME) }
 
   EventFlag = TclTkLib::EventFlag
 
@@ -5209,8 +5185,6 @@ class TkWindow<TkObject
     TkWinfo.exist?(self)
   end
 
-  alias subcommand tk_send
-
   def bind_class
     @db_class || self.class()
   end
@@ -5756,7 +5730,7 @@ TkWidget = TkWindow
 #Tk.freeze
 
 module Tk
-  RELEASE_DATE = '2014-10-19'.freeze
+  RELEASE_DATE = '2010-06-03'.freeze
 
   autoload :AUTO_PATH,        'tk/variable'
   autoload :TCL_PACKAGE_PATH, 'tk/variable'

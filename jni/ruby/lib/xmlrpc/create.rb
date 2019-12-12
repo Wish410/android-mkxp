@@ -1,13 +1,15 @@
 #
+# Creates XML-RPC call/response documents
+#
 # Copyright (C) 2001, 2002, 2003 by Michael Neumann (mneumann@ntecs.de)
 #
-# $Id: create.rb 36958 2012-09-13 02:22:10Z zzak $
+# $Id: create.rb 31813 2011-05-30 04:44:04Z yugui $
 #
 
 require "date"
 require "xmlrpc/base64"
 
-module XMLRPC # :nodoc:
+module XMLRPC
 
   module XMLWriter
 
@@ -98,8 +100,6 @@ module XMLRPC # :nodoc:
 
   end # module XMLWriter
 
-  # Creates XML-RPC call/response documents
-  #
   class Create
 
     def initialize(xml_writer = nil)
@@ -132,14 +132,14 @@ module XMLRPC # :nodoc:
 
 
     #
-    # Generates a XML-RPC methodResponse document
+    # generates a XML-RPC methodResponse document
     #
-    # When +is_ret+ is +false+ then the +params+ array must
+    # if is_ret == false then the params array must
     # contain only one element, which is a structure
     # of a fault return-value.
     #
-    # When +is_ret+ is +true+ then a normal
-    # return-value of all the given +params+ is created.
+    # if is_ret == true then a normal
+    # return-value of all the given params is created.
     #
     def methodResponse(is_ret, *params)
 
@@ -167,12 +167,15 @@ module XMLRPC # :nodoc:
 
 
 
+    #####################################
     private
+    #####################################
 
     #
-    # Converts a Ruby object into a XML-RPC <code><value></code> tag
+    # converts a Ruby object into
+    # a XML-RPC <value> tag
     #
-    def conv2value(param) # :doc:
+    def conv2value(param)
 
         val = case param
         when Fixnum, Bignum
@@ -203,7 +206,6 @@ module XMLRPC # :nodoc:
           end
 
         when Float
-          raise "Wrong value #{param}. Not allowed!" unless param.finite?
           @writer.tag("double", param.to_s)
 
         when Struct

@@ -64,7 +64,7 @@ class Tk::Iwidgets::Scrolledcanvas
     elsif tag.kind_of?(Tk::Itk::Component)
       tag.name
     else
-      tag  # maybe an Array of configure parameters
+      tag  # maybe an Array of configure paramters
     end
   end
   private :tagid

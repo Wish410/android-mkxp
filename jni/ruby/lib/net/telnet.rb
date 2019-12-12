@@ -9,7 +9,8 @@
 # For documentation, see Net::Telnet.
 #
 
-require "net/protocol"
+require "socket"
+require "timeout"
 require "English"
 
 module Net
@@ -162,7 +163,7 @@ module Net
     CR   = "\015"
     LF   = "\012"
     EOL  = CR + LF
-    REVISION = '$Id: telnet.rb 47298 2014-08-27 12:10:21Z hsbt $'
+    REVISION = '$Id: telnet.rb 30128 2010-12-08 08:08:59Z yugui $'
     # :startdoc:
 
     #
@@ -243,15 +244,15 @@ module Net
     #
     # Timeout:: the number of seconds to wait before timing out both the
     #           initial attempt to connect to host (in this constructor),
-    #           which raises a Net::OpenTimeout, and all attempts to read data
-    #           from the host, which raises a Net::ReadTimeout (in #waitfor(),
-    #           #cmd(), and #login()).  The default value is 10 seconds.
+    #           and all attempts to read data from the host (in #waitfor(),
+    #           #cmd(), and #login()).  Exceeding this timeout causes a
+    #           TimeoutError to be raised.  The default value is 10 seconds.
     #           You can disable the timeout by setting this value to false.
     #           In this case, the connect attempt will eventually timeout
     #           on the underlying connect(2) socket call with an
     #           Errno::ETIMEDOUT error (but generally only after a few
     #           minutes), but other attempts to read data from the host
-    #           will hang indefinitely if no data is forthcoming.
+    #           will hand indefinitely if no data is forthcoming.
     #
     # Waittime:: the amount of time to wait after seeing what looks like a
     #            prompt (that is, received data that matches the Prompt
@@ -346,12 +347,12 @@ module Net
           if @options["Timeout"] == false
             @sock = TCPSocket.open(@options["Host"], @options["Port"])
           else
-            Timeout.timeout(@options["Timeout"], Net::OpenTimeout) do
+            timeout(@options["Timeout"]) do
               @sock = TCPSocket.open(@options["Host"], @options["Port"])
             end
           end
-        rescue Net::OpenTimeout
-          raise Net::OpenTimeout, "timed out while opening a connection to the host"
+        rescue TimeoutError
+          raise TimeoutError, "timed out while opening a connection to the host"
         rescue
           @log.write($ERROR_INFO.to_s + "\n") if @options.has_key?("Output_log")
           @dumplog.log_dump('#', $ERROR_INFO.to_s + "\n") if @options.has_key?("Dump_log")
@@ -371,7 +372,7 @@ module Net
     # The socket the Telnet object is using.  Note that this object becomes
     # a delegate of the Telnet object, so normally you invoke its methods
     # directly on the Telnet object.
-    attr_reader :sock
+    attr :sock
 
     # Set telnet command interpretation on (+mode+ == true) or off
     # (+mode+ == false), or return the current value (+mode+ not
@@ -507,7 +508,7 @@ module Net
     #          into a regular expression.  Used only if Match and
     #          Prompt are not specified.
     # Timeout:: the number of seconds to wait for data from the host
-    #           before raising a Timeout::Error.  If set to false,
+    #           before raising a TimeoutError.  If set to false,
     #           no timeout will occur.  If not specified, the
     #           Timeout option value specified when this instance
     #           was created will be used, or, failing that, the
@@ -554,7 +555,7 @@ module Net
       rest = ''
       until(prompt === line and not IO::select([@sock], nil, nil, waittime))
         unless IO::select([@sock], nil, nil, time_out)
-          raise Net::ReadTimeout, "timed out while waiting for more data"
+          raise TimeoutError, "timed out while waiting for more data"
         end
         begin
           c = @sock.readpartial(1024 * 1024)
@@ -725,8 +726,8 @@ module Net
       if options.kind_of?(Hash)
         username = options["Name"]
         password = options["Password"]
-        login_prompt = options["LoginPrompt"] if options["LoginPrompt"]
-        password_prompt = options["PasswordPrompt"] if options["PasswordPrompt"]
+	login_prompt = options["LoginPrompt"] if options["LoginPrompt"]
+	password_prompt = options["PasswordPrompt"] if options["PasswordPrompt"]
       else
         username = options
       end
@@ -753,7 +754,6 @@ module Net
       line
     end
 
-    # Closes the connection
     def close
       @sock.close
     end

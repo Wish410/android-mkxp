@@ -1,13 +1,13 @@
-require 'rubygems/test_case'
+require_relative 'gemutilities'
 require 'rubygems/commands/build_command'
-require 'rubygems/package'
+require 'rubygems/format'
 
-class TestGemCommandsBuildCommand < Gem::TestCase
+class TestGemCommandsBuildCommand < RubyGemTestCase
 
   def setup
     super
 
-    @gem = util_spec 'some_gem' do |s|
+    @gem = quick_gem 'some_gem' do |s|
       s.rubyforge_project = 'example'
     end
 
@@ -24,45 +24,27 @@ class TestGemCommandsBuildCommand < Gem::TestCase
     util_test_build_gem @gem, gemspec_file
   end
 
-  def test_execute_bad_spec
-    @gem.date = "2010-11-08"
-
+  def test_execute_yaml
     gemspec_file = File.join(@tempdir, @gem.spec_name)
 
     File.open gemspec_file, 'w' do |gs|
-      gs.write @gem.to_ruby.sub(/11-08/, "11-8")
+      gs.write @gem.to_yaml
     end
 
-    @cmd.options[:args] = [gemspec_file]
-
-    out, err = use_ui @ui do
-      capture_io do
-        assert_raises Gem::MockGemUi::TermError do
-          @cmd.execute
-        end
-      end
-    end
-
-    assert_equal "", out
-    assert_match(/invalid date format in specification/, err)
-
-    assert_equal '', @ui.output
-    assert_equal "ERROR:  Error loading gemspec. Aborting.\n", @ui.error
+    util_test_build_gem @gem, gemspec_file
   end
 
-  def test_execute_missing_file
+  def test_execute_bad_gem
     @cmd.options[:args] = %w[some_gem]
     use_ui @ui do
-      assert_raises Gem::MockGemUi::TermError do
-        @cmd.execute
-      end
+      @cmd.execute
     end
 
     assert_equal '', @ui.output
     assert_equal "ERROR:  Gemspec file not found: some_gem\n", @ui.error
   end
 
-  def util_test_build_gem(gem, gemspec_file, check_licenses=true)
+  def util_test_build_gem(gem, gemspec_file)
     @cmd.options[:args] = [gemspec_file]
 
     use_ui @ui do
@@ -77,33 +59,15 @@ class TestGemCommandsBuildCommand < Gem::TestCase
     assert_equal "  Version: 2", output.shift
     assert_equal "  File: some_gem-2.gem", output.shift
     assert_equal [], output
+    assert_equal '', @ui.error
 
-    if check_licenses
-      assert_match "WARNING:  licenses is empty", @ui.error
-    end
-
-    gem_file = File.join @tempdir, File.basename(gem.cache_file)
+    gem_file = File.join @tempdir, gem.file_name
     assert File.exist?(gem_file)
 
-    spec = Gem::Package.new(gem_file).spec
+    spec = Gem::Format.from_file_by_path(gem_file).spec
 
     assert_equal "some_gem", spec.name
     assert_equal "this is a summary", spec.summary
-  end
-
-  def test_execute_force
-    gemspec_file = File.join(@tempdir, @gem.spec_name)
-
-    @gem.send :remove_instance_variable, :@rubygems_version
-
-    File.open gemspec_file, 'w' do |gs|
-      gs.write @gem.to_ruby
-    end
-
-    @cmd.options[:args] = [gemspec_file]
-    @cmd.options[:force] = true
-
-    util_test_build_gem @gem, gemspec_file, false
   end
 
 end

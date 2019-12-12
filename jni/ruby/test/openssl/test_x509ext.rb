@@ -1,6 +1,11 @@
-require_relative 'utils'
+begin
+  require "openssl"
+  require File.join(File.dirname(__FILE__), "utils.rb")
+rescue LoadError
+end
+require "test/unit"
 
-if defined?(OpenSSL::TestUtils)
+if defined?(OpenSSL)
 
 class OpenSSL::TestX509Extension < Test::Unit::TestCase
   def setup

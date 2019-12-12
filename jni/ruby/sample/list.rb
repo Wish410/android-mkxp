@@ -5,7 +5,6 @@ class MyElem
     # @variables are instance variable, no declaration needed
     @data = item
     @succ = nil
-    @head = nil
   end
 
   def data

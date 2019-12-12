@@ -1,55 +1,38 @@
 require 'timeout'
 
-module TestXMLRPC
 module WEBrick_Testing
-  def start_server(logger, config={})
+  class DummyLog < WEBrick::BasicLog
+    def initialize() super(self) end
+    def <<(*args) end
+  end
+
+  def start_server(config={})
     raise "already started" if defined?(@__server) && @__server
     @__started = false
 
-    @__server = WEBrick::HTTPServer.new(
-      {
-        :BindAddress => "localhost",
-        :Logger => logger,
-        :AccessLog => [],
-      }.update(config))
-    yield @__server
-    @__started = true
-
-    addr = @__server.listeners.first.connect_address
-
     @__server_thread = Thread.new {
-      begin
-        @__server.start
-      rescue IOError => e
-        assert_match(/closed/, e.message)
-      ensure
-        @__started = false
-      end
+      @__server = WEBrick::HTTPServer.new(
+        {
+          :Logger => DummyLog.new,
+          :AccessLog => [],
+          :StartCallback => proc { @__started = true }
+        }.update(config))
+      yield @__server
+      @__server.start
+      @__started = false
     }
 
-    addr
+    Timeout.timeout(5) {
+      Thread.pass until @__started # wait until the server is ready
+    }
   end
 
-  def with_server(config, servlet)
-    log = []
-    logger = WEBrick::Log.new(log, WEBrick::BasicLog::WARN)
-    addr = start_server(logger, config) {|w|
-      servlet = servlet.call(w) if servlet.respond_to? :call
-      w.mount('/RPC2', servlet)
+  def stop_server
+    Timeout.timeout(5) {
+      @__server.shutdown
+      Thread.pass while @__started # wait until the server is down
     }
-      client_thread = Thread.new {
-        begin
-          yield addr
-        ensure
-          @__server.shutdown
-        end
-      }
-      server_thread = Thread.new {
-        @__server_thread.join
-        @__server = nil
-        assert_equal([], log)
-      }
-      assert_join_threads([client_thread, server_thread])
+    @__server_thread.join
+    @__server = nil
   end
-end
 end

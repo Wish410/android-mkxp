@@ -1,18 +1,18 @@
 #! /usr/local/bin/ruby -vd
 
-# tcltklib ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã®ãƒ†ã‚¹ãƒˆ
+# tcltklib ¥é¥¤¥Ö¥é¥ê¤Î¥Æ¥¹¥È
 
 require "tcltklib"
 
 def test
-  # ã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’ç”Ÿæˆã™ã‚‹
+  # ¥¤¥ó¥¿¥×¥ê¥¿¤òÀ¸À®¤¹¤ë
   ip1 = TclTkIp.new()
 
-  # è©•ä¾¡ã—ã¦ã¿ã‚‹
+  # É¾²Á¤·¤Æ¤ß¤ë
   print ip1._return_value().inspect, "\n"
   print ip1._eval("puts {abc}").inspect, "\n"
 
-  # ãƒœã‚¿ãƒ³ã‚’ä½œã£ã¦ã¿ã‚‹
+  # ¥Ü¥¿¥ó¤òºî¤Ã¤Æ¤ß¤ë
   print ip1._return_value().inspect, "\n"
   print ip1._eval("button .lab -text exit -command \"destroy .\"").inspect,
     "\n"
@@ -20,12 +20,12 @@ def test
   print ip1._eval("pack .lab").inspect, "\n"
   print ip1._return_value().inspect, "\n"
 
-  # ã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‹ã‚‰ ruby ã‚³ãƒãƒ³ãƒ‰ã‚’è©•ä¾¡ã—ã¦ã¿ã‚‹
+  # ¥¤¥ó¥¿¥×¥ê¥¿¤«¤é ruby ¥³¥Ş¥ó¥É¤òÉ¾²Á¤·¤Æ¤ß¤ë
 #  print ip1._eval(%q/ruby {print "print by ruby\n"}/).inspect, "\n"
   print ip1._eval(%q+puts [ruby {print "print by ruby\n"; "puts by tcl/tk"}]+).inspect, "\n"
   print ip1._return_value().inspect, "\n"
 
-  # ã‚‚ã†ä¸€ã¤ã‚¤ãƒ³ã‚¿ãƒ—ãƒªã‚¿ã‚’ç”Ÿæˆã—ã¦ã¿ã‚‹
+  # ¤â¤¦°ì¤Ä¥¤¥ó¥¿¥×¥ê¥¿¤òÀ¸À®¤·¤Æ¤ß¤ë
   ip2 = TclTkIp.new()
   ip2._eval("button .lab -text test -command \"puts test ; destroy .\"")
   ip2._eval("pack .lab")

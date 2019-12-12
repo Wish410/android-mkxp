@@ -31,6 +31,7 @@
                                                    JISX0208VDC:NEC/UCS
                                                    CP932VDC:NEC_IBM/UCS
                                                    CP932VDC:IBM/UCS
+                                                   CP932UDA/UCS
                                                    JISX0208:MS/UCS).join(",")),
     nil
 
@@ -42,6 +43,7 @@
                                                    UCS/JISX0208VDC:NEC
                                                    UCS/CP932VDC:NEC_IBM
                                                    UCS/CP932VDC:IBM
+                                                   UCS/CP932UDA
                                                    UCS/JISX0208:MS).join(",")),
     ValidEncoding('UTF-8')
 %>
@@ -208,7 +210,8 @@ rb_iso2022jp_kddi_encoder = {
     iso2022jp_kddi_encoder_reset_sequence_size, finish_iso2022jp_kddi_encoder
 };
 
-TRANS_INIT(emoji_iso2022_kddi)
+void
+Init_emoji_iso2022_kddi(void)
 {
     rb_register_transcoder(&rb_iso2022jp_kddi_decoder);
     rb_register_transcoder(&rb_iso2022jp_kddi_encoder);

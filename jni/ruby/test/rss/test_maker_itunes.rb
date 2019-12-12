@@ -1,4 +1,4 @@
-require_relative "rss-testcase"
+require "rss-testcase"
 
 require "rss/maker"
 
@@ -85,7 +85,9 @@ module RSS
       end
       target = chain_reader(rss20, feed_readers)
       if [true, false].include?(value)
-        value = value ? "yes" : "no"
+        feed_expected_value = value = value ? "yes" : "no"
+      else
+        feed_expected_value = value
       end
       assert_equal(value, target.itunes_block)
       assert_equal(boolean_value, target.itunes_block?)

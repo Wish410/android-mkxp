@@ -18,7 +18,7 @@ PNG_LIBRARY_PATH := external/libpng-1.6.2
 # The library path should be a relative path to this directory.
 #
 # IMPORTANT: In order to enable this must have a symlink in your jni directory to external/libwebp-0.3.0.
-SUPPORT_WEBP ?= false
+SUPPORT_WEBP ?= true
 WEBP_LIBRARY_PATH := external/libwebp-0.3.0
 
 

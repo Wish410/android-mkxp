@@ -9,7 +9,7 @@
   DO NOT TOUCH!
 
   If you want to fix something, you must edit 'template/optunifs.inc.tmpl'
-  or tool/insns2vm.rb
+  or rb/insns2vm.rb
  */
 
 /*
@@ -30,14 +30,6 @@
 
 
 static const int *const *const unified_insns_data[] = {
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
   0,
   0,
   0,

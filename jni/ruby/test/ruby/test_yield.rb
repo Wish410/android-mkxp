@@ -66,7 +66,7 @@ class TestRubyYield < Test::Unit::TestCase
   end
 
   def test_with_enum
-    obj = Object.new
+    obj = Object
     def obj.each
       yield(*[])
     end
@@ -244,7 +244,7 @@ class TestRubyYieldGen < Test::Unit::TestCase
           throw :emuerror, ArgumentError
         end
       else
-        if args.length != params.length and !(args.length == 1 and Array === args[0] and args[0].length == params.length)
+        if args.length != params.length
           throw :emuerror, ArgumentError
         end
       end
@@ -379,15 +379,4 @@ class TestRubyYieldGen < Test::Unit::TestCase
     }
   end
 
-  def test_block_with_mock
-    y = Object.new
-    def y.s(a)
-      yield(a)
-    end
-    m = Object.new
-    def m.method_missing(*a)
-      super
-    end
-    assert_equal [m, nil], y.s(m){|a,b|[a,b]}
-  end
 end

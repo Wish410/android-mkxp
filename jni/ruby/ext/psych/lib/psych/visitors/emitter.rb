@@ -1,18 +1,8 @@
 module Psych
   module Visitors
     class Emitter < Psych::Visitors::Visitor
-      def initialize io, options = {}
-        opts = [:indentation, :canonical, :line_width].find_all { |opt|
-          options.key?(opt)
-        }
-
-        if opts.empty?
-          @handler = Psych::Emitter.new io
-        else
-          du = Handler::DumperOptions.new
-          opts.each { |option| du.send :"#{option}=", options[option] }
-          @handler = Psych::Emitter.new io, du
-        end
+      def initialize io
+        @handler = Psych::Emitter.new io
       end
 
       def visit_Psych_Nodes_Stream o

@@ -1,23 +1,25 @@
-require 'rdoc/test_case'
+require 'tempfile'
+require 'rubygems'
+require 'minitest/autorun'
+require 'rdoc/options'
+require 'rdoc/parser'
 
-class TestRDocParserSimple < RDoc::TestCase
+class TestRDocParserSimple < MiniTest::Unit::TestCase
 
   def setup
-    super
-
     @tempfile = Tempfile.new self.class.name
     filename = @tempfile.path
 
-    @top_level = @store.add_file filename
+    @top_level = RDoc::TopLevel.new filename
     @fn = filename
     @options = RDoc::Options.new
-    @stats = RDoc::Stats.new @store, 0
+    @stats = RDoc::Stats.new 0
+
+    RDoc::TopLevel.reset
   end
 
   def teardown
-    super
-
-    @tempfile.close!
+    @tempfile.close
   end
 
   def test_initialize_metadata
@@ -39,72 +41,30 @@ contents of a string.
     parser.scan
 
     expected = <<-TEXT.strip
+
 Regular expressions (<i>regexp</i>s) are patterns which describe the
 contents of a string.
     TEXT
 
-    assert_equal expected, @top_level.comment.text
+    assert_equal expected, @top_level.comment
   end
-
-  # RDoc stops processing comments if it finds a comment line CONTAINING
-  # '<tt>#--</tt>'. This can be used to separate external from internal
-  # comments, or to stop a comment being associated with a method,
-  # class, or module. Commenting CAN be turned back on with
-  # a line that STARTS '<tt>#++</tt>'.
-  #
-  # I've seen guys that comment their code like this:
-  #   # This method....
-  #   #-----------------
-  #   def method
-  #
-  # => either we do it only in ruby code, or we require the leading #
-  #    (to avoid conflict with rules).
-  #
-  #   TODO: require the leading #, to provide the feature in simple text files.
-  #   Note: in ruby & C code, we require '#--' & '#++' or '*--' & '*++',
-  #   to allow rules:
-  #
-  #   # this is a comment
-  #   #---
-  #   # private text
-  #   #+++
-  #   # this is a rule:
-  #   # ---
 
   def test_remove_private_comments
-    parser = util_parser "foo\n\n--\nbar\n++\n\nbaz\n"
+    parser = util_parser ''
+    text = "foo\n\n--\nbar\n++\n\nbaz\n"
 
-    parser.scan
+    expected = "foo\n\n\n\nbaz\n"
 
-    expected = "foo\n\n\nbaz"
-
-    assert_equal expected, @top_level.comment.text
-  end
-
-  def test_remove_private_comments_rule
-    parser = util_parser "foo\n---\nbar"
-
-    parser.scan
-
-    expected = "foo\n---\nbar"
-
-    assert_equal expected, @top_level.comment.text
+    assert_equal expected, parser.remove_private_comments(text)
   end
 
   def test_remove_private_comments_star
-    parser = util_parser "* foo\n* bar\n"
+    parser = util_parser ''
 
-    parser.scan
+    text = "* foo\n* bar\n"
+    expected = text.dup
 
-    assert_equal "* foo\n* bar", @top_level.comment.text
-  end
-
-  def test_scan
-    parser = util_parser 'it *really* works'
-
-    parser.scan
-
-    assert_equal 'it *really* works', @top_level.comment.text
+    assert_equal expected, parser.remove_private_comments(text)
   end
 
   def util_parser(content)

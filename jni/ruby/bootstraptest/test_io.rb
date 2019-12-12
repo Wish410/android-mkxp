@@ -2,8 +2,9 @@ assert_finish 5, %q{
   r, w = IO.pipe
   t1 = Thread.new { r.sysread(1) }
   t2 = Thread.new { r.sysread(1) }
-  sleep 0.01 until t1.stop? and t2.stop?
+  sleep 0.1
   w.write "a"
+  sleep 0.1
   w.write "a"
 }, '[ruby-dev:31866]'
 
@@ -26,16 +27,16 @@ assert_finish 10, %q{
       t1.join
       t2.join
     end
-  rescue LoadError, Timeout::Error, NotImplementedError
+  rescue LoadError, TimeoutError, NotImplementedError
   end
 }, '[ruby-dev:32566]'
 
 assert_finish 1, %q{
   r, w = IO.pipe
   Thread.new {
-    w << "ab"
-    sleep 0.01
-    w << "ab"
+  w << "ab"
+  sleep 0.1
+  w << "ab"
   }
   r.gets("abab")
 }
@@ -52,7 +53,7 @@ assert_equal 'ok', %q{
   STDIN.reopen(rw)
   STDIN.reopen(save)
   rw.close
-  File.unlink(tmpname) unless RUBY_PLATFORM['nacl']
+  File.unlink(tmpname)
   :ok
 }
 
@@ -69,15 +70,9 @@ assert_equal 'ok', %q{
   STDIN.print "a"
   STDIN.reopen(save)
   rw.close
-  File.unlink(tmpname) unless RUBY_PLATFORM['nacl']
+  File.unlink(tmpname)
   :ok
 }
-
-assert_equal 'ok', %q{
-  dup = STDIN.dup
-  dupfd = dup.fileno
-  dupfd == STDIN.dup.fileno ? :ng : :ok
-}, '[ruby-dev:46834]'
 
 assert_normal_exit %q{
   ARGF.set_encoding "foo"
@@ -90,8 +85,7 @@ assert_normal_exit %q{
     megacontent = "abc" * 12345678
     #File.open("megasrc", "w") {|f| f << megacontent }
 
-    t0 = Thread.main
-    Thread.new { sleep 0.001 until t0.stop?; Process.kill(:INT, $$) }
+    Thread.new { sleep rand*0.2; Process.kill(:INT, $$) }
 
     r1, w1 = IO.pipe
     r2, w2 = IO.pipe

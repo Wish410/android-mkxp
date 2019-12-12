@@ -1,20 +1,7 @@
-require 'rubygems/test_case'
+require_relative 'gemutilities'
 require 'rubygems/gem_runner'
 
-class TestGemGemRunner < Gem::TestCase
-
-  def setup
-    super
-
-    @orig_args = Gem::Command.build_args
-    @runner = Gem::GemRunner.new
-  end
-
-  def teardown
-    super
-
-    Gem::Command.build_args = @orig_args
-  end
+class TestGemGemRunner < RubyGemTestCase
 
   def test_do_configuration
     Gem.clear_paths
@@ -40,28 +27,18 @@ class TestGemGemRunner < Gem::TestCase
 
     assert_equal [other_gem_path, other_gem_home], Gem.path
     assert_equal %w[--commands], Gem::Command.extra_args
+    assert_equal %w[--all], Gem::DocManager.configured_args
   end
 
-  def test_extract_build_args
-    args = %w[]
-    assert_equal [], @runner.extract_build_args(args)
-    assert_equal %w[], args
+  def test_build_args__are_handled
+    Gem.clear_paths
 
-    args = %w[foo]
-    assert_equal [], @runner.extract_build_args(args)
-    assert_equal %w[foo], args
+    gr = Gem::GemRunner.new
+    assert_raises(Gem::SystemExitException) do
+      gr.run(%W[--help -- --build_arg1 --build_arg2])
+    end
 
-    args = %w[--foo]
-    assert_equal [], @runner.extract_build_args(args)
-    assert_equal %w[--foo], args
-
-    args = %w[--foo --]
-    assert_equal [], @runner.extract_build_args(args)
-    assert_equal %w[--foo], args
-
-    args = %w[--foo -- --bar]
-    assert_equal %w[--bar], @runner.extract_build_args(args)
-    assert_equal %w[--foo], args
+    assert_equal %w[--build_arg1 --build_arg2], Gem::Command.build_args
   end
 
 end
