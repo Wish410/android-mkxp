@@ -33,7 +33,7 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs 'src/main/lib/'
+            jniLibs.srcDirs 'src/main/libs/'
         }
     }
     compileOptions {
