@@ -9,16 +9,16 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/../OpenAL $(LOCAL_PATH)/../SDL_sound \
 	$(LOCAL_PATH)/../boost_headers $(LOCAL_PATH)/../pixman-extra \
 	$(LOCAL_PATH)/../OpenAL/include/AL $(LOCAL_PATH)/../OpenAL/include $(LOCAL_PATH)/../physfs/src \
 	$(LOCAL_PATH)/../vorbis-include $(LOCAL_PATH)/src $(LOCAL_PATH)/shader \
-	$(LOCAL_PATH)/assets $(LOCAL_PATH)/../ruby192-latest/include $(LOCAL_PATH)/../fluidlite/include $(LOCAL_PATH)/../libiconv/include $(LOCAL_PATH)/../libguess/src/libguess
+	$(LOCAL_PATH)/assets $(LOCAL_PATH)/../ruby/include $(LOCAL_PATH)/../fluidlite/include $(LOCAL_PATH)/../libiconv/include $(LOCAL_PATH)/../libguess/src/libguess
 
 ifeq ($(TARGET_ARCH_ABI), armeabi)
 	LOCAL_CPPFLAGS += -DARCH_32BIT
-	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby192-latest/config/arm
+	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby/config/arm
 else ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 	LOCAL_CPPFLAGS += -DARCH_32BIT
-	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby192-latest/config/arm
+	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby/config/arm
 else ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
-	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby192-latest/config/arm64
+	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ruby/config/arm64
 else ifeq ($(TARGET_ARCH_ABI), x86)
 	LOCAL_CPPFLAGS += -DARCH_32BIT
 else ifeq ($(TARGET_ARCH_ABI), mips)
