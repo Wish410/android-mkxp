@@ -27,4 +27,4 @@ include $(L_PATH)/libiconv/Android.mk
 include $(L_PATH)/libguess/Android.mk
 include $(L_PATH)/libsigc++/Android.mk
 include $(L_PATH)/OpenAL/Android.mk
-include $(L_PATH)/ruby192/Android.mk
+include $(L_PATH)/ruby/Android.mk
