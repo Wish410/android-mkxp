@@ -53,7 +53,7 @@ LOCAL_SRC_FILES:= \
         $(LOCAL_PATH)/pack.c \
         $(LOCAL_PATH)/parse.c \
         $(LOCAL_PATH)/process.c \
-        $(LOCAL_PATH)/random.c.\
+        $(LOCAL_PATH)/random.c \
         $(LOCAL_PATH)/range.c \
         $(LOCAL_PATH)/rational.c \
         $(LOCAL_PATH)/re.c \
