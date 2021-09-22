@@ -1,5 +1,10 @@
 package org.libsdl.app;
 
+import static org.libsdl.app.SDLActivity.mHapticHandler;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -9,9 +14,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.lang.reflect.Method;
 
-import android.app.*;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.*;
 import android.text.InputType;
+import android.util.DisplayMetrics;
 import android.view.*;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -20,32 +28,27 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import android.os.*;
 import android.util.Log;
-import android.util.SparseArray;
 import android.graphics.*;
-import android.graphics.drawable.Drawable;
 import android.media.*;
 import android.hardware.*;
 import android.content.pm.ActivityInfo;
+import cyou.joiplay.joipad.JoiPad;
+import cyou.joiplay.rpgm.MainActivity;
+import cyou.joiplay.rpgm.R;
 
-import com.joiplay.joiplay.rpgm.MainActivity;
-import com.joiplay.joiplay.rpgm.R;
-import com.joiplay.joiplay.rpgm.JoystickButton;
 import org.ancurio.mkxp.MKXP;
-
-import static com.joiplay.joiplay.rpgm.MainActivity.*;
-import static org.libsdl.app.SDLActivity.mHapticHandler;
 
 /**
     SDL Activity
 */
 public class SDLActivity extends Activity {
-    private static final String TAG = "SDL";
+    private static final String TAG = "JoiPlay";
 
     public static boolean mIsResumedCalled, mIsSurfaceReady, mHasFocus;
 
     // Handle the state of the native layer
     public enum NativeState {
-           INIT, RESUMED, PAUSED 
+           INIT, RESUMED, PAUSED
     }
 
     public static NativeState mNextNativeState;
@@ -63,13 +66,19 @@ public class SDLActivity extends Activity {
     // Main components
     protected static SDLActivity mSingleton;
     protected static SDLSurface mSurface;
+    protected static SurfaceView mVideoSurface;
+    protected static TextView fpsView;
     protected static View mTextEdit;
-    protected static ViewGroup mLayout;
+    protected static RelativeLayout mLayout;
     protected static SDLJoystickHandler mJoystickHandler;
     protected static SDLHapticHandler mHapticHandler;
 
+    //Needed to pause/resume input
+    public JoiPad joiPad;
+    public Boolean isDebugEnabled = false;
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
+    protected static Handler mMainHandler = new Handler(Looper.getMainLooper());
 
     // Audio
     protected static AudioTrack mAudioTrack;
@@ -78,31 +87,6 @@ public class SDLActivity extends Activity {
 	/* FIXME: Remove this ASAP */
     public static void pollHapticDevices(){}
     public static void hapticRun(int i,int j){}
-
-    public RelativeLayout joystickLay;
-    public RelativeLayout joystickALay;
-    public JoystickButton joystickBtn;
-    public RelativeLayout joystickDpad;
-    public ImageButton upBtn;
-    public ImageButton downBtn;
-    public ImageButton leftBtn;
-    public ImageButton rightBtn;
-    public ImageButton closeBtn;
-    public ImageButton rotateBtn;
-    public ImageButton keyboardBtn;
-    public Button aBtn;
-    public Button bBtn;
-    public Button cBtn;
-    public Button xBtn;
-    public Button yBtn;
-    public Button zBtn;
-    public BaseInputConnection inputConnection;
-    private Integer angle = 0;
-    private Integer nAngle = 0;
-    private Float initX = 0.0f;
-    private Float initY = 0.0f;
-    private Float posX = 0.0f;
-    private Float posY = 0.0f;
 
 
 
@@ -116,16 +100,40 @@ public class SDLActivity extends Activity {
      */
     protected String[] getLibraries() {
         return new String[] {
-            "mkxp_wrapper"
+                "openal",
+                "mkxp_wrapper"
         };
     }
 
     // Load the .so
     public void loadLibraries() {
        for (String lib : getLibraries()) {
-          System.loadLibrary(lib);
+           System.loadLibrary(lib);
        }
-	   MKXP.loadLibs(MKXP.getLibDir(this) + "libmkxp.so");
+
+        boolean loadMKXP18 = false;
+        boolean loadMKXP30 = false;
+
+        if (!getIntent().hasExtra("customScript")){
+            switch (MainActivity.game.type){
+                case "rpgmxp":
+                case "rpgmvx":
+                    loadMKXP18 = MainActivity.configuration.useRuby18;
+                    break;
+                case "mkxp-z":
+                    loadMKXP30 = true;
+                    break;
+            }
+        }
+
+        if (loadMKXP30){
+            MKXP.loadLibs(MKXP.getLibDir(this) + "libmkxp30.so");
+        } else if (loadMKXP18){
+            MKXP.loadLibs(MKXP.getLibDir(this) + "libmkxp18.so");
+        } else {
+            MKXP.loadLibs(MKXP.getLibDir(this) + "libmkxp19.so");
+        }
+
     }
 
     /**
@@ -135,7 +143,7 @@ public class SDLActivity extends Activity {
      * @return arguments for the native application.
      */
     protected String[] getArguments() {
-        return new String[]{MainActivity.getConfPath()};
+        return new String[]{MainActivity.confPath};
     }
 
     public static void initialize() {
@@ -143,6 +151,7 @@ public class SDLActivity extends Activity {
         // Otherwise, when exiting the app and returning to it, these variables *keep* their pre exit values
         mSingleton = null;
         mSurface = null;
+        mVideoSurface = null;
         mTextEdit = null;
         mLayout = null;
         mJoystickHandler = null;
@@ -165,6 +174,7 @@ public class SDLActivity extends Activity {
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
         Log.v(TAG, "Model: " + android.os.Build.MODEL);
         Log.v(TAG, "onCreate(): " + mSingleton);
+
         super.onCreate(savedInstanceState);
 
         SDLActivity.initialize();
@@ -174,12 +184,10 @@ public class SDLActivity extends Activity {
         // Load shared libraries
         String errorMsgBrokenLib = "";
         try {
+            Log.v(TAG, "Loading libraries...");
             loadLibraries();
-        } catch(UnsatisfiedLinkError e) {
-            System.err.println(e.getMessage());
-            mBrokenLibraries = true;
-            errorMsgBrokenLib = e.getMessage();
-        } catch(Exception e) {
+        } catch(UnsatisfiedLinkError | Exception e) {
+            Log.d(TAG, e.getMessage());
             System.err.println(e.getMessage());
             mBrokenLibraries = true;
             errorMsgBrokenLib = e.getMessage();
@@ -209,6 +217,7 @@ public class SDLActivity extends Activity {
 
         // Set up the surface
         mSurface = new SDLSurface(getApplication());
+        mVideoSurface = new SurfaceView(this);
 
         if(Build.VERSION.SDK_INT >= 12) {
             mJoystickHandler = new SDLJoystickHandler_API12();
@@ -220,302 +229,23 @@ public class SDLActivity extends Activity {
 
         mLayout = new RelativeLayout(this);
         mLayout.addView(mSurface);
-        FrameLayout frameLayout = new FrameLayout(this);
-        frameLayout.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
-        getLayoutInflater().inflate(R.layout.layout_joystick,frameLayout);
-        mLayout.addView(frameLayout);
+
+        mVideoSurface.setVisibility(View.GONE);
+        mLayout.addView(mVideoSurface);
+
+        fpsView = new TextView(this);
+        fpsView.setTextSize((8 * ((float) this.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT)));
+        fpsView.setTextColor(Color.WHITE);
+        fpsView.setVisibility(View.GONE);
+        mLayout.addView(fpsView);
 
         setContentView(mLayout);
 
-        joystickLay = findViewById(R.id.joystickLay);
-        joystickALay = findViewById(R.id.actionLay);
-        joystickBtn = findViewById(R.id.joystickBtn);
-        joystickDpad = findViewById(R.id.joystickArrowLay);
-        upBtn = findViewById(R.id.upBtn);
-        downBtn = findViewById(R.id.downBtn);
-        leftBtn = findViewById(R.id.leftBtn);
-        rightBtn = findViewById(R.id.rightBtn);
-        closeBtn = findViewById(R.id.closeBtn);
-        rotateBtn = findViewById(R.id.rotateBtn);
-        keyboardBtn = findViewById(R.id.keyboardBtn);
-        aBtn = findViewById(R.id.aBtn);
-        bBtn = findViewById(R.id.bBtn);
-        cBtn = findViewById(R.id.cBtn);
-        xBtn = findViewById(R.id.xBtn);
-        yBtn = findViewById(R.id.yBtn);
-        zBtn = findViewById(R.id.zBtn);
-        if (getIntent().hasExtra("btnOpacity")){
-            btnOpacity = Integer.parseInt(getIntent().getStringExtra("btnOpacity"));
-        }
-        if (getIntent().hasExtra("btnScale")){
-            btnScale = Float.parseFloat(getIntent().getStringExtra("btnScale"));
-        }
-        if (getIntent().hasExtra("cKeyCode")){
-            cKeyCode = getIntent().getIntExtra("cKeyCode",KeyEvent.KEYCODE_C);
-        }
-        if (getIntent().hasExtra("xKeyCode")){
-            xKeyCode = getIntent().getIntExtra("xKeyCode",KeyEvent.KEYCODE_X);
-        }
-        if (getIntent().hasExtra("yKeyCode")){
-            yKeyCode = getIntent().getIntExtra("yKeyCode",KeyEvent.KEYCODE_Y);
-        }
-        if (getIntent().hasExtra("zKeyCode")){
-            zKeyCode = getIntent().getIntExtra("zKeyCode",KeyEvent.KEYCODE_Z);
-        }
-        Log.d("Opacity",btnOpacity.toString());
-        joystickBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        upBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        downBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        leftBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        rightBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        closeBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        rotateBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        keyboardBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        aBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        bBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        cBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        xBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        yBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        zBtn.getBackground().setAlpha(Math.round(btnOpacity * 2.25f));
-        joystickLay.setVisibility(View.INVISIBLE);
-        resizeView(joystickALay,btnScale);
-        resizeView(joystickDpad,btnScale);
-        inputConnection = new BaseInputConnection(mSurface,true);
-        joystickBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (joystickLay.getVisibility() == View.INVISIBLE){
-                    joystickLay.setVisibility(View.VISIBLE);
-                    joystickLay.bringToFront();
-                    joystickLay.invalidate();
-                    joystickBtn.bringToFront();
-                    joystickBtn.invalidate();
-                } else {
-                    joystickLay.setVisibility(View.INVISIBLE);
-                }
-            }
-        });
-
-        joystickDpad.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                joystickDpad.bringToFront();
-                joystickDpad.invalidate();
-                initX = v.getWidth() / 2.0f;
-                initY = v.getHeight() / 2.0f;
-                posX = v.getWidth() / 2.0f;
-                posY = v.getHeight() / 2.0f;
-                switch (event.getAction()){
-                    case MotionEvent.ACTION_DOWN:
-                    case MotionEvent.ACTION_MOVE:
-                    case MotionEvent.ACTION_POINTER_DOWN:{
-                        posX = event.getX();
-                        posY = event.getY();
-                        nAngle = getAngle(initX,posX,initY,posY);
-                        if (nAngle == angle){
-                            return true;
-                        } else {
-                            if (angle == 1){
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_UP);
-                            } else if (angle == 2){
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_RIGHT);
-                            } else if (angle == 3){
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_DOWN);
-                            } else if (angle == 4){
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_LEFT);
-                            }
-                            angle = nAngle;
-                            if (angle == 1){
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_DPAD_UP);
-                                return true;
-                            } else if (angle == 2){
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_DPAD_RIGHT);
-                                return true;
-                            } else if (angle == 3){
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_DPAD_DOWN);
-                                return true;
-                            } else if (angle == 4){
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_DPAD_LEFT);
-                                return true;
-                            }
-                        }
-
-                    }
-                    case  MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                    case MotionEvent.ACTION_POINTER_UP:
-                    case MotionEvent.ACTION_OUTSIDE:{
-                        posX = joystickDpad.getWidth() / 2f;
-                        posY = joystickDpad.getHeight() / 2f;
-                        if (angle == 1){
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_UP);
-                            angle = 0;
-                            return true;
-                        } else if (angle == 2){
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_RIGHT);
-                            angle = 0;
-                            return true;
-                        } else if (angle == 3){
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_DOWN);
-                            angle = 0;
-                            return true;
-                        } else if (angle == 4){
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_DPAD_LEFT);
-                            angle = 0;
-                            return true;
-                        }
-
-                    }
-                }
-                return false;
-            }
-        });
-
-
-        aBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_ENTER);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        bBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_ESCAPE);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        cBtn.setText(KeyEvent.keyCodeToString(cKeyCode).replace("KEYCODE_",""));
-
-        cBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(cKeyCode);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(cKeyCode);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        xBtn.setText(KeyEvent.keyCodeToString(xKeyCode).replace("KEYCODE_",""));
-
-        xBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(xKeyCode);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(xKeyCode);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        yBtn.setText(KeyEvent.keyCodeToString(yKeyCode).replace("KEYCODE_",""));
-
-        yBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(yKeyCode);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(yKeyCode);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        zBtn.setText(KeyEvent.keyCodeToString(zKeyCode).replace("KEYCODE_",""));
-
-        zBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN){
-                    SDLActivity.onNativeKeyDown(zKeyCode);
-                    return true;
-                } else if (motionEvent.getAction() == MotionEvent.ACTION_CANCEL || motionEvent.getAction() == MotionEvent.ACTION_UP){
-                    SDLActivity.onNativeKeyUp(zKeyCode);
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        rotateBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switch (getRequestedOrientation()){
-                    case ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                        break;
-                    case ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT:
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                        break;
-
-                }
-            }
-        });
-
-        keyboardBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm.isAcceptingText()){
-                    imm.hideSoftInputFromWindow(view.getWindowToken(),0);
-                } else {
-                    imm.toggleSoftInputFromWindow(view.getWindowToken(),0,0);
-                }
-            }
-        });
-
-
-        closeBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onDestroy();
-            }
-        });
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
 
         // Get filename from "Open with" of another application
         Intent intent = getIntent();
@@ -529,25 +259,6 @@ public class SDLActivity extends Activity {
         }
     }
 
-    private Integer getAngle(Float initX, Float posX , Float initY, Float posY){
-        long angle = Math.round(Math.toDegrees(Math.atan2((initY - posY), (initX - posX))));
-        if (angle < 0){
-            angle = angle + 360;
-        }
-        int iAngle = (int) angle;
-        if (iAngle > 45 && iAngle < 136){
-            return 1;
-        } else if (iAngle > 135 && iAngle < 226){
-            return 2;
-        } else if (iAngle > 225 && iAngle < 316){
-            return 3;
-        } else if (iAngle > 315 && iAngle < 361){
-            return 4;
-        } else if (iAngle >= 0 && iAngle < 46){
-            return 4;
-        }
-        return 0;
-    }
     // Events
     @Override
     protected void onPause() {
@@ -593,13 +304,13 @@ public class SDLActivity extends Activity {
         } else {
            mNextNativeState = NativeState.PAUSED;
         }
-        
+
         SDLActivity.handleNativeState();
     }
 
     @Override
     public void onLowMemory() {
-        Log.v(TAG, "onLowMemory()");
+        Log.d(TAG, "Warning: Low Memory");
         super.onLowMemory();
 
         if (SDLActivity.mBrokenLibraries) {
@@ -865,6 +576,79 @@ public class SDLActivity extends Activity {
      */
     public static boolean sendMessage(int command, int param) {
         return mSingleton.sendCommand(command, Integer.valueOf(param));
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static void playMovie(byte[] address) {
+        String addressString = new String(address);
+        File videoFile = new File(MainActivity.gameFolder+"/"+addressString);
+        Log.d("mkxp","Playing "+addressString);
+        if (!videoFile.exists()) return;
+
+        //Needs a GPLv2 compatible video player library
+
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static void writeDebug(byte[] message) {
+        String messageString = new String(message);
+
+        if (mSingleton.isDebugEnabled){
+            try{
+                File logFile = new File(MainActivity.internalFolder+"/logs.txt");
+                if (!logFile.exists()) {
+                    logFile.createNewFile();
+                }
+
+                FileWriter fr = new FileWriter(logFile, true);
+                BufferedWriter br = new BufferedWriter(fr);
+                br.append(messageString).append("\n");
+
+                br.close();
+                fr.close();
+            } catch (Exception e){
+                Log.d("mkxp",Log.getStackTraceString(e));
+            }
+        }
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static void showMessageDialog(byte[] message) {
+        String messageString = new String(message);
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.post(() -> {
+            AlertDialog.Builder dBuilder = new AlertDialog.Builder(mSingleton);
+            dBuilder.setCancelable(true);
+            dBuilder.setTitle("Game");
+            dBuilder.setMessage(messageString);
+            dBuilder.setPositiveButton(R.string.ok, (dialogInterface, i) -> {
+                dialogInterface.dismiss();
+            });
+            AlertDialog dialog = dBuilder.create();
+            dialog.show();
+        });
+    }
+
+    public static void drawFPS(int fps){
+        mMainHandler.post(() -> fpsView.setText("FPS : " + String.valueOf(fps)));
+    }
+
+    public static void setFPSVisibility(boolean isVisible){
+        mMainHandler.post(() -> {
+            if (isVisible){
+                Log.d("mkxp","Show FPS");
+                fpsView.setVisibility(View.VISIBLE);
+            } else {
+                Log.d("mkxp","Hide FPS");
+                fpsView.setVisibility(View.INVISIBLE);
+            }
+        });
     }
 
     /**
@@ -1250,7 +1034,7 @@ public class SDLActivity extends Activity {
             final int[] buttonFlags,
             final int[] buttonIds,
             final String[] buttonTexts,
-            final int[] colors) {
+            final int[] colors) throws InterruptedException {
 
         messageboxSelection[0] = -1;
 
@@ -1272,23 +1056,37 @@ public class SDLActivity extends Activity {
         args.putIntArray("colors", colors);
 
         // trigger Dialog creation on UI thread
-
-        runOnUiThread(new Runnable() {
+        Handler mHandler = new Handler(Looper.getMainLooper());
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
-                showDialog(dialogs++, args);
+                AlertDialog.Builder dBuilder = new AlertDialog.Builder(getContext());
+                dBuilder.setTitle(title);
+                dBuilder.setCancelable(true);
+
+                dBuilder.setMessage(args.getString("message"));
+                dBuilder.setPositiveButton(R.string.ok, (dialogInterface, i) -> {
+                    dialogInterface.dismiss();
+                });
+                dBuilder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        synchronized (messageboxSelection) {
+                            messageboxSelection.notify();
+                        }
+                    }
+                });
+                AlertDialog dialog = dBuilder.create();
+                try {
+                    dialog.show();
+                } catch (Exception e){
+                    Log.d("SDL",Log.getStackTraceString(e));
+                }
             }
         });
 
-        // block the calling thread
-
         synchronized (messageboxSelection) {
-            try {
-                messageboxSelection.wait();
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-                return -1;
-            }
+            messageboxSelection.wait();
         }
 
         // return selected value
@@ -1299,151 +1097,24 @@ public class SDLActivity extends Activity {
     @Override
     protected Dialog onCreateDialog(int ignore, Bundle args) {
 
-        // TODO set values from "flags" to messagebox dialog
-
-        // get colors
-
-        int[] colors = args.getIntArray("colors");
-        int backgroundColor;
-        int textColor;
-        int buttonBorderColor;
-        int buttonBackgroundColor;
-        int buttonSelectedColor;
-        if (colors != null) {
-            int i = -1;
-            backgroundColor = colors[++i];
-            textColor = colors[++i];
-            buttonBorderColor = colors[++i];
-            buttonBackgroundColor = colors[++i];
-            buttonSelectedColor = colors[++i];
-        } else {
-            backgroundColor = Color.TRANSPARENT;
-            textColor = Color.TRANSPARENT;
-            buttonBorderColor = Color.TRANSPARENT;
-            buttonBackgroundColor = Color.TRANSPARENT;
-            buttonSelectedColor = Color.TRANSPARENT;
-        }
-
-        // create dialog with title and a listener to wake up calling thread
-
-        final Dialog dialog = new Dialog(this);
-        dialog.setTitle(args.getString("title"));
-        dialog.setCancelable(false);
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface unused) {
-                synchronized (messageboxSelection) {
-                    messageboxSelection.notify();
-                }
+        AlertDialog.Builder dBuilder = new AlertDialog.Builder(this);
+        dBuilder.setTitle(args.getString("title"));
+        dBuilder.setCancelable(true);
+        dBuilder.setOnDismissListener(dialogInterface -> {
+            synchronized (messageboxSelection) {
+                messageboxSelection.notify();
             }
         });
-
-        // create text
-
-        TextView message = new TextView(this);
-        message.setGravity(Gravity.CENTER);
-        message.setText(args.getString("message"));
-        if (textColor != Color.TRANSPARENT) {
-            message.setTextColor(textColor);
-        }
-
-        // create buttons
-
-        int[] buttonFlags = args.getIntArray("buttonFlags");
-        int[] buttonIds = args.getIntArray("buttonIds");
-        String[] buttonTexts = args.getStringArray("buttonTexts");
-
-        final SparseArray<Button> mapping = new SparseArray<Button>();
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setGravity(Gravity.CENTER);
-        for (int i = 0; i < buttonTexts.length; ++i) {
-            Button button = new Button(this);
-            final int id = buttonIds[i];
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    messageboxSelection[0] = id;
-                    dialog.dismiss();
-                }
-            });
-            if (buttonFlags[i] != 0) {
-                // see SDL_messagebox.h
-                if ((buttonFlags[i] & 0x00000001) != 0) {
-                    mapping.put(KeyEvent.KEYCODE_ENTER, button);
-                }
-                if ((buttonFlags[i] & 0x00000002) != 0) {
-                    mapping.put(111, button); /* API 11: KeyEvent.KEYCODE_ESCAPE */
-                }
-            }
-            button.setText(buttonTexts[i]);
-            if (textColor != Color.TRANSPARENT) {
-                button.setTextColor(textColor);
-            }
-            if (buttonBorderColor != Color.TRANSPARENT) {
-                // TODO set color for border of messagebox button
-            }
-            if (buttonBackgroundColor != Color.TRANSPARENT) {
-                Drawable drawable = button.getBackground();
-                if (drawable == null) {
-                    // setting the color this way removes the style
-                    button.setBackgroundColor(buttonBackgroundColor);
-                } else {
-                    // setting the color this way keeps the style (gradient, padding, etc.)
-                    drawable.setColorFilter(buttonBackgroundColor, PorterDuff.Mode.MULTIPLY);
-                }
-            }
-            if (buttonSelectedColor != Color.TRANSPARENT) {
-                // TODO set color for selected messagebox button
-            }
-            buttons.addView(button);
-        }
-
-        // create content
-
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.addView(message);
-        content.addView(buttons);
-        if (backgroundColor != Color.TRANSPARENT) {
-            content.setBackgroundColor(backgroundColor);
-        }
-
-        // add content to dialog and return
-
-        dialog.setContentView(content);
-        dialog.setOnKeyListener(new Dialog.OnKeyListener() {
-            @Override
-            public boolean onKey(DialogInterface d, int keyCode, KeyEvent event) {
-                Button button = mapping.get(keyCode);
-                if (button != null) {
-                    if (event.getAction() == KeyEvent.ACTION_UP) {
-                        button.performClick();
-                    }
-                    return true; // also for ignored actions
-                }
-                return false;
+        dBuilder.setMessage(args.getString("message"));
+        dBuilder.setPositiveButton(R.string.ok, (dialogInterface, i) -> {
+            dialogInterface.dismiss();
+            synchronized (messageboxSelection) {
+                messageboxSelection.notify();
             }
         });
+        AlertDialog dialog = dBuilder.create();
 
         return dialog;
-    }
-
-    public void resizeView(View view,Float scale){
-        ViewGroup.LayoutParams nParams = view.getLayoutParams();
-        nParams.width = Math.round(nParams.width * scale);
-        nParams.height = Math.round(nParams.height * scale);
-        view.setLayoutParams(nParams);
-        if (view instanceof ViewGroup){
-            Integer cCount = ((ViewGroup) view).getChildCount();
-            for (int i = 0; i < cCount; i++){
-                View v = ((ViewGroup) view).getChildAt(i);
-                if ((v instanceof ViewGroup) || (v instanceof View)){
-                    resizeView(v,scale);
-                }
-            }
-        }
     }
 }
 
@@ -1887,8 +1558,7 @@ class DummyEdit extends View implements View.OnKeyListener {
         ic = new SDLInputConnection(this, true);
 
         outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
-                | 33554432 /* API 11: EditorInfo.IME_FLAG_NO_FULLSCREEN */;
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_ACTION_GO;
 
         return ic;
     }

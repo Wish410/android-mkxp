@@ -6,3 +6,12 @@
 	path = app/src/main/jni/SDL_sound
 	url = https://github.com/Ancurio/SDL_sound
 	branch = master
+[submodule "commons"]
+	path = commons
+	url = https://github.com/joiplay/commons.git
+[submodule "sdp"]
+	path = sdp
+	url = https://github.com/joiplay/sdp
+[submodule "joipad"]
+	path = joipad
+	url = https://github.com/joiplay/joipad
