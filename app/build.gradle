@@ -8,8 +8,8 @@ android {
         applicationId "cyou.joiplay.rpgm"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 11000
-        versionName "1.10.00-alpha"
+        versionCode 11001
+        versionName "1.10.01-alpha"
         archivesBaseName = "RPGMPlugin-$versionName"
 
         ndk {

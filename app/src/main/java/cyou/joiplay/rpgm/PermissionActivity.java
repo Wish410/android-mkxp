@@ -31,16 +31,18 @@ public class PermissionActivity extends Activity {
         progView = findViewById(R.id.progText);
         progView.setText(R.string.checking_config);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
-            if (!Environment.isExternalStorageManager()){
-                showManageStoragePermissionDialog();
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission("android.permission.WRITE_EXTERNAL_STORAGE") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_EXTERNAL_STORAGE"}, fileRequestCode);
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+                if (!Environment.isExternalStorageManager()){
+                    showManageStoragePermissionDialog();
+                } else {
+                    startGame();
+                }
             } else {
                 startGame();
             }
-        } else if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission("android.permission.WRITE_EXTERNAL_STORAGE") != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE"}, fileRequestCode);
-        } else {
-            startGame();
         }
     }
 
@@ -81,7 +83,13 @@ public class PermissionActivity extends Activity {
             case fileRequestCode:
                 if (Build.VERSION.SDK_INT >= 23){
                     if ( checkSelfPermission("android.permission.WRITE_EXTERNAL_STORAGE") == PackageManager.PERMISSION_GRANTED) {
-                        startGame();
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+                            if (!Environment.isExternalStorageManager()){
+                                showManageStoragePermissionDialog();
+                            } else {
+                                startGame();
+                            }
+                        }
                     } else {
                         requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE"}, fileRequestCode);
                     }
