@@ -1,6 +1,7 @@
 package cyou.joiplay.rpgm;
 
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -93,7 +94,10 @@ public class MainActivity extends SDLActivity {
 
         gameFolder = game.folder;
 
-        boolean inExternal = (!(gameFolder.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath()) || gameFolder.startsWith("/sdcard")));
+        boolean inExternal = !(gameFolder.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath()) || gameFolder.startsWith("/sdcard"));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            inExternal = false;
 
         if (inExternal){
             internalFolder = getExternalFilesDir(null).getAbsolutePath() + File.separator + game.id;
