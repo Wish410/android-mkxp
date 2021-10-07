@@ -8,8 +8,8 @@ android {
         applicationId "cyou.joiplay.rpgm"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 11002
-        versionName "1.10.02-alpha"
+        versionCode 11006
+        versionName "1.10.06"
         archivesBaseName = "RPGMPlugin-$versionName"
 
         ndk {
@@ -20,6 +20,18 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+        }
+    }
+
+    flavorDimensions "version"
+    productFlavors{
+        play {
+            dimension "version"
+            versionNameSuffix "-play"
+        }
+        patreon {
+            dimension "version"
+            versionNameSuffix "-patreon"
         }
     }
 
