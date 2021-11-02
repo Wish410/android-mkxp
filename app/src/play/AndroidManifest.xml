@@ -54,28 +54,15 @@
             android:exported="true"
             >
             <intent-filter>
-                <action android:name="cyou.joiplay.rpgmvxace.MainActivity"/>
+                <action android:name="cyou.joiplay.rpgmvxace.PermissionActivity"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="cyou.joiplay.rpgmvx.MainActivity"/>
+                <action android:name="cyou.joiplay.rpgmvx.PermissionActivity"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="cyou.joiplay.rpgmxp.MainActivity"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="com.joiplay.joiplay.rpgmvxace.MainActivity"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="com.joiplay.joiplay.rpgmvx.MainActivity"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="com.joiplay.joiplay.rpgmxp.MainActivity"/>
+                <action android:name="cyou.joiplay.rpgmxp.PermissionActivity"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
