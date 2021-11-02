@@ -79,6 +79,8 @@ public class MainActivity extends SDLActivity {
             MKXPConfigurationParser.parse(configuration, configurationJson);
             GamePadParser.parse(gamePad, gamepadJson);
 
+            loadConfig();
+
             if (getIntent().hasExtra("preloadScripts")){
                 preloadScripts = getIntent().getStringArrayListExtra("preloadScripts");
             }
@@ -315,6 +317,24 @@ public class MainActivity extends SDLActivity {
         if (mLayout != null){
             super.joiPad = joiPad;
             joiPad.attachTo(this, mLayout);
+        }
+    }
+
+    private void loadConfig(){
+        String configPath;
+        if (game.folder.startsWith(Environment.getExternalStorageDirectory().getAbsolutePath())){
+            configPath = game.folder+"/configuration.json";
+        } else {
+            configPath = Environment.getExternalStorageDirectory().getAbsolutePath()+"/JoiPlay/games/"+game.id+"/configuration.json";
+        }
+        File configFile = new File(configPath);
+
+        if (configFile.exists()){
+            try {
+                MKXPConfigurationParser.loadFromFile(configuration, configFile);
+            } catch (Exception e){
+                Log.d(TAG, Log.getStackTraceString(e));
+            }
         }
     }
 
