@@ -100,7 +100,7 @@ public class MainActivity extends SDLActivity {
             }
 
             if (getIntent().hasExtra("customScript")){
-                customScript = "customScript="+getIntent().getStringExtra("customScript");
+                customScript = getIntent().getStringExtra("customScript");
             }
         } catch (Exception e){
             Log.d(TAG, Log.getStackTraceString(e));
