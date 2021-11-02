@@ -223,7 +223,7 @@ public class MainActivity extends SDLActivity {
             try{
                 File customFontSourceFile = new File(configuration.customFont);
 
-                if (!customFontSourceFile.exists()){
+                if (customFontSourceFile.exists()){
                     String customFontTarget = rtpPath+File.separator+customFontSourceFile.getName();
                     FileUtils.copy(customFontSourceFile.getAbsolutePath(), customFontTarget);
                     configuration.customFont = customFontSourceFile.getName();
