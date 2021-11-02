@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -46,8 +47,8 @@ public class MainActivity extends SDLActivity {
 
     private String execFile = "Game";
     private String execName = "execName=Game";
-    private List<String> preloadScripts = Collections.emptyList();
-    private List<String> postloadScripts = Collections.emptyList();
+    private ArrayList<String> preloadScripts = new ArrayList<>();
+    private ArrayList<String> postloadScripts = new ArrayList<>();
     private String customScript = "";
     private String keyMapping = "";
 
@@ -182,8 +183,8 @@ public class MainActivity extends SDLActivity {
         String forcedHeight = configuration.forcedDim.split("x")[1];
 
         if (game.type.contentEquals("mkxp-z")){
-            preloadScripts = Collections.emptyList();
-            postloadScripts = Collections.emptyList();
+            preloadScripts = new ArrayList<>();
+            postloadScripts = new ArrayList<>();
         }
 
         if (customScript.length() > 0){
