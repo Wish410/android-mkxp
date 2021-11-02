@@ -112,6 +112,8 @@ public class PermissionActivity extends Activity {
                             } else {
                                 startGame();
                             }
+                        } else {
+                            startGame();
                         }
                     } else {
                         requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE"}, fileRequestCode);
