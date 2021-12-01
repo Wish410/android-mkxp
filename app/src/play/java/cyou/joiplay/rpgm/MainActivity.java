@@ -253,6 +253,8 @@ public class MainActivity extends SDLActivity {
             postloadStringBuilder.append("postloadScript=").append(postloadScript).append("\n");
         }
 
+        createUserDataFolders(internalFolder);
+
         try{
             File configFile = new File(confPath);
             if (configFile.exists()){
@@ -331,6 +333,18 @@ public class MainActivity extends SDLActivity {
             } catch (Exception e){
                 Log.d(TAG, Log.getStackTraceString(e));
             }
+        }
+    }
+
+    void createUserDataFolders(String parentFolder){
+        File tempFolder = new File(parentFolder+"/UserData/Temp");
+        File dataFoler = new File(parentFolder+"/UserData/AppData");
+
+        try {
+            if (!tempFolder.exists()) tempFolder.mkdirs();
+            if (!dataFoler.exists()) dataFoler.mkdirs();
+        } catch (Exception e){
+            Log.d(TAG, Log.getStackTraceString(e));
         }
     }
 
