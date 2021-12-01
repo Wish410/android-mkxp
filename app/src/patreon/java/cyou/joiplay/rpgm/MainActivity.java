@@ -20,8 +20,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import cyou.joiplay.commons.dialog.ErrorDialog;
 import cyou.joiplay.commons.file.FileUtils;
@@ -82,13 +80,10 @@ public class MainActivity extends SDLActivity {
         try {
             String gameJson = getIntent().getStringExtra("game");
             String settingsJson = getIntent().getStringExtra("settings");
-            JSONObject settings = new JSONObject(settingsJson);
-            String configurationJson = settings.getJSONObject("rpg").toString();
-            String gamepadJson = settings.getJSONObject("gamepad").toString();
 
             GameParser.parse(game, gameJson);
-            MKXPConfigurationParser.parse(configuration, configurationJson);
-            GamePadParser.parse(gamePad, gamepadJson);
+            MKXPConfigurationParser.parse(configuration, settingsJson);
+            GamePadParser.parse(gamePad, settingsJson);
 
             loadConfig();
 
@@ -148,7 +143,7 @@ public class MainActivity extends SDLActivity {
                     execName = "execName="+execFile;
                 }
             } catch (Exception e){
-                //Ignore
+                Log.d(TAG, Log.getStackTraceString(e));
             }
         } else {
             try{
@@ -167,7 +162,7 @@ public class MainActivity extends SDLActivity {
                         execName = "execName="+altIni;
                 }
             } catch (Exception e){
-                //Ignore
+                Log.d(TAG, Log.getStackTraceString(e));
             }
         }
 
@@ -212,7 +207,7 @@ public class MainActivity extends SDLActivity {
                     logFile.delete();
                 logFile.createNewFile();
             } catch (Exception e){
-                //Ignore
+                Log.d(TAG, Log.getStackTraceString(e));
             }
         }
 
@@ -243,7 +238,7 @@ public class MainActivity extends SDLActivity {
                     configuration.customFont = customFontSourceFile.getName();
                 }
             } catch (Exception e){
-                //Ignore
+                Log.d(TAG, Log.getStackTraceString(e));
             }
         }
 
