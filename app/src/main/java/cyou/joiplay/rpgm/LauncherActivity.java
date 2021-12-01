@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
@@ -14,6 +15,7 @@ import cyou.joiplay.commons.file.InputStreamUtils;
 
 
 public class LauncherActivity extends Activity {
+    private final static String TAG = "LauncherActivity";
     private boolean shouldHide = false;
 
     @Override
@@ -45,7 +47,9 @@ public class LauncherActivity extends Activity {
                 infoText.setText(Html.fromHtml(infoHTML));
                 licenseText.setText(Html.fromHtml(licenseHTML));
             }
-        } catch (Exception e){}
+        } catch (Exception e){
+            Log.d(TAG, Log.getStackTraceString(e));
+        }
 
         hideCheckBox.setOnCheckedChangeListener((compoundButton, b) -> shouldHide = b);
 
