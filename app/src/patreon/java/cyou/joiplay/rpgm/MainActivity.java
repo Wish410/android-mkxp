@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -379,6 +380,16 @@ public class MainActivity extends SDLActivity {
             }
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        if (joiPad != null) {
+            if (joiPad.processDPadEvent(event)) {
+                return true;
+            }
+        }
+        return super.onGenericMotionEvent(event);
     }
 
     @Override
