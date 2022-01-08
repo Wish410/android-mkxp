@@ -23,12 +23,13 @@
         android:preserveLegacyExternalStorage="true"
         >
         <activity android:name=".LauncherActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode|locale"
+            android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:screenOrientation="sensorPortrait"
             android:launchMode="singleTop"
             android:noHistory="true"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:exported="true"
+            android:resizeableActivity="true"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -36,7 +37,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".MainActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode|locale"
+            android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:screenOrientation="sensorLandscape"
             android:launchMode="singleTop"
             android:alwaysRetainTaskState="true"
@@ -44,14 +45,16 @@
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
             android:immersive="true"
             android:windowSoftInputMode="adjustPan"
+            android:resizeableActivity="true"
             />
         <activity android:name=".PermissionActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode|locale"
+            android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:screenOrientation="sensorLandscape"
             android:launchMode="singleTop"
             android:noHistory="true"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
             android:exported="true"
+            android:resizeableActivity="true"
             >
             <intent-filter>
                 <action android:name="cyou.joiplay.rpgmvxace.PermissionActivity"/>
