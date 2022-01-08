@@ -2,6 +2,9 @@
 #include <android/log.h>
 #include <dlfcn.h>
 #include <stddef.h>
+#include <string.h>
+#include <stdbool.h>
+
 static JavaVM* mVm;
 static void* mReserved;
 static jclass clazz;
@@ -10,7 +13,6 @@ int libs_loaded = 0;
 static void* libHandle;
 
 // JNI_OnLoad functions
-jint (*al_jnionload)(JavaVM* vm, void* reserved);
 jint (*sdl_jnionload)(JavaVM* vm, void* reserved);
 
 // SDL Functions to wrap
@@ -77,9 +79,7 @@ JNIEXPORT jint JNICALL Java_org_ancurio_mkxp_MKXP_loadLibs(JNIEnv * env, jclass 
         libHandle = dlopen(libPath, RTLD_NOW);
         (*env)->ReleaseStringUTFChars(env, path, libPath);
         // Grab OnLoad symbols
-        al_jnionload = dlsym(libHandle, "al_JNI_OnLoad");
         sdl_jnionload = dlsym(libHandle, "JNI_OnLoad");
-        (*al_jnionload)(mVm, mReserved);
         (*sdl_jnionload)(mVm, mReserved);
 
         // Grab SDL symbols
@@ -110,6 +110,7 @@ JNIEXPORT jint JNICALL Java_org_ancurio_mkxp_MKXP_loadLibs(JNIEnv * env, jclass 
         checkLibError();
         libs_loaded = 1;
     }
+    
     return 0;
 }
 
@@ -321,4 +322,59 @@ void sendMessageJNI(int typ, int obj) {
     (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
     jmethodID messageMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "sendMessage", "(II)Z");
     (*mEnv)->CallStaticBooleanMethod(mEnv, clazz, messageMe, typ, obj);
+}
+
+//Convert string to byte array
+//Fixes invalid modified utf-8 exceptions
+jbyteArray stringToJByteArray(JNIEnv * env, const char* string) {
+    size_t len = strlen(string);
+    jbyteArray arr = (*env)->NewByteArray(env, len);
+    (*env)->SetByteArrayRegion(env, arr,0,len,(jbyte*)string);
+    return arr;
+}
+
+void showMessageDialogJNI(const char* message) {
+    JNIEnv * mEnv;
+    (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
+    jmethodID messageMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "showMessageDialog", "([B)V");
+    if(!messageMe) return;
+    jbyteArray jarr = stringToJByteArray(mEnv,message);
+    if(!jarr) return;
+    (*mEnv)->CallStaticVoidMethod(mEnv, clazz, messageMe, jarr);
+}
+
+void writeDebugJNI(const char* message) {
+    JNIEnv * mEnv;
+    (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
+    jmethodID debugMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "writeDebug", "([B)V");
+    if(!debugMe) return;
+    jbyteArray jarr = stringToJByteArray(mEnv,message);
+    if(!jarr) return;
+    (*mEnv)->CallStaticVoidMethod(mEnv, clazz, debugMe, jarr);
+}
+
+void playMovieJNI(const char* address){
+    JNIEnv * mEnv;
+    (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
+    jmethodID movieMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "playMovie", "([B)V");
+    if(!movieMe) return;
+    jbyteArray jarr = stringToJByteArray(mEnv,address);
+    if(!jarr) return;
+    (*mEnv)->CallStaticVoidMethod(mEnv, clazz, movieMe, jarr);
+}
+
+void drawFPSJNI(int fps){
+    JNIEnv * mEnv;
+    (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
+    jmethodID fpsMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "drawFPS", "(I)V");
+    if(!fpsMe) return;
+    (*mEnv)->CallStaticVoidMethod(mEnv, clazz, fpsMe, fps);
+}
+
+void setFPSVisibilityJNI(bool isVisible){
+    JNIEnv * mEnv;
+    (*mVm)->AttachCurrentThread(mVm, &mEnv, NULL);
+    jmethodID fpsMe = (*mEnv)->GetStaticMethodID(mEnv, clazz, "setFPSVisibility", "(Z)V");
+    if(!fpsMe) return;
+    (*mEnv)->CallStaticVoidMethod(mEnv, clazz, fpsMe, isVisible);
 }
