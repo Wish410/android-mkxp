@@ -1,8 +1,8 @@
 APP_ABI := armeabi-v7a arm64-v8a x86_64
 APP_PLATFORM := android-21
 APP_OPTIM := release
-APP_STL := c++_static
 APP_CPPFLAGS := -std=c++11 -frtti -fexceptions -Os -fPIC
+APP_STL := c++_shared
 
 ifeq ($(TARGET_ARCH_ABI), armeabi)
 	APP_CPPFLAGS += -DARCH_32BIT -DABI_ARMEABI_V7A

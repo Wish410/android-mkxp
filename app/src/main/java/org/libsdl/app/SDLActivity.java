@@ -100,7 +100,7 @@ public class SDLActivity extends Activity {
      */
     protected String[] getLibraries() {
         return new String[] {
-                "openal",
+                "c++_shared",
                 "mkxp_wrapper"
         };
     }
